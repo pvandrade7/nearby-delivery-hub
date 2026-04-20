@@ -1,7 +1,26 @@
-import storePadaria from "@/assets/store-padaria.jpg";
-import storeQuitanda from "@/assets/store-quitanda.jpg";
 import storeMercado from "@/assets/store-mercado.jpg";
 import storeFlores from "@/assets/store-flores.jpg";
+import storeConstrucao from "@/assets/store-construcao.jpg";
+import storeFerramentas from "@/assets/store-ferramentas.jpg";
+import storeUtilidades from "@/assets/store-utilidades.jpg";
+import storeFarmacia from "@/assets/store-farmacia.jpg";
+import storePapelaria from "@/assets/store-papelaria.jpg";
+import storeEletronicos from "@/assets/store-eletronicos.jpg";
+import storeRoupas from "@/assets/store-roupas.jpg";
+
+import pCimento from "@/assets/p-cimento.jpg";
+import pMartelo from "@/assets/p-martelo.jpg";
+import pFuradeira from "@/assets/p-furadeira.jpg";
+import pChave from "@/assets/p-chave.jpg";
+import pDetergente from "@/assets/p-detergente.jpg";
+import pEscova from "@/assets/p-escova.jpg";
+import pLampada from "@/assets/p-lampada.jpg";
+import pTomada from "@/assets/p-tomada.jpg";
+import pCaderno from "@/assets/p-caderno.jpg";
+import pArroz from "@/assets/p-arroz.jpg";
+import pCamiseta from "@/assets/p-camiseta.jpg";
+import pFlores from "@/assets/p-flores.jpg";
+import pRemedio from "@/assets/p-remedio.jpg";
 
 export type Category = {
   id: string;
@@ -27,9 +46,12 @@ export type Product = {
   storeId: string;
   name: string;
   price: number;
+  originalPrice?: number;
   description: string;
   category: string;
-  emoji: string;
+  image: string;
+  popular?: boolean;
+  onSale?: boolean;
 };
 
 export type OrderStatus = "confirmado" | "preparando" | "saiu" | "entregue";
@@ -47,12 +69,15 @@ export type Order = {
 };
 
 export const categories: Category[] = [
-  { id: "padaria", name: "Padaria", emoji: "🥐" },
   { id: "mercado", name: "Mercado", emoji: "🛒" },
-  { id: "acougue", name: "Açougue", emoji: "🥩" },
-  { id: "flores", name: "Flores", emoji: "💐" },
+  { id: "construcao", name: "Construção", emoji: "🧱" },
+  { id: "limpeza", name: "Limpeza", emoji: "🧴" },
+  { id: "ferramentas", name: "Ferramentas", emoji: "🔧" },
   { id: "farmacia", name: "Farmácia", emoji: "💊" },
-  { id: "comida", name: "Comida", emoji: "🍕" },
+  { id: "papelaria", name: "Papelaria", emoji: "📒" },
+  { id: "flores", name: "Flores", emoji: "💐" },
+  { id: "eletronicos", name: "Eletrônicos", emoji: "💡" },
+  { id: "roupas", name: "Roupas", emoji: "👕" },
 ];
 
 export const stores: Store[] = [
@@ -63,75 +88,138 @@ export const stores: Store[] = [
     rating: 4.8,
     reviews: 124,
     distance: "0.8km",
-    deliveryTime: "12min",
+    deliveryTime: "30min",
     image: storeMercado,
-    description: "Mercadinho de bairro com tudo que você precisa no dia a dia.",
-    freeShippingFrom: 30,
+    description: "Mercadinho de bairro com tudo que você precisa.",
+    freeShippingFrom: 50,
   },
   {
     id: "s2",
-    name: "Quitanda da Vila",
-    category: "mercado",
-    rating: 4.9,
-    reviews: 89,
-    distance: "1.2km",
-    deliveryTime: "18min",
-    image: storeQuitanda,
-    description: "Frutas, legumes e verduras fresquinhos direto do produtor.",
+    name: "Construfácil Materiais",
+    category: "construcao",
+    rating: 4.7,
+    reviews: 86,
+    distance: "1.4km",
+    deliveryTime: "1h",
+    image: storeConstrucao,
+    description: "Cimento, tijolos e materiais para sua obra.",
   },
   {
     id: "s3",
-    name: "Padaria Sabor Real",
-    category: "padaria",
-    rating: 4.7,
-    reviews: 210,
-    distance: "0.5km",
-    deliveryTime: "10min",
-    image: storePadaria,
-    description: "Pão quentinho a qualquer hora do dia.",
-    freeShippingFrom: 25,
+    name: "Ferragens do Bairro",
+    category: "ferramentas",
+    rating: 4.9,
+    reviews: 142,
+    distance: "0.6km",
+    deliveryTime: "45min",
+    image: storeFerramentas,
+    description: "Ferramentas, parafusos e acessórios para reparos.",
+    freeShippingFrom: 80,
   },
   {
     id: "s4",
+    name: "Casa & Limpeza",
+    category: "limpeza",
+    rating: 4.6,
+    reviews: 71,
+    distance: "1.0km",
+    deliveryTime: "40min",
+    image: storeUtilidades,
+    description: "Produtos de limpeza e utilidades domésticas.",
+  },
+  {
+    id: "s5",
+    name: "Farmácia Saúde+",
+    category: "farmacia",
+    rating: 4.9,
+    reviews: 312,
+    distance: "0.5km",
+    deliveryTime: "20min",
+    image: storeFarmacia,
+    description: "Medicamentos, perfumaria e cuidados pessoais.",
+    freeShippingFrom: 40,
+  },
+  {
+    id: "s6",
+    name: "Papelaria Criativa",
+    category: "papelaria",
+    rating: 4.8,
+    reviews: 58,
+    distance: "1.2km",
+    deliveryTime: "50min",
+    image: storePapelaria,
+    description: "Material escolar, escritório e arte.",
+  },
+  {
+    id: "s7",
+    name: "EletroLuz",
+    category: "eletronicos",
+    rating: 4.5,
+    reviews: 49,
+    distance: "1.8km",
+    deliveryTime: "1h",
+    image: storeEletronicos,
+    description: "Lâmpadas, tomadas e eletrônicos simples.",
+  },
+  {
+    id: "s8",
     name: "Floricultura Bem-me-quer",
     category: "flores",
     rating: 5.0,
     reviews: 56,
     distance: "2.1km",
-    deliveryTime: "25min",
+    deliveryTime: "45min",
     image: storeFlores,
     description: "Buquês, arranjos e plantas para todas as ocasiões.",
+  },
+  {
+    id: "s9",
+    name: "Loja Urbana Style",
+    category: "roupas",
+    rating: 4.7,
+    reviews: 93,
+    distance: "1.5km",
+    deliveryTime: "1h",
+    image: storeRoupas,
+    description: "Roupas e acessórios casuais.",
   },
 ];
 
 export const products: Product[] = [
-  // Padaria
-  { id: "p1", storeId: "s3", name: "Pão Francês (10un)", price: 8.5, description: "Pão fresquinho assado na hora.", category: "padaria", emoji: "🥖" },
-  { id: "p2", storeId: "s3", name: "Croissant de Manteiga", price: 7.9, description: "Folhado crocante de manteiga francesa.", category: "padaria", emoji: "🥐" },
-  { id: "p3", storeId: "s3", name: "Bolo de Cenoura c/ Chocolate", price: 24.0, description: "Fatia generosa, cobertura cremosa.", category: "padaria", emoji: "🍰" },
+  // Construção
+  { id: "p1", storeId: "s2", name: "Cimento CP-II 50kg", price: 39.9, originalPrice: 49.9, description: "Saco de cimento Portland CP-II, ideal para alvenaria e estruturas.", category: "construcao", image: pCimento, onSale: true, popular: true },
+  // Ferramentas
+  { id: "p2", storeId: "s3", name: "Martelo de Unha 27mm", price: 34.5, description: "Martelo de aço com cabo emborrachado antiderrapante.", category: "ferramentas", image: pMartelo, popular: true },
+  { id: "p3", storeId: "s3", name: "Furadeira de Impacto 600W", price: 289.0, originalPrice: 349.0, description: "Furadeira sem fio com bateria recarregável e maleta.", category: "ferramentas", image: pFuradeira, onSale: true },
+  { id: "p4", storeId: "s3", name: "Chave de Boca Ajustável 8\"", price: 42.9, description: "Chave inglesa em aço cromado, abertura ajustável.", category: "ferramentas", image: pChave },
+  // Limpeza
+  { id: "p5", storeId: "s4", name: "Detergente Líquido 500ml", price: 3.49, description: "Detergente neutro para louças, alta concentração.", category: "limpeza", image: pDetergente, popular: true },
+  { id: "p6", storeId: "s4", name: "Escova Multiuso", price: 9.9, originalPrice: 14.9, description: "Escova com cerdas resistentes para limpeza pesada.", category: "limpeza", image: pEscova, onSale: true },
+  // Eletrônicos
+  { id: "p7", storeId: "s7", name: "Lâmpada LED 9W Branca", price: 12.9, description: "Lâmpada LED econômica, soquete E27, 6500K.", category: "eletronicos", image: pLampada, popular: true },
+  { id: "p8", storeId: "s7", name: "Tomada 2P+T 10A", price: 14.5, description: "Tomada de embutir branca, padrão brasileiro.", category: "eletronicos", image: pTomada },
+  // Papelaria
+  { id: "p9", storeId: "s6", name: "Caderno Universitário 200fls", price: 24.9, originalPrice: 32.0, description: "Caderno espiral 10 matérias, capa dura.", category: "papelaria", image: pCaderno, onSale: true },
   // Mercado
-  { id: "p4", storeId: "s1", name: "Leite Integral 1L", price: 5.49, description: "Leite UHT longa vida.", category: "mercado", emoji: "🥛" },
-  { id: "p5", storeId: "s1", name: "Café Torrado 500g", price: 18.9, description: "Café especial torrado e moído.", category: "mercado", emoji: "☕" },
-  { id: "p6", storeId: "s1", name: "Açúcar Refinado 1kg", price: 6.2, description: "Açúcar refinado especial.", category: "mercado", emoji: "🍬" },
-  // Quitanda
-  { id: "p7", storeId: "s2", name: "Banana Prata (kg)", price: 6.99, description: "Banana doce e madura.", category: "mercado", emoji: "🍌" },
-  { id: "p8", storeId: "s2", name: "Tomate Italiano (kg)", price: 9.5, description: "Tomate firme para saladas.", category: "mercado", emoji: "🍅" },
-  { id: "p9", storeId: "s2", name: "Alface Crespa", price: 4.5, description: "Maço fresco e crocante.", category: "mercado", emoji: "🥬" },
+  { id: "p10", storeId: "s1", name: "Arroz Branco Tipo 1 — 5kg", price: 28.9, description: "Pacote de arroz branco selecionado, grãos longos.", category: "mercado", image: pArroz, popular: true },
+  // Roupas
+  { id: "p11", storeId: "s9", name: "Camiseta Básica Algodão", price: 49.9, originalPrice: 69.9, description: "Camiseta unissex 100% algodão, vários tamanhos.", category: "roupas", image: pCamiseta, onSale: true, popular: true },
   // Flores
-  { id: "p10", storeId: "s4", name: "Buquê Rosas e Margaridas", price: 89.0, description: "Buquê artesanal com 12 rosas e margaridas.", category: "flores", emoji: "💐" },
-  { id: "p11", storeId: "s4", name: "Mini Suculenta", price: 22.0, description: "Vasinho decorativo de cerâmica.", category: "flores", emoji: "🪴" },
+  { id: "p12", storeId: "s8", name: "Buquê de Rosas Mistas", price: 89.0, description: "Buquê artesanal com 12 rosas em embalagem kraft.", category: "flores", image: pFlores },
+  // Farmácia
+  { id: "p13", storeId: "s5", name: "Paracetamol 500mg c/ 20", price: 8.9, description: "Analgésico e antitérmico, caixa com 20 comprimidos.", category: "farmacia", image: pRemedio, popular: true },
 ];
 
 export const initialOrders: Order[] = [
   {
     id: "#1042",
     storeId: "s3",
-    storeName: "Padaria Sabor Real",
+    storeName: "Ferragens do Bairro",
     items: [
-      { productId: "p1", name: "Pão Francês (10un)", quantity: 2, price: 8.5 },
-      { productId: "p2", name: "Croissant de Manteiga", quantity: 3, price: 7.9 },
+      { productId: "p2", name: "Martelo de Unha 27mm", quantity: 1, price: 34.5 },
+      { productId: "p4", name: "Chave de Boca Ajustável 8\"", quantity: 1, price: 42.9 },
     ],
-    total: 40.7,
+    total: 77.4,
     status: "preparando",
     customer: "João Souza",
     address: "Rua das Flores, 200",
@@ -140,9 +228,9 @@ export const initialOrders: Order[] = [
   {
     id: "#1041",
     storeId: "s3",
-    storeName: "Padaria Sabor Real",
-    items: [{ productId: "p3", name: "Bolo de Cenoura", quantity: 1, price: 24.0 }],
-    total: 24.0,
+    storeName: "Ferragens do Bairro",
+    items: [{ productId: "p3", name: "Furadeira de Impacto 600W", quantity: 1, price: 289.0 }],
+    total: 289.0,
     status: "saiu",
     customer: "Marina Lima",
     address: "Av. Brasil, 1500",
@@ -151,9 +239,9 @@ export const initialOrders: Order[] = [
   {
     id: "#1040",
     storeId: "s3",
-    storeName: "Padaria Sabor Real",
-    items: [{ productId: "p1", name: "Pão Francês (10un)", quantity: 1, price: 8.5 }],
-    total: 8.5,
+    storeName: "Ferragens do Bairro",
+    items: [{ productId: "p2", name: "Martelo de Unha 27mm", quantity: 2, price: 34.5 }],
+    total: 69.0,
     status: "entregue",
     customer: "Pedro Alves",
     address: "Rua Verde, 45",
@@ -165,7 +253,7 @@ export const deliveryProposals = [
   {
     id: "d1",
     orderId: "#1042",
-    storeName: "Padaria Sabor Real",
+    storeName: "Ferragens do Bairro",
     pickup: "Rua do Comércio, 88 — Centro",
     dropoff: "Rua das Flores, 200",
     distance: "2.4 km",
