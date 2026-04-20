@@ -78,10 +78,11 @@ const ClientSearch = () => {
             <div className="space-y-2">
               {filteredStores.map((s) => (
                 <Link key={s.id} to={`/cliente/loja/${s.id}`} className="bg-card rounded-2xl p-3 shadow-card flex gap-3 items-center">
-                  <img src={s.image} alt={s.name} loading="lazy" className="size-12 rounded-lg object-cover" />
-                  <div className="flex-1">
-                    <p className="text-sm font-bold">{s.name}</p>
-                    <p className="text-[11px] text-muted-foreground">⭐ {s.rating} • {s.distance} • {s.deliveryTime}</p>
+                  <img src={s.image} alt={s.name} loading="lazy" width={48} height={48} className="size-12 rounded-lg object-cover" />
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-bold truncate">{s.name}</p>
+                    <p className="text-[11px] text-muted-foreground line-clamp-1">{s.description}</p>
+                    <p className="text-[11px] text-muted-foreground mt-0.5">⭐ {s.rating} • {s.distance}</p>
                   </div>
                 </Link>
               ))}
@@ -93,15 +94,26 @@ const ClientSearch = () => {
           <section>
             <h2 className="text-sm font-bold text-muted-foreground mb-2 uppercase tracking-wider">Produtos</h2>
             <div className="grid grid-cols-2 gap-3">
-              {filteredProducts.map((p) => (
-                <Link key={p.id} to={`/cliente/produto/${p.id}`} className="bg-card rounded-2xl p-3 shadow-card flex flex-col">
-                  <div className="aspect-square rounded-xl bg-accent flex items-center justify-center text-5xl mb-2">
-                    {p.emoji}
-                  </div>
-                  <p className="text-xs font-semibold leading-tight line-clamp-2 flex-1">{p.name}</p>
-                  <p className="text-sm font-extrabold text-primary mt-1">R$ {p.price.toFixed(2)}</p>
-                </Link>
-              ))}
+              {filteredProducts.map((p) => {
+                const store = stores.find((s) => s.id === p.storeId);
+                return (
+                  <Link key={p.id} to={`/cliente/produto/${p.id}`} className="bg-card rounded-2xl shadow-card overflow-hidden flex flex-col">
+                    <div className="aspect-square bg-muted">
+                      <img src={p.image} alt={p.name} loading="lazy" width={300} height={300} className="w-full h-full object-cover" />
+                    </div>
+                    <div className="p-2.5 flex flex-col flex-1">
+                      <p className="text-xs font-semibold leading-tight line-clamp-2 flex-1">{p.name}</p>
+                      {p.originalPrice && (
+                        <p className="text-[10px] text-muted-foreground line-through mt-1">R$ {p.originalPrice.toFixed(2)}</p>
+                      )}
+                      <p className="text-sm font-extrabold text-primary leading-none mt-0.5">R$ {p.price.toFixed(2)}</p>
+                      {store && (
+                        <p className="text-[10px] text-muted-foreground mt-1 truncate">⭐ {store.rating} • {store.name}</p>
+                      )}
+                    </div>
+                  </Link>
+                );
+              })}
             </div>
           </section>
         )}

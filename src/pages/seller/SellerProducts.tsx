@@ -20,7 +20,7 @@ const SellerProducts = () => {
       <div className="flex-1 overflow-y-auto scrollbar-hide px-5 py-4 space-y-3">
         {items.map((p) => (
           <div key={p.id} className="bg-card rounded-2xl p-3 shadow-card flex items-center gap-3">
-            <div className="size-14 rounded-xl bg-accent flex items-center justify-center text-3xl">{p.emoji}</div>
+            <img src={p.image} alt={p.name} loading="lazy" width={56} height={56} className="size-14 rounded-xl object-cover bg-muted" />
             <div className="flex-1 min-w-0">
               <p className="font-bold text-sm line-clamp-1">{p.name}</p>
               <p className="text-xs text-muted-foreground line-clamp-1">{p.description}</p>

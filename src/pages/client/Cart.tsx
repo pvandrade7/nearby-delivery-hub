@@ -44,7 +44,7 @@ const Cart = () => {
         <div className="space-y-3">
           {items.map((item) => (
             <div key={item.id} className="bg-card rounded-2xl p-3 shadow-card flex items-center gap-3">
-              <div className="size-14 rounded-xl bg-accent flex items-center justify-center text-3xl shrink-0">{item.emoji}</div>
+              <img src={item.image} alt={item.name} loading="lazy" width={56} height={56} className="size-14 rounded-xl object-cover bg-muted shrink-0" />
               <div className="flex-1 min-w-0">
                 <p className="text-sm font-semibold line-clamp-1">{item.name}</p>
                 <p className="text-sm font-extrabold text-primary mt-0.5">R$ {(item.price * item.quantity).toFixed(2)}</p>

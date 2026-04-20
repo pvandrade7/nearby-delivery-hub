@@ -52,13 +52,14 @@ const StoreDetail = () => {
             {storeProducts.map((p) => (
               <div key={p.id} className="bg-card rounded-2xl p-3 shadow-card flex items-center gap-3">
                 <Link to={`/cliente/produto/${p.id}`} className="flex-1 flex items-center gap-3 min-w-0">
-                  <div className="size-14 rounded-xl bg-accent flex items-center justify-center text-3xl shrink-0">
-                    {p.emoji}
-                  </div>
+                  <img src={p.image} alt={p.name} loading="lazy" width={56} height={56} className="size-14 rounded-xl object-cover bg-muted shrink-0" />
                   <div className="flex-1 min-w-0">
                     <h3 className="text-sm font-semibold leading-tight line-clamp-1">{p.name}</h3>
                     <p className="text-[11px] text-muted-foreground line-clamp-1 mt-0.5">{p.description}</p>
-                    <p className="text-sm font-extrabold text-primary mt-1">R$ {p.price.toFixed(2)}</p>
+                    {p.originalPrice && (
+                      <p className="text-[10px] text-muted-foreground line-through">R$ {p.originalPrice.toFixed(2)}</p>
+                    )}
+                    <p className="text-sm font-extrabold text-primary">R$ {p.price.toFixed(2)}</p>
                   </div>
                 </Link>
                 <button
