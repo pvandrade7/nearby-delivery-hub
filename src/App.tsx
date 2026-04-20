@@ -3,8 +3,36 @@ import { BrowserRouter, Route, Routes } from "react-router-dom";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
-import Index from "./pages/Index.tsx";
+import { CartProvider } from "@/context/CartContext";
+import { AppShell } from "@/components/AppShell";
+import RoleSelect from "./pages/RoleSelect";
 import NotFound from "./pages/NotFound.tsx";
+
+// Cliente
+import ClientHome from "./pages/client/ClientHome";
+import ClientSearch from "./pages/client/ClientSearch";
+import StoreList from "./pages/client/StoreList";
+import StoreDetail from "./pages/client/StoreDetail";
+import ProductDetail from "./pages/client/ProductDetail";
+import Cart from "./pages/client/Cart";
+import Checkout from "./pages/client/Checkout";
+import OrderConfirmation from "./pages/client/OrderConfirmation";
+import OrderTracking from "./pages/client/OrderTracking";
+import ClientOrders from "./pages/client/ClientOrders";
+import ClientProfile from "./pages/client/ClientProfile";
+
+// Lojista
+import SellerLogin from "./pages/seller/SellerLogin";
+import CreateStore from "./pages/seller/CreateStore";
+import SellerDashboard from "./pages/seller/SellerDashboard";
+import SellerProducts from "./pages/seller/SellerProducts";
+import NewProduct from "./pages/seller/NewProduct";
+import SellerOrders from "./pages/seller/SellerOrders";
+
+// Entregador
+import CourierHome from "./pages/courier/CourierHome";
+import CourierRoute from "./pages/courier/CourierRoute";
+import CourierComplete from "./pages/courier/CourierComplete";
 
 const queryClient = new QueryClient();
 
@@ -13,13 +41,49 @@ const App = () => (
     <TooltipProvider>
       <Toaster />
       <Sonner />
-      <BrowserRouter>
-        <Routes>
-          <Route path="/" element={<Index />} />
-          {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
-          <Route path="*" element={<NotFound />} />
-        </Routes>
-      </BrowserRouter>
+      <CartProvider>
+        <BrowserRouter>
+          <Routes>
+            <Route
+              path="/"
+              element={
+                <AppShell>
+                  <RoleSelect />
+                </AppShell>
+              }
+            />
+
+            {/* Cliente */}
+            <Route path="/cliente" element={<AppShell><ClientHome /></AppShell>} />
+            <Route path="/cliente/busca" element={<AppShell><ClientSearch /></AppShell>} />
+            <Route path="/cliente/lojas" element={<AppShell><StoreList /></AppShell>} />
+            <Route path="/cliente/loja/:id" element={<AppShell><StoreDetail /></AppShell>} />
+            <Route path="/cliente/produto/:id" element={<AppShell><ProductDetail /></AppShell>} />
+            <Route path="/cliente/carrinho" element={<AppShell><Cart /></AppShell>} />
+            <Route path="/cliente/checkout" element={<AppShell><Checkout /></AppShell>} />
+            <Route path="/cliente/confirmacao" element={<AppShell><OrderConfirmation /></AppShell>} />
+            <Route path="/cliente/rastreamento/:id" element={<AppShell><OrderTracking /></AppShell>} />
+            <Route path="/cliente/pedidos" element={<AppShell><ClientOrders /></AppShell>} />
+            <Route path="/cliente/perfil" element={<AppShell><ClientProfile /></AppShell>} />
+
+            {/* Lojista */}
+            <Route path="/lojista" element={<AppShell><SellerLogin /></AppShell>} />
+            <Route path="/lojista/criar-loja" element={<AppShell><CreateStore /></AppShell>} />
+            <Route path="/lojista/painel" element={<AppShell><SellerDashboard /></AppShell>} />
+            <Route path="/lojista/produtos" element={<AppShell><SellerProducts /></AppShell>} />
+            <Route path="/lojista/produtos/novo" element={<AppShell><NewProduct /></AppShell>} />
+            <Route path="/lojista/pedidos" element={<AppShell><SellerOrders /></AppShell>} />
+            <Route path="/lojista/config" element={<AppShell><SellerDashboard /></AppShell>} />
+
+            {/* Entregador */}
+            <Route path="/entregador" element={<AppShell><CourierHome /></AppShell>} />
+            <Route path="/entregador/corrida/:id" element={<AppShell><CourierRoute /></AppShell>} />
+            <Route path="/entregador/finalizada" element={<AppShell><CourierComplete /></AppShell>} />
+
+            <Route path="*" element={<NotFound />} />
+          </Routes>
+        </BrowserRouter>
+      </CartProvider>
     </TooltipProvider>
   </QueryClientProvider>
 );
