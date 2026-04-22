@@ -27,40 +27,42 @@ const roles = [
 
 const RoleSelect = () => {
   return (
-    <main className="flex-1 px-6 py-10 flex flex-col">
-      <div className="text-center mb-10 animate-slide-up">
-        <div className="inline-flex items-center justify-center size-20 rounded-3xl gradient-brand shadow-glow mb-5">
-          <span className="text-4xl font-extrabold text-primary-foreground">V+</span>
+    <main className="min-h-dvh w-full gradient-warm flex items-center justify-center p-6">
+      <div className="w-full max-w-3xl">
+        <div className="text-center mb-10 animate-slide-up">
+          <div className="inline-flex items-center justify-center size-20 rounded-3xl gradient-brand shadow-glow mb-5">
+            <span className="text-4xl font-extrabold text-primary-foreground">V+</span>
+          </div>
+          <h1 className="text-4xl font-extrabold tracking-tight">Vendy<span className="text-primary">+</span></h1>
+          <p className="text-muted-foreground mt-2">Marketplace local. Entrega rápida.</p>
         </div>
-        <h1 className="text-3xl font-extrabold tracking-tight">Vendy<span className="text-primary">+</span></h1>
-        <p className="text-muted-foreground mt-2 text-sm">Compre do bairro. Entrega rápida.</p>
-      </div>
 
-      <div className="space-y-3 flex-1">
-        {roles.map((r, i) => (
-          <Link
-            key={r.to}
-            to={r.to}
-            className="block animate-slide-up"
-            style={{ animationDelay: `${i * 80}ms` }}
-          >
-            <div className={`${r.bg} rounded-2xl p-5 text-primary-foreground shadow-card flex items-center gap-4 active:scale-[0.98] transition-transform`}>
-              <div className="size-14 rounded-2xl bg-white/20 backdrop-blur flex items-center justify-center">
-                <r.icon className="w-7 h-7" />
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          {roles.map((r, i) => (
+            <Link
+              key={r.to}
+              to={r.to}
+              className="block animate-slide-up"
+              style={{ animationDelay: `${i * 80}ms` }}
+            >
+              <div className={`${r.bg} rounded-2xl p-6 text-primary-foreground shadow-card hover:shadow-elevated hover:-translate-y-1 transition-all h-full flex flex-col`}>
+                <div className="size-14 rounded-2xl bg-white/20 backdrop-blur flex items-center justify-center mb-4">
+                  <r.icon className="w-7 h-7" />
+                </div>
+                <h2 className="font-extrabold text-lg leading-tight">{r.title}</h2>
+                <p className="text-sm text-white/85 mt-1 flex-1">{r.desc}</p>
+                <div className="flex items-center gap-1 text-sm font-bold mt-4">
+                  Entrar <ArrowRight className="w-4 h-4" />
+                </div>
               </div>
-              <div className="flex-1">
-                <h2 className="font-bold text-lg leading-tight">{r.title}</h2>
-                <p className="text-sm text-white/85">{r.desc}</p>
-              </div>
-              <ArrowRight className="w-5 h-5" />
-            </div>
-          </Link>
-        ))}
-      </div>
+            </Link>
+          ))}
+        </div>
 
-      <p className="text-center text-xs text-muted-foreground mt-6">
-        Protótipo navegável • Vendy+ MVP
-      </p>
+        <p className="text-center text-xs text-muted-foreground mt-10">
+          Protótipo navegável • Vendy+ MVP
+        </p>
+      </div>
     </main>
   );
 };

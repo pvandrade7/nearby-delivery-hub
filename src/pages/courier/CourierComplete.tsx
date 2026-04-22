@@ -3,14 +3,14 @@ import { Check, Wallet } from "lucide-react";
 
 const CourierComplete = () => {
   return (
-    <div className="flex-1 flex flex-col items-center justify-center px-6 text-center">
-      <div className="size-24 rounded-full gradient-brand shadow-glow flex items-center justify-center animate-scale-in">
+    <div className="px-4 lg:px-8 py-16 max-w-md mx-auto text-center">
+      <div className="size-24 rounded-full gradient-brand shadow-glow flex items-center justify-center animate-scale-in mx-auto">
         <Check className="w-12 h-12 text-primary-foreground" strokeWidth={3} />
       </div>
       <h1 className="text-2xl font-extrabold mt-6">Entrega finalizada! 🎉</h1>
       <p className="text-sm text-muted-foreground mt-2">Boa entrega, Carlos. O valor já caiu na sua carteira.</p>
 
-      <div className="bg-card rounded-2xl p-5 shadow-card mt-8 w-full max-w-xs">
+      <div className="bg-card rounded-2xl p-5 shadow-card mt-8">
         <div className="flex items-center gap-3">
           <div className="size-10 rounded-xl gradient-brand text-primary-foreground flex items-center justify-center">
             <Wallet className="w-5 h-5" />
@@ -28,7 +28,7 @@ const CourierComplete = () => {
 
       <Link
         to="/entregador"
-        className="mt-8 w-full max-w-xs gradient-brand text-primary-foreground rounded-2xl py-4 font-bold shadow-elevated"
+        className="mt-8 block gradient-brand text-primary-foreground rounded-xl py-3.5 font-bold shadow-card hover:shadow-elevated transition-shadow"
       >
         Ver mais corridas
       </Link>

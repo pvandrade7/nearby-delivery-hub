@@ -1,83 +1,168 @@
 import { Link } from "react-router-dom";
-import { TrendingUp, Clock, CheckCircle2, Plus, Bell } from "lucide-react";
-import { SellerTabBar } from "@/components/SellerTabBar";
-import { initialOrders } from "@/data/mockData";
+import { TrendingUp, Clock, CheckCircle2, Plus, DollarSign, Eye } from "lucide-react";
+import { initialOrders, products } from "@/data/mockData";
 
 const stats = [
-  { label: "Pedidos hoje", value: "14", icon: TrendingUp, gradient: "gradient-brand" },
-  { label: "Em andamento", value: "3", icon: Clock, color: "bg-warning text-warning-foreground" },
-  { label: "Concluídos", value: "11", icon: CheckCircle2, color: "bg-success text-success-foreground" },
+  { label: "Vendas hoje", value: "R$ 487,30", delta: "+22% vs ontem", icon: DollarSign, accent: "text-primary", bg: "bg-primary/10" },
+  { label: "Pedidos hoje", value: "14", delta: "+3 que ontem", icon: TrendingUp, accent: "text-secondary", bg: "bg-secondary/10" },
+  { label: "Em andamento", value: "3", delta: "2 aguardando ação", icon: Clock, accent: "text-warning", bg: "bg-warning/15" },
+  { label: "Concluídos", value: "11", delta: "92% no prazo", icon: CheckCircle2, accent: "text-success", bg: "bg-success/15" },
+];
+
+// Stylized weekly bar chart
+const sales = [
+  { d: "Seg", v: 280 },
+  { d: "Ter", v: 340 },
+  { d: "Qua", v: 410 },
+  { d: "Qui", v: 360 },
+  { d: "Sex", v: 520 },
+  { d: "Sáb", v: 610 },
+  { d: "Dom", v: 487 },
 ];
 
 const SellerDashboard = () => {
-  const recent = initialOrders.slice(0, 3);
+  const recent = initialOrders.slice(0, 5);
+  const top = products.filter((p) => p.storeId === "s3").slice(0, 4);
+  const max = Math.max(...sales.map((s) => s.v));
 
   return (
-    <div className="flex-1 flex flex-col overflow-hidden">
-      <header className="gradient-sunset text-primary-foreground px-5 pt-6 pb-8 rounded-b-[2rem]">
-        <div className="flex justify-between items-center">
-          <div>
-            <p className="text-xs opacity-80 font-semibold uppercase tracking-wider">Bom dia,</p>
-            <h1 className="text-xl font-extrabold">Marina 🌸</h1>
+    <div className="px-4 lg:px-8 py-6 lg:py-8 max-w-[1400px] mx-auto space-y-6">
+      {/* Header */}
+      <div className="flex flex-col lg:flex-row lg:items-end lg:justify-between gap-3">
+        <div>
+          <p className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Bom dia, Marina 🌸</p>
+          <h1 className="text-2xl lg:text-3xl font-extrabold mt-1">Painel da loja</h1>
+        </div>
+        <Link
+          to="/lojista/produtos/novo"
+          className="inline-flex items-center justify-center gap-2 gradient-brand text-primary-foreground rounded-xl px-5 py-2.5 font-bold shadow-card hover:shadow-elevated transition-shadow"
+        >
+          <Plus className="w-4 h-4" /> Cadastrar produto
+        </Link>
+      </div>
+
+      {/* Stats grid */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+        {stats.map((s) => (
+          <div key={s.label} className="bg-card rounded-2xl p-5 shadow-card">
+            <div className="flex items-start justify-between">
+              <div className={`size-10 rounded-xl ${s.bg} ${s.accent} flex items-center justify-center`}>
+                <s.icon className="w-5 h-5" />
+              </div>
+            </div>
+            <p className="text-2xl lg:text-3xl font-extrabold mt-4">{s.value}</p>
+            <p className="text-xs text-muted-foreground font-semibold mt-1">{s.label}</p>
+            <p className={`text-xs font-semibold mt-2 ${s.accent}`}>{s.delta}</p>
           </div>
-          <button className="size-10 rounded-full bg-white/25 backdrop-blur flex items-center justify-center relative">
-            <Bell className="w-5 h-5" />
-            <span className="absolute top-2 right-2 size-2 rounded-full bg-warning" />
-          </button>
-        </div>
+        ))}
+      </div>
 
-        <div className="bg-white/20 backdrop-blur rounded-2xl p-4 mt-5">
-          <p className="text-xs opacity-90 font-semibold">VENDAS DE HOJE</p>
-          <p className="text-3xl font-extrabold mt-1">R$ 487,30</p>
-          <p className="text-xs opacity-90 mt-1">↑ 22% vs ontem</p>
-        </div>
-      </header>
-
-      <div className="flex-1 overflow-y-auto scrollbar-hide px-5 pt-5 pb-2 space-y-5">
-        <section>
-          <div className="grid grid-cols-3 gap-2">
-            {stats.map((s) => (
-              <div key={s.label} className="bg-card rounded-2xl p-3 shadow-card">
-                <div className={`size-8 rounded-lg flex items-center justify-center mb-2 ${s.gradient ?? s.color} ${s.gradient ? "text-primary-foreground" : ""}`}>
-                  <s.icon className="w-4 h-4" />
+      {/* Charts + recent */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+        {/* Chart */}
+        <div className="lg:col-span-2 bg-card rounded-2xl p-5 lg:p-6 shadow-card">
+          <div className="flex items-center justify-between mb-6">
+            <div>
+              <h2 className="font-bold text-base">Vendas da semana</h2>
+              <p className="text-xs text-muted-foreground mt-0.5">Últimos 7 dias</p>
+            </div>
+            <span className="text-sm font-extrabold text-primary">R$ 3.007,00</span>
+          </div>
+          <div className="h-56 flex items-end gap-3 lg:gap-5">
+            {sales.map((s) => {
+              const h = Math.round((s.v / max) * 100);
+              const today = s.d === "Dom";
+              return (
+                <div key={s.d} className="flex-1 flex flex-col items-center gap-2">
+                  <div className="w-full flex-1 flex items-end">
+                    <div
+                      className={`w-full rounded-t-lg ${today ? "gradient-brand" : "bg-accent"}`}
+                      style={{ height: `${h}%` }}
+                      title={`R$ ${s.v}`}
+                    />
+                  </div>
+                  <span className={`text-[11px] font-bold ${today ? "text-primary" : "text-muted-foreground"}`}>
+                    {s.d}
+                  </span>
                 </div>
-                <p className="text-xl font-extrabold">{s.value}</p>
-                <p className="text-[10px] text-muted-foreground font-semibold">{s.label}</p>
+              );
+            })}
+          </div>
+        </div>
+
+        {/* Top products */}
+        <div className="bg-card rounded-2xl p-5 shadow-card">
+          <h2 className="font-bold text-base mb-4">Produtos mais vendidos</h2>
+          <div className="space-y-3">
+            {top.map((p, i) => (
+              <div key={p.id} className="flex items-center gap-3">
+                <span className="text-xs font-extrabold text-muted-foreground w-4">{i + 1}</span>
+                <img src={p.image} alt="" className="size-10 rounded-lg object-cover bg-muted" />
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-semibold truncate">{p.name}</p>
+                  <p className="text-xs text-muted-foreground">R$ {p.price.toFixed(2)}</p>
+                </div>
+                <span className="text-xs font-bold text-success">+{12 - i * 2}</span>
               </div>
             ))}
           </div>
-        </section>
-
-        <Link
-          to="/lojista/produtos/novo"
-          className="flex items-center justify-center gap-2 gradient-brand text-primary-foreground rounded-2xl py-3.5 font-bold shadow-card"
-        >
-          <Plus className="w-4 h-4" /> Cadastrar novo produto
-        </Link>
-
-        <section>
-          <div className="flex justify-between items-baseline mb-3">
-            <h2 className="font-bold">Pedidos recentes</h2>
-            <Link to="/lojista/pedidos" className="text-xs text-primary font-semibold">Ver todos</Link>
-          </div>
-          <div className="space-y-2">
-            {recent.map((o) => (
-              <Link key={o.id} to="/lojista/pedidos" className="block bg-card rounded-2xl p-3 shadow-card">
-                <div className="flex justify-between items-start">
-                  <div>
-                    <p className="text-xs text-muted-foreground">{o.id} • {o.createdAt}</p>
-                    <p className="font-bold text-sm">{o.customer}</p>
-                    <p className="text-xs text-muted-foreground line-clamp-1">{o.items.length} item(ns)</p>
-                  </div>
-                  <p className="font-extrabold text-primary text-sm">R$ {o.total.toFixed(2)}</p>
-                </div>
-              </Link>
-            ))}
-          </div>
-        </section>
+        </div>
       </div>
 
-      <SellerTabBar />
+      {/* Recent orders table */}
+      <div className="bg-card rounded-2xl shadow-card overflow-hidden">
+        <div className="px-5 lg:px-6 py-4 flex items-center justify-between border-b border-border">
+          <h2 className="font-bold text-base">Pedidos recentes</h2>
+          <Link to="/lojista/pedidos" className="text-sm text-primary font-semibold hover:underline">
+            Ver todos
+          </Link>
+        </div>
+        <div className="overflow-x-auto">
+          <table className="w-full text-sm">
+            <thead className="bg-muted/50 text-xs uppercase tracking-wider text-muted-foreground">
+              <tr>
+                <th className="text-left font-bold px-5 lg:px-6 py-3">Pedido</th>
+                <th className="text-left font-bold px-3 py-3">Cliente</th>
+                <th className="text-left font-bold px-3 py-3 hidden md:table-cell">Itens</th>
+                <th className="text-left font-bold px-3 py-3">Status</th>
+                <th className="text-right font-bold px-3 py-3">Total</th>
+                <th className="text-right font-bold px-5 lg:px-6 py-3"></th>
+              </tr>
+            </thead>
+            <tbody>
+              {recent.map((o) => (
+                <tr key={o.id} className="border-t border-border hover:bg-muted/30 transition-colors">
+                  <td className="px-5 lg:px-6 py-3 font-bold">{o.id}</td>
+                  <td className="px-3 py-3">{o.customer}</td>
+                  <td className="px-3 py-3 text-muted-foreground hidden md:table-cell">{o.items.length} item(ns)</td>
+                  <td className="px-3 py-3">
+                    <span
+                      className={`text-[10px] px-2 py-1 rounded-full font-bold ${
+                        o.status === "entregue"
+                          ? "bg-success/15 text-success"
+                          : o.status === "saiu"
+                          ? "bg-primary/15 text-primary"
+                          : "bg-warning/20 text-warning-foreground"
+                      }`}
+                    >
+                      {o.status === "preparando" ? "Em preparação" : o.status === "saiu" ? "Saiu p/ entrega" : o.status === "entregue" ? "Entregue" : "Confirmado"}
+                    </span>
+                  </td>
+                  <td className="px-3 py-3 font-extrabold text-primary text-right">R$ {o.total.toFixed(2)}</td>
+                  <td className="px-5 lg:px-6 py-3 text-right">
+                    <Link
+                      to="/lojista/pedidos"
+                      className="inline-flex items-center gap-1 text-xs font-semibold text-primary hover:underline"
+                    >
+                      <Eye className="w-3.5 h-3.5" /> Ver
+                    </Link>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </div>
     </div>
   );
 };
