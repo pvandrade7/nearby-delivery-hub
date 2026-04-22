@@ -1,28 +1,206 @@
-import { ReactNode } from "react";
-import { MobileFrame } from "@/components/MobileFrame";
-import { Link, useLocation } from "react-router-dom";
-import { Users } from "lucide-react";
+import { ReactNode, useMemo } from "react";
+import { Link, NavLink, useLocation, useNavigate } from "react-router-dom";
+import {
+  Home,
+  Search,
+  Store as StoreIcon,
+  ShoppingBag,
+  User,
+  LayoutDashboard,
+  Package,
+  Settings,
+  Bike,
+  Wallet,
+  RefreshCw,
+  ShoppingCart,
+  Bell,
+} from "lucide-react";
+import { cn } from "@/lib/utils";
+import { useCart } from "@/context/CartContext";
 
-/**
- * Wraps every prototype screen in a phone-like frame and offers a
- * floating role switcher so reviewers can hop between perfis.
- */
+type NavItem = { to: string; icon: typeof Home; label: string };
+
+const clientNav: NavItem[] = [
+  { to: "/cliente", icon: Home, label: "Início" },
+  { to: "/cliente/busca", icon: Search, label: "Buscar" },
+  { to: "/cliente/lojas", icon: StoreIcon, label: "Lojas" },
+  { to: "/cliente/pedidos", icon: ShoppingBag, label: "Pedidos" },
+  { to: "/cliente/perfil", icon: User, label: "Perfil" },
+];
+
+const sellerNav: NavItem[] = [
+  { to: "/lojista/painel", icon: LayoutDashboard, label: "Painel" },
+  { to: "/lojista/produtos", icon: Package, label: "Produtos" },
+  { to: "/lojista/pedidos", icon: ShoppingBag, label: "Pedidos" },
+  { to: "/lojista/config", icon: Settings, label: "Conta" },
+];
+
+const courierNav: NavItem[] = [
+  { to: "/entregador", icon: Bike, label: "Corridas" },
+  { to: "/entregador/finalizada", icon: Wallet, label: "Ganhos" },
+];
+
+const profileMeta: Record<
+  "cliente" | "lojista" | "entregador",
+  { label: string; user: string; initial: string; nav: NavItem[] }
+> = {
+  cliente: { label: "Cliente", user: "João Souza", initial: "J", nav: clientNav },
+  lojista: { label: "Lojista", user: "Marina Flores", initial: "M", nav: sellerNav },
+  entregador: { label: "Entregador", user: "Carlos Mendes", initial: "C", nav: courierNav },
+};
+
+const useProfile = () => {
+  const { pathname } = useLocation();
+  if (pathname.startsWith("/lojista")) return "lojista" as const;
+  if (pathname.startsWith("/entregador")) return "entregador" as const;
+  if (pathname.startsWith("/cliente")) return "cliente" as const;
+  return null;
+};
+
 export const AppShell = ({ children }: { children: ReactNode }) => {
   const location = useLocation();
-  const showSwitcher = location.pathname !== "/";
+  const navigate = useNavigate();
+  const profile = useProfile();
+  const { count } = useCart();
+
+  // Landing page (RoleSelect): full bleed, no shell.
+  if (location.pathname === "/" || !profile) {
+    return <div className="min-h-dvh w-full bg-background">{children}</div>;
+  }
+
+  const meta = profileMeta[profile];
 
   return (
-    <MobileFrame>
-      {children}
-      {showSwitcher && (
-        <Link
-          to="/"
-          aria-label="Trocar de perfil"
-          className="absolute bottom-20 right-3 md:bottom-24 md:right-4 size-11 rounded-full gradient-brand text-primary-foreground shadow-elevated flex items-center justify-center z-40 active:scale-90 transition-transform"
-        >
-          <Users className="w-5 h-5" />
-        </Link>
-      )}
-    </MobileFrame>
+    <div className="min-h-dvh w-full bg-muted/40 flex">
+      {/* Sidebar */}
+      <aside className="hidden lg:flex w-64 shrink-0 flex-col bg-card border-r border-border sticky top-0 h-dvh">
+        <div className="px-5 py-5 flex items-center gap-2.5 border-b border-border">
+          <div className="size-9 rounded-xl gradient-brand text-primary-foreground flex items-center justify-center font-extrabold shadow-glow">
+            V+
+          </div>
+          <div className="leading-tight">
+            <p className="font-extrabold text-base">Vendy<span className="text-primary">+</span></p>
+            <p className="text-[10px] text-muted-foreground uppercase tracking-wider font-bold">{meta.label}</p>
+          </div>
+        </div>
+
+        <nav className="flex-1 overflow-y-auto px-3 py-4 space-y-1">
+          {meta.nav.map((item) => (
+            <NavLink
+              key={item.to}
+              to={item.to}
+              end
+              className={({ isActive }) =>
+                cn(
+                  "flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-semibold transition-colors",
+                  isActive
+                    ? "bg-accent text-accent-foreground"
+                    : "text-muted-foreground hover:bg-muted hover:text-foreground"
+                )
+              }
+            >
+              <item.icon className="w-4.5 h-4.5" />
+              <span>{item.label}</span>
+              {item.label === "Pedidos" && profile === "cliente" && count > 0 && (
+                <span className="ml-auto bg-primary text-primary-foreground text-[10px] font-bold rounded-full px-2 py-0.5">
+                  {count}
+                </span>
+              )}
+            </NavLink>
+          ))}
+        </nav>
+
+        <div className="border-t border-border p-3">
+          <Link
+            to="/"
+            className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-semibold text-muted-foreground hover:bg-muted hover:text-foreground transition-colors"
+          >
+            <RefreshCw className="w-4 h-4" />
+            Trocar de perfil
+          </Link>
+        </div>
+      </aside>
+
+      {/* Main column */}
+      <div className="flex-1 flex flex-col min-w-0">
+        {/* Header */}
+        <header className="sticky top-0 z-30 bg-background/95 backdrop-blur border-b border-border h-16 px-4 lg:px-8 flex items-center gap-4">
+          {/* Mobile brand */}
+          <div className="lg:hidden flex items-center gap-2">
+            <div className="size-8 rounded-lg gradient-brand text-primary-foreground flex items-center justify-center font-extrabold text-sm">
+              V+
+            </div>
+          </div>
+
+          {/* Centered search (clients) */}
+          {profile === "cliente" ? (
+            <button
+              onClick={() => navigate("/cliente/busca")}
+              className="flex-1 max-w-2xl mx-auto bg-muted hover:bg-muted/70 transition-colors rounded-xl px-4 h-10 flex items-center gap-3 text-left text-sm text-muted-foreground"
+            >
+              <Search className="w-4 h-4 text-primary" />
+              Buscar produtos ou lojas
+            </button>
+          ) : (
+            <h1 className="flex-1 font-bold text-base lg:text-lg truncate">
+              {meta.label === "Lojista" ? "Painel da loja" : "Central do entregador"}
+            </h1>
+          )}
+
+          <div className="flex items-center gap-2">
+            <button className="size-10 rounded-full bg-muted hover:bg-muted/70 transition-colors flex items-center justify-center relative" aria-label="Notificações">
+              <Bell className="w-4 h-4" />
+              <span className="absolute top-2 right-2 size-2 rounded-full bg-secondary" />
+            </button>
+            {profile === "cliente" && (
+              <Link
+                to="/cliente/carrinho"
+                className="size-10 rounded-full bg-muted hover:bg-muted/70 transition-colors flex items-center justify-center relative"
+                aria-label="Carrinho"
+              >
+                <ShoppingCart className="w-4 h-4" />
+                {count > 0 && (
+                  <span className="absolute -top-0.5 -right-0.5 size-4 bg-primary text-primary-foreground text-[10px] font-bold rounded-full flex items-center justify-center">
+                    {count}
+                  </span>
+                )}
+              </Link>
+            )}
+            <Link
+              to="/"
+              className="size-10 rounded-full gradient-brand text-primary-foreground flex items-center justify-center font-bold text-sm shadow-card"
+              title={meta.user}
+            >
+              {meta.initial}
+            </Link>
+          </div>
+        </header>
+
+        {/* Page content */}
+        <main className="flex-1 min-w-0">
+          {children}
+        </main>
+
+        {/* Mobile bottom nav */}
+        <nav className="lg:hidden sticky bottom-0 inset-x-0 bg-card border-t border-border px-2 pt-2 pb-3 flex justify-around z-30">
+          {meta.nav.slice(0, 5).map(({ to, icon: Icon, label }) => (
+            <NavLink
+              key={to}
+              to={to}
+              end
+              className={({ isActive }) =>
+                cn(
+                  "flex flex-col items-center gap-0.5 px-3 py-1 rounded-xl transition-colors",
+                  isActive ? "text-primary" : "text-muted-foreground"
+                )
+              }
+            >
+              <Icon className="w-5 h-5" />
+              <span className="text-[10px] font-semibold">{label}</span>
+            </NavLink>
+          ))}
+        </nav>
+      </div>
+    </div>
   );
 };
