@@ -1,6 +1,6 @@
 import { useNavigate, useParams } from "react-router-dom";
 import { useState } from "react";
-import { Minus, Plus, Heart, Share2, ChevronLeft, Star, Shield, Truck } from "lucide-react";
+import { Minus, Plus, Heart, Share2, Star, Shield, Truck } from "lucide-react";
 import { products, stores } from "@/data/mockData";
 import { useCart } from "@/context/CartContext";
 
@@ -25,113 +25,106 @@ const ProductDetail = () => {
   };
 
   return (
-    <div className="flex-1 flex flex-col overflow-hidden bg-background">
-      {/* Top floating bar */}
-      <div className="absolute top-0 left-0 right-0 z-10 flex items-center justify-between px-4 pt-4">
-        <button onClick={() => navigate(-1)} className="size-10 rounded-full bg-background/90 backdrop-blur flex items-center justify-center shadow-card">
-          <ChevronLeft className="w-5 h-5" />
-        </button>
-        <div className="flex gap-2">
-          <button className="size-10 rounded-full bg-background/90 backdrop-blur flex items-center justify-center shadow-card">
-            <Share2 className="w-4 h-4" />
-          </button>
-          <button className="size-10 rounded-full bg-background/90 backdrop-blur flex items-center justify-center shadow-card">
-            <Heart className="w-4 h-4" />
-          </button>
-        </div>
-      </div>
-
-      <div className="flex-1 overflow-y-auto scrollbar-hide">
+    <div className="px-4 lg:px-8 py-6 lg:py-8 max-w-[1200px] mx-auto">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
         {/* Image */}
-        <div className="aspect-square bg-card flex items-center justify-center">
+        <div className="bg-card rounded-2xl shadow-card overflow-hidden aspect-square">
           <img src={product.image} alt={product.name} className="w-full h-full object-cover" />
         </div>
 
         {/* Info */}
-        <div className="px-5 py-4 bg-card">
-          {off > 0 && (
-            <span className="inline-block bg-secondary text-secondary-foreground text-[11px] font-bold px-2 py-0.5 rounded-md mb-2">
-              OFERTA -{off}%
-            </span>
-          )}
-          <h1 className="text-xl font-extrabold leading-snug">{product.name}</h1>
-
-          <div className="flex items-baseline gap-2 mt-3">
-            {product.originalPrice && (
-              <span className="text-sm text-muted-foreground line-through">R$ {product.originalPrice.toFixed(2)}</span>
+        <div className="space-y-5">
+          <div>
+            {off > 0 && (
+              <span className="inline-block bg-secondary text-secondary-foreground text-xs font-bold px-2 py-1 rounded-md mb-3">
+                OFERTA -{off}%
+              </span>
             )}
-            <span className="text-3xl font-extrabold text-primary">R$ {product.price.toFixed(2)}</span>
+            <h1 className="text-2xl lg:text-3xl font-extrabold leading-snug">{product.name}</h1>
+
+            <div className="flex items-baseline gap-3 mt-4">
+              {product.originalPrice && (
+                <span className="text-base text-muted-foreground line-through">R$ {product.originalPrice.toFixed(2)}</span>
+              )}
+              <span className="text-4xl font-extrabold text-primary">R$ {product.price.toFixed(2)}</span>
+            </div>
+            <p className="text-sm text-success font-semibold mt-1">em até 3x sem juros</p>
           </div>
-          <p className="text-xs text-success font-semibold mt-1">em até 3x sem juros</p>
+
+          {/* Seller */}
+          <button
+            onClick={() => navigate(`/cliente/loja/${store.id}`)}
+            className="w-full bg-card rounded-2xl p-4 shadow-card flex items-center gap-3 text-left hover:shadow-elevated transition-shadow"
+          >
+            <img src={store.image} alt={store.name} className="size-12 rounded-lg object-cover" />
+            <div className="flex-1 min-w-0">
+              <p className="text-xs text-muted-foreground">Vendido por</p>
+              <p className="text-sm font-bold truncate">{store.name}</p>
+            </div>
+            <div className="text-right">
+              <p className="text-sm font-bold flex items-center gap-1 justify-end">
+                <Star className="w-3.5 h-3.5 fill-warning text-warning" /> {store.rating}
+              </p>
+              <p className="text-[10px] text-muted-foreground">{store.reviews} avaliações</p>
+            </div>
+          </button>
+
+          {/* Benefits */}
+          <div className="bg-card rounded-2xl p-4 shadow-card space-y-2.5">
+            <div className="flex items-center gap-3 text-sm">
+              <Truck className="w-4 h-4 text-success" />
+              <span><span className="font-semibold">Entrega rápida</span> · {store.deliveryTime} · {store.distance}</span>
+            </div>
+            <div className="flex items-center gap-3 text-sm">
+              <Shield className="w-4 h-4 text-primary" />
+              <span><span className="font-semibold">Compra segura</span> · garantia da plataforma</span>
+            </div>
+          </div>
+
+          {/* Quantity + actions */}
+          <div className="bg-card rounded-2xl p-4 shadow-card">
+            <div className="flex items-center justify-between mb-4">
+              <span className="text-sm font-semibold">Quantidade</span>
+              <div className="flex items-center gap-3 bg-muted rounded-full p-1">
+                <button onClick={() => setQty((q) => Math.max(1, q - 1))} className="size-9 rounded-full bg-background flex items-center justify-center shadow-card">
+                  <Minus className="w-4 h-4" />
+                </button>
+                <span className="font-bold w-6 text-center">{qty}</span>
+                <button onClick={() => setQty((q) => q + 1)} className="size-9 rounded-full gradient-brand text-primary-foreground flex items-center justify-center shadow-card">
+                  <Plus className="w-4 h-4" />
+                </button>
+              </div>
+            </div>
+            <div className="flex flex-col sm:flex-row gap-3">
+              <button
+                onClick={() => add(product)}
+                className="flex-1 border-2 border-primary text-primary rounded-xl py-3 font-bold hover:bg-primary/5 transition-colors"
+              >
+                Adicionar ao carrinho
+              </button>
+              <button
+                onClick={handleAdd}
+                className="flex-1 gradient-brand text-primary-foreground rounded-xl py-3 font-bold shadow-card hover:shadow-elevated transition-shadow"
+              >
+                Comprar agora
+              </button>
+            </div>
+            <div className="flex gap-2 mt-3 justify-end">
+              <button className="size-9 rounded-full bg-muted flex items-center justify-center hover:bg-muted/70" aria-label="Compartilhar">
+                <Share2 className="w-4 h-4" />
+              </button>
+              <button className="size-9 rounded-full bg-muted flex items-center justify-center hover:bg-muted/70" aria-label="Favoritar">
+                <Heart className="w-4 h-4" />
+              </button>
+            </div>
+          </div>
+
+          {/* Description */}
+          <div className="bg-card rounded-2xl p-5 shadow-card">
+            <h2 className="text-base font-bold mb-2">Descrição</h2>
+            <p className="text-sm text-muted-foreground leading-relaxed">{product.description}</p>
+          </div>
         </div>
-
-        {/* Seller */}
-        <button
-          onClick={() => navigate(`/cliente/loja/${store.id}`)}
-          className="mt-2 w-full bg-card px-5 py-3 flex items-center gap-3 text-left active:bg-muted transition-colors"
-        >
-          <img src={store.image} alt={store.name} loading="lazy" width={40} height={40} className="size-10 rounded-lg object-cover" />
-          <div className="flex-1 min-w-0">
-            <p className="text-[11px] text-muted-foreground">Vendido por</p>
-            <p className="text-sm font-bold truncate">{store.name}</p>
-          </div>
-          <div className="text-right">
-            <p className="text-xs font-bold flex items-center gap-0.5 justify-end">
-              <Star className="w-3 h-3 fill-warning text-warning" /> {store.rating}
-            </p>
-            <p className="text-[10px] text-muted-foreground">{store.reviews} avaliações</p>
-          </div>
-        </button>
-
-        {/* Benefits */}
-        <div className="mt-2 bg-card px-5 py-3 space-y-2">
-          <div className="flex items-center gap-3 text-xs">
-            <Truck className="w-4 h-4 text-success" />
-            <span><span className="font-semibold">Entrega rápida</span> · {store.deliveryTime} · {store.distance}</span>
-          </div>
-          <div className="flex items-center gap-3 text-xs">
-            <Shield className="w-4 h-4 text-primary" />
-            <span><span className="font-semibold">Compra segura</span> · garantia da plataforma</span>
-          </div>
-        </div>
-
-        {/* Description */}
-        <div className="mt-2 bg-card px-5 py-4">
-          <h2 className="text-sm font-bold mb-2">Descrição</h2>
-          <p className="text-sm text-muted-foreground leading-relaxed">{product.description}</p>
-        </div>
-
-        {/* Quantity */}
-        <div className="mt-2 bg-card px-5 py-4 flex items-center justify-between">
-          <span className="text-sm font-semibold">Quantidade</span>
-          <div className="flex items-center gap-3 bg-muted rounded-full p-1">
-            <button onClick={() => setQty((q) => Math.max(1, q - 1))} className="size-9 rounded-full bg-background flex items-center justify-center shadow-card">
-              <Minus className="w-4 h-4" />
-            </button>
-            <span className="font-bold w-6 text-center">{qty}</span>
-            <button onClick={() => setQty((q) => q + 1)} className="size-9 rounded-full gradient-brand text-primary-foreground flex items-center justify-center shadow-card">
-              <Plus className="w-4 h-4" />
-            </button>
-          </div>
-        </div>
-
-        <div className="h-4" />
-      </div>
-
-      {/* Bottom CTA */}
-      <div className="px-5 py-4 border-t border-border bg-background flex gap-3">
-        <button
-          onClick={() => { add(product); }}
-          className="flex-1 border-2 border-primary text-primary rounded-2xl py-3.5 font-bold active:scale-[0.98] transition-transform"
-        >
-          Adicionar
-        </button>
-        <button
-          onClick={handleAdd}
-          className="flex-1 gradient-brand text-primary-foreground rounded-2xl py-3.5 font-bold shadow-elevated active:scale-[0.98] transition-transform"
-        >
-          Comprar agora
-        </button>
       </div>
     </div>
   );

@@ -9,8 +9,8 @@ const SellerLogin = () => {
   const navigate = useNavigate();
 
   return (
-    <div className="flex-1 flex flex-col px-6 py-6">
-      <Link to="/" className="size-10 rounded-full bg-muted flex items-center justify-center self-start">
+    <div className="px-6 py-10 max-w-md mx-auto">
+      <Link to="/" className="size-10 rounded-full bg-muted flex items-center justify-center">
         <ArrowLeft className="w-5 h-5" />
       </Link>
 
@@ -28,7 +28,7 @@ const SellerLogin = () => {
 
       <div className="mt-8 space-y-4">
         {step === "phone" ? (
-          <div className="bg-muted rounded-2xl px-4 py-3 flex items-center gap-3">
+          <div className="bg-card border border-border rounded-xl px-4 py-3 flex items-center gap-3 shadow-card">
             <Phone className="w-5 h-5 text-primary" />
             <input
               value={phone}
@@ -38,7 +38,7 @@ const SellerLogin = () => {
             />
           </div>
         ) : (
-          <div className="bg-muted rounded-2xl px-4 py-3 flex items-center gap-3">
+          <div className="bg-card border border-border rounded-xl px-4 py-3 flex items-center gap-3 shadow-card">
             <Lock className="w-5 h-5 text-primary" />
             <input
               value={code}
@@ -55,7 +55,7 @@ const SellerLogin = () => {
             if (step === "phone") setStep("sms");
             else navigate("/lojista/criar-loja");
           }}
-          className="w-full gradient-brand text-primary-foreground rounded-2xl py-4 font-bold shadow-elevated"
+          className="w-full gradient-brand text-primary-foreground rounded-xl py-3.5 font-bold shadow-card hover:shadow-elevated transition-shadow"
         >
           {step === "phone" ? "Receber código por SMS" : "Confirmar"}
         </button>
@@ -67,7 +67,7 @@ const SellerLogin = () => {
         )}
       </div>
 
-      <p className="text-center text-xs text-muted-foreground mt-auto">
+      <p className="text-center text-xs text-muted-foreground mt-12">
         Ao continuar você concorda com nossos termos de uso.
       </p>
     </div>
