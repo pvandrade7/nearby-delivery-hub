@@ -1,20 +1,23 @@
 import { useMemo, useState } from "react";
 import { Link, useSearchParams } from "react-router-dom";
-import { Search, X, Star } from "lucide-react";
-import { categories, products, stores } from "@/data/mockData";
+import { Search, X, Star, UserRound } from "lucide-react";
+import { categories, getProductSeller, products, stores } from "@/data/mockData";
+import { VerifiedBadge } from "@/components/VerifiedBadge";
 
 const ClientSearch = () => {
   const [params, setParams] = useSearchParams();
   const [query, setQuery] = useState("");
   const cat = params.get("cat") ?? "";
+  const type = params.get("tipo") ?? "";
 
   const filteredProducts = useMemo(() => {
     return products.filter((p) => {
       const matchQ = query ? p.name.toLowerCase().includes(query.toLowerCase()) : true;
       const matchC = cat ? p.category === cat : true;
-      return matchQ && matchC;
+      const matchT = type === "pessoa" ? Boolean(p.sellerId) : type === "loja" ? Boolean(p.storeId) : true;
+      return matchQ && matchC && matchT;
     });
-  }, [query, cat]);
+  }, [query, cat, type]);
 
   const filteredStores = useMemo(() => {
     return stores.filter((s) => {
@@ -48,10 +51,26 @@ const ClientSearch = () => {
         <button
           onClick={() => setParams({})}
           className={`px-4 py-2 rounded-full text-sm font-semibold whitespace-nowrap ${
-            !cat ? "bg-primary text-primary-foreground" : "bg-card border border-border text-foreground hover:bg-muted"
+            !cat && !type ? "bg-primary text-primary-foreground" : "bg-card border border-border text-foreground hover:bg-muted"
           }`}
         >
           Todos
+        </button>
+        <button
+          onClick={() => setParams({ tipo: "loja" })}
+          className={`px-4 py-2 rounded-full text-sm font-semibold whitespace-nowrap ${
+            type === "loja" ? "bg-primary text-primary-foreground" : "bg-card border border-border text-foreground hover:bg-muted"
+          }`}
+        >
+          Lojas oficiais
+        </button>
+        <button
+          onClick={() => setParams({ tipo: "pessoa" })}
+          className={`px-4 py-2 rounded-full text-sm font-semibold whitespace-nowrap ${
+            type === "pessoa" ? "bg-primary text-primary-foreground" : "bg-card border border-border text-foreground hover:bg-muted"
+          }`}
+        >
+          Vendedores comuns
         </button>
         {categories.map((c) => (
           <button
@@ -70,13 +89,14 @@ const ClientSearch = () => {
       <div className="space-y-8 mt-8">
         {filteredStores.length > 0 && (
           <section>
-            <h2 className="text-sm font-bold text-muted-foreground uppercase tracking-wider mb-3">Lojas</h2>
+            <h2 className="text-sm font-bold text-muted-foreground uppercase tracking-wider mb-3">Lojas oficiais</h2>
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
               {filteredStores.map((s) => (
                 <Link key={s.id} to={`/cliente/loja/${s.id}`} className="bg-card rounded-2xl p-3 shadow-card flex gap-3 items-center hover:shadow-elevated transition-all">
                   <img src={s.image} alt={s.name} loading="lazy" className="size-14 rounded-lg object-cover" />
                   <div className="flex-1 min-w-0">
                     <p className="text-sm font-bold truncate">{s.name}</p>
+                    <VerifiedBadge compact className="mt-1" />
                     <p className="text-xs text-muted-foreground line-clamp-1">{s.description}</p>
                     <p className="text-xs text-muted-foreground mt-0.5 flex items-center gap-1">
                       <Star className="w-3 h-3 fill-warning text-warning" /> {s.rating} • {s.distance}
@@ -93,7 +113,7 @@ const ClientSearch = () => {
             <h2 className="text-sm font-bold text-muted-foreground uppercase tracking-wider mb-3">Produtos</h2>
             <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4">
               {filteredProducts.map((p) => {
-                const store = stores.find((s) => s.id === p.storeId);
+                const seller = getProductSeller(p);
                 return (
                   <Link key={p.id} to={`/cliente/produto/${p.id}`} className="bg-card rounded-2xl shadow-card overflow-hidden flex flex-col hover:shadow-elevated hover:-translate-y-0.5 transition-all">
                     <div className="aspect-square bg-muted">
@@ -105,8 +125,12 @@ const ClientSearch = () => {
                         <p className="text-xs text-muted-foreground line-through mt-1">R$ {p.originalPrice.toFixed(2)}</p>
                       )}
                       <p className="text-base font-extrabold text-primary leading-none mt-0.5">R$ {p.price.toFixed(2)}</p>
-                      {store && (
-                        <p className="text-[11px] text-muted-foreground mt-2 truncate">⭐ {store.rating} • {store.name}</p>
+                      {seller && (
+                        <p className="text-[11px] text-muted-foreground mt-2 truncate flex items-center gap-1">
+                          {seller.type === "store" ? <Star className="w-3 h-3 fill-warning text-warning" /> : <UserRound className="w-3 h-3" />}
+                          {seller.rating} • {seller.name}
+                          {seller.verified ? <VerifiedBadge compact /> : <span>• sem selo</span>}
+                        </p>
                       )}
                     </div>
                   </Link>
