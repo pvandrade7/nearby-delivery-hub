@@ -1,7 +1,7 @@
 import { useNavigate, useParams } from "react-router-dom";
 import { useState } from "react";
-import { Minus, Plus, Heart, Share2, Star, Shield, Truck } from "lucide-react";
-import { products, stores } from "@/data/mockData";
+import { Minus, Plus, Heart, Share2, Star, Shield, Truck, MessageCircle, UserRound } from "lucide-react";
+import { getProductSeller, products } from "@/data/mockData";
 import { useCart } from "@/context/CartContext";
 import { VerifiedBadge } from "@/components/VerifiedBadge";
 
@@ -12,9 +12,9 @@ const ProductDetail = () => {
   const [qty, setQty] = useState(1);
 
   const product = products.find((p) => p.id === id);
-  const store = product ? stores.find((s) => s.id === product.storeId) : null;
+  const seller = product ? getProductSeller(product) : null;
 
-  if (!product || !store) return <div className="p-8">Produto não encontrado.</div>;
+  if (!product || !seller) return <div className="p-8">Produto não encontrado.</div>;
 
   const off = product.originalPrice
     ? Math.round(((product.originalPrice - product.price) / product.originalPrice) * 100)
@@ -54,32 +54,38 @@ const ProductDetail = () => {
 
           {/* Seller */}
           <button
-            onClick={() => navigate(`/cliente/loja/${store.id}`)}
+            onClick={() => seller.type === "store" ? navigate(`/cliente/loja/${seller.id}`) : navigate(`/cliente/chat/${product.id}`)}
             className="w-full bg-card rounded-2xl p-4 shadow-card flex items-center gap-3 text-left hover:shadow-elevated transition-shadow"
           >
-            <img src={store.image} alt={store.name} className="size-12 rounded-lg object-cover" />
+            {seller.type === "store" ? (
+              <img src={seller.image} alt={seller.name} className="size-12 rounded-lg object-cover" />
+            ) : (
+              <div className="size-12 rounded-lg bg-accent text-accent-foreground flex items-center justify-center font-extrabold">
+                {seller.avatar}
+              </div>
+            )}
             <div className="flex-1 min-w-0">
-              <p className="text-xs text-muted-foreground">Vendido por</p>
-              <p className="text-sm font-bold truncate">{store.name}</p>
-              {store.verificationStatus === "verificado" && <VerifiedBadge compact className="mt-1" />}
+              <p className="text-xs text-muted-foreground">{seller.type === "store" ? "Loja oficial" : "Vendedor comum"}</p>
+              <p className="text-sm font-bold truncate">{seller.name}</p>
+              {seller.verified ? <VerifiedBadge compact className="mt-1" /> : <span className="inline-flex mt-1 text-[10px] font-bold text-muted-foreground">Sem selo de verificação</span>}
             </div>
             <div className="text-right">
               <p className="text-sm font-bold flex items-center gap-1 justify-end">
-                <Star className="w-3.5 h-3.5 fill-warning text-warning" /> {store.rating}
+                <Star className="w-3.5 h-3.5 fill-warning text-warning" /> {seller.rating}
               </p>
-              <p className="text-[10px] text-muted-foreground">{store.reviews} avaliações</p>
+              <p className="text-[10px] text-muted-foreground">{seller.reviews} avaliações</p>
             </div>
           </button>
 
           {/* Benefits */}
           <div className="bg-card rounded-2xl p-4 shadow-card space-y-2.5">
             <div className="flex items-center gap-3 text-sm">
-              <Truck className="w-4 h-4 text-success" />
-              <span><span className="font-semibold">Entrega rápida</span> · {store.deliveryTime} · {store.distance}</span>
+              {seller.type === "store" ? <Truck className="w-4 h-4 text-success" /> : <UserRound className="w-4 h-4 text-primary" />}
+              <span><span className="font-semibold">{seller.type === "store" ? "Entrega rápida" : "Contato direto"}</span> · {seller.responseTime} · {seller.location}</span>
             </div>
             <div className="flex items-center gap-3 text-sm">
               <Shield className="w-4 h-4 text-primary" />
-              <span><span className="font-semibold">Compra segura</span> · garantia da plataforma</span>
+              <span><span className="font-semibold">Transparência</span> · {seller.description}</span>
             </div>
           </div>
 
@@ -98,17 +104,26 @@ const ProductDetail = () => {
               </div>
             </div>
             <div className="flex flex-col sm:flex-row gap-3">
+              {seller.type === "store" ? (
+                <button
+                  onClick={() => add(product)}
+                  className="flex-1 border-2 border-primary text-primary rounded-xl py-3 font-bold hover:bg-primary/5 transition-colors"
+                >
+                  Adicionar ao carrinho
+                </button>
+              ) : (
+                <button
+                  onClick={() => navigate(`/cliente/chat/${product.id}`)}
+                  className="flex-1 border-2 border-primary text-primary rounded-xl py-3 font-bold hover:bg-primary/5 transition-colors flex items-center justify-center gap-2"
+                >
+                  <MessageCircle className="w-4 h-4" /> Conversar
+                </button>
+              )}
               <button
-                onClick={() => add(product)}
-                className="flex-1 border-2 border-primary text-primary rounded-xl py-3 font-bold hover:bg-primary/5 transition-colors"
-              >
-                Adicionar ao carrinho
-              </button>
-              <button
-                onClick={handleAdd}
+                onClick={seller.type === "store" ? handleAdd : () => navigate(`/cliente/chat/${product.id}`)}
                 className="flex-1 gradient-brand text-primary-foreground rounded-xl py-3 font-bold shadow-card hover:shadow-elevated transition-shadow"
               >
-                Comprar agora
+                {seller.type === "store" ? "Comprar agora" : "Fazer proposta"}
               </button>
             </div>
             <div className="flex gap-2 mt-3 justify-end">
