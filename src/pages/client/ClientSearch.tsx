@@ -20,12 +20,13 @@ const ClientSearch = () => {
   }, [query, cat, type]);
 
   const filteredStores = useMemo(() => {
+    if (type === "pessoa") return [];
     return stores.filter((s) => {
       const matchQ = query ? s.name.toLowerCase().includes(query.toLowerCase()) : true;
       const matchC = cat ? s.category === cat : true;
       return matchQ && matchC;
     });
-  }, [query, cat]);
+  }, [query, cat, type]);
 
   return (
     <div className="px-4 lg:px-8 py-6 lg:py-8 max-w-[1400px] mx-auto">
