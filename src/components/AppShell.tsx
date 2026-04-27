@@ -14,6 +14,7 @@ import {
   RefreshCw,
   ShoppingCart,
   Bell,
+  BadgeCheck,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useCart } from "@/context/CartContext";
@@ -44,7 +45,13 @@ const sellerNav: NavItem[] = [
   { to: "/lojista/painel", icon: LayoutDashboard, label: "Painel" },
   { to: "/lojista/produtos", icon: Package, label: "Produtos" },
   { to: "/lojista/pedidos", icon: ShoppingBag, label: "Pedidos" },
+  { to: "/lojista/verificacao", icon: BadgeCheck, label: "Verificação" },
   { to: "/lojista/config", icon: Settings, label: "Conta" },
+];
+
+const adminNav: NavItem[] = [
+  { to: "/admin/verificacoes", icon: BadgeCheck, label: "Verificações" },
+  { to: "/lojista/painel", icon: LayoutDashboard, label: "Lojista" },
 ];
 
 const courierNav: NavItem[] = [
@@ -53,16 +60,18 @@ const courierNav: NavItem[] = [
 ];
 
 const profileMeta: Record<
-  "cliente" | "lojista" | "entregador",
+  "cliente" | "lojista" | "entregador" | "admin",
   { label: string; user: string; initial: string; nav: NavItem[] }
 > = {
   cliente: { label: "Cliente", user: "João Souza", initial: "J", nav: clientNav },
   lojista: { label: "Lojista", user: "Marina Flores", initial: "M", nav: sellerNav },
   entregador: { label: "Entregador", user: "Carlos Mendes", initial: "C", nav: courierNav },
+  admin: { label: "Admin", user: "Admin Vendy+", initial: "A", nav: adminNav },
 };
 
 const useProfile = () => {
   const { pathname } = useLocation();
+  if (pathname.startsWith("/admin")) return "admin" as const;
   if (pathname.startsWith("/lojista")) return "lojista" as const;
   if (pathname.startsWith("/entregador")) return "entregador" as const;
   if (pathname.startsWith("/cliente")) return "cliente" as const;
