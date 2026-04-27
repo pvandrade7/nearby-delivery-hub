@@ -3,6 +3,7 @@ import { useState } from "react";
 import { Minus, Plus, Heart, Share2, Star, Shield, Truck } from "lucide-react";
 import { products, stores } from "@/data/mockData";
 import { useCart } from "@/context/CartContext";
+import { VerifiedBadge } from "@/components/VerifiedBadge";
 
 const ProductDetail = () => {
   const { id } = useParams();
@@ -60,6 +61,7 @@ const ProductDetail = () => {
             <div className="flex-1 min-w-0">
               <p className="text-xs text-muted-foreground">Vendido por</p>
               <p className="text-sm font-bold truncate">{store.name}</p>
+              {store.verificationStatus === "verificado" && <VerifiedBadge compact className="mt-1" />}
             </div>
             <div className="text-right">
               <p className="text-sm font-bold flex items-center gap-1 justify-end">
