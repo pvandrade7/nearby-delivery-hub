@@ -110,6 +110,15 @@ export const AppShell = ({ children }: { children: ReactNode }) => {
 
   const meta = profileMeta[profile];
 
+  const handleBack = () => {
+    if (window.history.length > 1) {
+      navigate(-1);
+      return;
+    }
+
+    navigate(profile === "cliente" ? "/cliente/home" : profile === "lojista" ? "/lojista/painel" : profile === "admin" ? "/admin/verificacoes" : "/entregador/painel");
+  };
+
   return (
     <div className="min-h-dvh w-full bg-muted/40 flex">
       {/* Sidebar */}
@@ -173,7 +182,7 @@ export const AppShell = ({ children }: { children: ReactNode }) => {
           </div>
 
           <button
-            onClick={() => navigate(-1)}
+            onClick={handleBack}
             className="size-10 rounded-full bg-muted hover:bg-muted/70 transition-colors flex items-center justify-center shrink-0"
             aria-label="Voltar"
           >
