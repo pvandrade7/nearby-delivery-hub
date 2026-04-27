@@ -29,6 +29,8 @@ import SellerDashboard from "./pages/seller/SellerDashboard";
 import SellerProducts from "./pages/seller/SellerProducts";
 import NewProduct from "./pages/seller/NewProduct";
 import SellerOrders from "./pages/seller/SellerOrders";
+import SellerVerification from "./pages/seller/SellerVerification";
+import AdminVerification from "./pages/admin/AdminVerification";
 
 // Entregador
 import CourierHome from "./pages/courier/CourierHome";
@@ -76,7 +78,11 @@ const App = () => (
             <Route path="/lojista/produtos" element={<AppShell><SellerProducts /></AppShell>} />
             <Route path="/lojista/produtos/novo" element={<AppShell><NewProduct /></AppShell>} />
             <Route path="/lojista/pedidos" element={<AppShell><SellerOrders /></AppShell>} />
+            <Route path="/lojista/verificacao" element={<AppShell><SellerVerification /></AppShell>} />
             <Route path="/lojista/config" element={<AppShell><SellerDashboard /></AppShell>} />
+
+            {/* Admin */}
+            <Route path="/admin/verificacoes" element={<AppShell><AdminVerification /></AppShell>} />
 
             {/* Entregador */}
             <Route path="/entregador" element={<AppShell><CourierLogin /></AppShell>} />
