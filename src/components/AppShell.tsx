@@ -21,7 +21,7 @@ import { useCart } from "@/context/CartContext";
 
 type NavItem = { to: string; icon: typeof Home; label: string };
 
-const notificationsByProfile: Record<"cliente" | "lojista" | "entregador", { title: string; body: string; time: string }[]> = {
+const notificationsByProfile: Record<"cliente" | "lojista" | "entregador" | "admin", { title: string; body: string; time: string }[]> = {
   cliente: [
     { title: "Pedido atualizado", body: "Sua compra #1043 está sendo preparada.", time: "Agora" },
     { title: "Oferta perto de você", body: "Lâmpadas e ferramentas com desconto hoje.", time: "12 min" },
@@ -31,6 +31,9 @@ const notificationsByProfile: Record<"cliente" | "lojista" | "entregador", { tit
     { title: "Estoque baixo", body: "Detergente neutro está com poucas unidades.", time: "35 min" },
   ],
   entregador: [],
+  admin: [
+    { title: "Verificação pendente", body: "2 vendedores aguardam análise manual.", time: "Agora" },
+  ],
 };
 
 const clientNav: NavItem[] = [
@@ -179,7 +182,7 @@ export const AppShell = ({ children }: { children: ReactNode }) => {
             </button>
           ) : (
             <h1 className="flex-1 font-bold text-base lg:text-lg truncate">
-              {meta.label === "Lojista" ? "Painel da loja" : "Central do entregador"}
+              {meta.label === "Lojista" ? "Painel da loja" : meta.label === "Admin" ? "Painel administrativo" : "Central do entregador"}
             </h1>
           )}
 
