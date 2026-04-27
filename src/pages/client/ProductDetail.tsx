@@ -1,8 +1,8 @@
 import { useNavigate, useParams } from "react-router-dom";
 import { useState } from "react";
-import { Minus, Plus, Heart, Share2, Star, Shield, Truck, MessageCircle, UserRound } from "lucide-react";
+import { Minus, Plus, Heart, Share2, Star, Shield, Truck, MessageCircle, UserRound, MapPin, Handshake } from "lucide-react";
 import { getProductSeller, products } from "@/data/mockData";
-import { useCart } from "@/context/CartContext";
+import { FulfillmentType, useCart } from "@/context/CartContext";
 import { VerifiedBadge } from "@/components/VerifiedBadge";
 
 const ProductDetail = () => {
@@ -10,6 +10,8 @@ const ProductDetail = () => {
   const navigate = useNavigate();
   const { add } = useCart();
   const [qty, setQty] = useState(1);
+  const [fulfillmentType, setFulfillmentType] = useState<FulfillmentType>("delivery");
+  const [meetupPlace, setMeetupPlace] = useState("");
 
   const product = products.find((p) => p.id === id);
   const seller = product ? getProductSeller(product) : null;
@@ -21,9 +23,17 @@ const ProductDetail = () => {
     : 0;
 
   const handleAdd = () => {
-    for (let i = 0; i < qty; i++) add(product);
+    for (let i = 0; i < qty; i++) add(product, fulfillmentType);
     navigate("/cliente/carrinho");
   };
+
+  const fulfillmentOptions = [
+    { id: "delivery" as const, label: "Entrega", desc: seller.type === "store" ? "Receba no endereço informado" : "Combine o envio com o vendedor", icon: Truck },
+    { id: "pickup" as const, label: "Retirada", desc: seller.type === "store" ? "Retire na loja oficial" : "Retire com o vendedor", icon: MapPin },
+    ...(seller.type === "individual" && product.price >= 50
+      ? [{ id: "public_meetup" as const, label: "Encontro em local público", desc: "Combine um local seguro pelo chat", icon: Handshake }]
+      : []),
+  ];
 
   return (
     <div className="px-4 lg:px-8 py-6 lg:py-8 max-w-[1200px] mx-auto">
@@ -91,6 +101,43 @@ const ProductDetail = () => {
 
           {/* Quantity + actions */}
           <div className="bg-card rounded-2xl p-4 shadow-card">
+            <div className="mb-4">
+              <span className="text-sm font-semibold">Como deseja receber?</span>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 mt-3">
+                {fulfillmentOptions.map((option) => (
+                  <button
+                    key={option.id}
+                    onClick={() => setFulfillmentType(option.id)}
+                    className={`rounded-xl border-2 p-3 text-left transition-all ${
+                      fulfillmentType === option.id ? "border-primary bg-primary/10" : "border-border bg-background hover:border-primary/40"
+                    }`}
+                  >
+                    <div className="flex items-start gap-2">
+                      <option.icon className="w-4 h-4 text-primary mt-0.5" />
+                      <div>
+                        <p className="text-sm font-extrabold">{option.label}</p>
+                        <p className="text-[11px] text-muted-foreground mt-0.5">{option.desc}</p>
+                      </div>
+                    </div>
+                  </button>
+                ))}
+              </div>
+              {seller.type === "individual" && product.price < 50 && (
+                <p className="text-[11px] text-muted-foreground mt-2">Encontro em local público fica disponível para produtos a partir de R$ 50,00.</p>
+              )}
+              {fulfillmentType === "public_meetup" && (
+                <div className="mt-3 space-y-2">
+                  <input
+                    value={meetupPlace}
+                    onChange={(e) => setMeetupPlace(e.target.value)}
+                    placeholder="Sugira um local público, se quiser"
+                    className="w-full bg-background border border-border rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-primary/30"
+                  />
+                  <p className="text-[11px] text-muted-foreground">O local e horário devem ser combinados entre comprador e vendedor via chat.</p>
+                </div>
+              )}
+            </div>
+
             <div className="flex items-center justify-between mb-4">
               <span className="text-sm font-semibold">Quantidade</span>
               <div className="flex items-center gap-3 bg-muted rounded-full p-1">
@@ -106,21 +153,21 @@ const ProductDetail = () => {
             <div className="flex flex-col sm:flex-row gap-3">
               {seller.type === "store" ? (
                 <button
-                  onClick={() => add(product)}
+                  onClick={() => add(product, fulfillmentType)}
                   className="flex-1 border-2 border-primary text-primary rounded-xl py-3 font-bold hover:bg-primary/5 transition-colors"
                 >
                   Adicionar ao carrinho
                 </button>
               ) : (
                 <button
-                  onClick={() => navigate(`/cliente/chat/${product.id}`)}
+                  onClick={() => navigate(`/cliente/chat/${product.id}`, { state: { fulfillmentType, meetupPlace } })}
                   className="flex-1 border-2 border-primary text-primary rounded-xl py-3 font-bold hover:bg-primary/5 transition-colors flex items-center justify-center gap-2"
                 >
                   <MessageCircle className="w-4 h-4" /> Conversar
                 </button>
               )}
               <button
-                onClick={seller.type === "store" ? handleAdd : () => navigate(`/cliente/chat/${product.id}`)}
+                onClick={seller.type === "store" ? handleAdd : () => navigate(`/cliente/chat/${product.id}`, { state: { fulfillmentType, meetupPlace } })}
                 className="flex-1 gradient-brand text-primary-foreground rounded-xl py-3 font-bold shadow-card hover:shadow-elevated transition-shadow"
               >
                 {seller.type === "store" ? "Comprar agora" : "Fazer proposta"}
