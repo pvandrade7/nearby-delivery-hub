@@ -21,6 +21,8 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
   const [storeId, setStoreId] = useState<string | null>(null);
 
   const add = (product: Product) => {
+    if (!product.storeId) return;
+
     setItems((prev) => {
       // If different store, replace cart
       if (storeId && storeId !== product.storeId) {
