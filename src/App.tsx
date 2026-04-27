@@ -21,6 +21,7 @@ import OrderTracking from "./pages/client/OrderTracking";
 import ClientOrders from "./pages/client/ClientOrders";
 import ClientProfile from "./pages/client/ClientProfile";
 import ClientLogin from "./pages/client/ClientLogin";
+import SellerChat from "./pages/client/SellerChat";
 
 // Lojista
 import SellerLogin from "./pages/seller/SellerLogin";
@@ -64,6 +65,7 @@ const App = () => (
             <Route path="/cliente/lojas" element={<AppShell><StoreList /></AppShell>} />
             <Route path="/cliente/loja/:id" element={<AppShell><StoreDetail /></AppShell>} />
             <Route path="/cliente/produto/:id" element={<AppShell><ProductDetail /></AppShell>} />
+            <Route path="/cliente/chat/:productId" element={<AppShell><SellerChat /></AppShell>} />
             <Route path="/cliente/carrinho" element={<AppShell><Cart /></AppShell>} />
             <Route path="/cliente/checkout" element={<AppShell><Checkout /></AppShell>} />
             <Route path="/cliente/confirmacao" element={<AppShell><OrderConfirmation /></AppShell>} />
