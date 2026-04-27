@@ -1,6 +1,7 @@
 import { Link, useNavigate } from "react-router-dom";
 import { Star, ChevronRight, Tag, Truck } from "lucide-react";
 import { categories, stores, products } from "@/data/mockData";
+import { VerifiedBadge } from "@/components/VerifiedBadge";
 
 const ClientHome = () => {
   const navigate = useNavigate();
@@ -92,6 +93,7 @@ const ClientHome = () => {
                   {store && (
                     <p className="text-[11px] text-muted-foreground mt-2 truncate flex items-center gap-1">
                       <Star className="w-3 h-3 fill-warning text-warning" /> {store.rating} • {store.name}
+                      {store.verificationStatus === "verificado" && <VerifiedBadge compact />}
                     </p>
                   )}
                 </div>
@@ -127,6 +129,7 @@ const ClientHome = () => {
                   {store && (
                     <p className="text-[11px] text-muted-foreground mt-2 truncate flex items-center gap-1">
                       <Star className="w-3 h-3 fill-warning text-warning" /> {store.rating} • {store.name}
+                      {store.verificationStatus === "verificado" && <VerifiedBadge compact />}
                     </p>
                   )}
                 </div>
@@ -158,7 +161,10 @@ const ClientHome = () => {
                 className="size-20 rounded-xl object-cover shrink-0"
               />
               <div className="flex-1 min-w-0">
-                <h3 className="text-sm font-bold truncate">{store.name}</h3>
+                <div className="flex items-center gap-1.5 min-w-0">
+                  <h3 className="text-sm font-bold truncate">{store.name}</h3>
+                  {store.verificationStatus === "verificado" && <VerifiedBadge compact className="shrink-0" />}
+                </div>
                 <p className="text-xs text-muted-foreground line-clamp-2 mt-0.5">{store.description}</p>
                 <div className="flex items-center gap-2 text-xs text-muted-foreground mt-2">
                   <span className="flex items-center gap-1 font-semibold text-foreground">

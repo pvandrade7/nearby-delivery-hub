@@ -1,6 +1,7 @@
 import { Link } from "react-router-dom";
-import { TrendingUp, Clock, CheckCircle2, Plus, DollarSign, Eye } from "lucide-react";
+import { TrendingUp, Clock, CheckCircle2, Plus, DollarSign, Eye, BadgeCheck } from "lucide-react";
 import { initialOrders, products } from "@/data/mockData";
+import { VerifiedBadge } from "@/components/VerifiedBadge";
 
 const stats = [
   { label: "Vendas hoje", value: "R$ 487,30", delta: "+22% vs ontem", icon: DollarSign, accent: "text-primary", bg: "bg-primary/10" },
@@ -33,12 +34,21 @@ const SellerDashboard = () => {
           <p className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Bom dia, Marina 🌸</p>
           <h1 className="text-2xl lg:text-3xl font-extrabold mt-1">Painel da loja</h1>
         </div>
-        <Link
-          to="/lojista/produtos/novo"
-          className="inline-flex items-center justify-center gap-2 gradient-brand text-primary-foreground rounded-xl px-5 py-2.5 font-bold shadow-card hover:shadow-elevated transition-shadow"
-        >
-          <Plus className="w-4 h-4" /> Cadastrar produto
-        </Link>
+        <div className="flex flex-wrap items-center gap-2">
+          <VerifiedBadge />
+          <Link
+            to="/lojista/verificacao"
+            className="inline-flex items-center justify-center gap-2 bg-card border border-border rounded-xl px-4 py-2.5 font-bold shadow-card hover:shadow-elevated transition-shadow"
+          >
+            <BadgeCheck className="w-4 h-4 text-success" /> Verificação
+          </Link>
+          <Link
+            to="/lojista/produtos/novo"
+            className="inline-flex items-center justify-center gap-2 gradient-brand text-primary-foreground rounded-xl px-5 py-2.5 font-bold shadow-card hover:shadow-elevated transition-shadow"
+          >
+            <Plus className="w-4 h-4" /> Cadastrar produto
+          </Link>
+        </div>
       </div>
 
       {/* Stats grid */}

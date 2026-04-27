@@ -2,6 +2,7 @@ import { Link, useNavigate, useParams } from "react-router-dom";
 import { Star, Clock, MapPin, Plus, ArrowLeft } from "lucide-react";
 import { products, stores } from "@/data/mockData";
 import { useCart } from "@/context/CartContext";
+import { VerifiedBadge } from "@/components/VerifiedBadge";
 
 const StoreDetail = () => {
   const { id } = useParams();
@@ -35,7 +36,10 @@ const StoreDetail = () => {
           <img src={store.image} alt={store.name} className="w-full h-full object-cover" />
         </div>
         <div className="p-5 lg:p-6">
-          <h1 className="text-2xl lg:text-3xl font-extrabold">{store.name}</h1>
+          <div className="flex flex-wrap items-center gap-2">
+            <h1 className="text-2xl lg:text-3xl font-extrabold">{store.name}</h1>
+            {store.verificationStatus === "verificado" && <VerifiedBadge />}
+          </div>
           <p className="text-sm text-muted-foreground mt-1">{store.description}</p>
           <div className="flex flex-wrap items-center gap-3 text-xs text-muted-foreground mt-3">
             <span className="bg-accent text-accent-foreground px-2.5 py-1 rounded-md font-bold flex items-center gap-1">

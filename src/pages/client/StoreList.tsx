@@ -1,6 +1,7 @@
 import { Link } from "react-router-dom";
 import { Star, MapPin, Clock, ChevronRight } from "lucide-react";
 import { stores, products, categories } from "@/data/mockData";
+import { VerifiedBadge } from "@/components/VerifiedBadge";
 
 const StoreList = () => {
   return (
@@ -23,7 +24,10 @@ const StoreList = () => {
                 <img src={s.image} alt={s.name} loading="lazy" className="size-24 rounded-xl object-cover shrink-0" />
                 <div className="flex-1 min-w-0">
                   <div className="flex items-start justify-between gap-2">
-                    <h3 className="text-base font-bold leading-tight">{s.name}</h3>
+                    <div className="min-w-0">
+                      <h3 className="text-base font-bold leading-tight">{s.name}</h3>
+                      {s.verificationStatus === "verificado" && <VerifiedBadge compact className="mt-1" />}
+                    </div>
                     <span className="bg-accent text-accent-foreground px-2 py-0.5 rounded-md font-bold text-xs flex items-center gap-1 shrink-0">
                       <Star className="w-3 h-3 fill-current" /> {s.rating}
                     </span>

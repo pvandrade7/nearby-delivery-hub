@@ -39,6 +39,10 @@ export type Store = {
   image: string;
   description: string;
   freeShippingFrom?: number;
+  sellerType: "cnpj" | "empreendedor" | "comum";
+  verificationStatus: "nao_verificado" | "pendente" | "verificado" | "rejeitado";
+  verificationType?: "cnpj" | "manual";
+  cnpj?: string;
 };
 
 export type Product = {
@@ -92,6 +96,10 @@ export const stores: Store[] = [
     image: storeMercado,
     description: "Mercadinho de bairro com tudo que você precisa.",
     freeShippingFrom: 50,
+    sellerType: "cnpj",
+    verificationStatus: "verificado",
+    verificationType: "cnpj",
+    cnpj: "12.345.678/0001-90",
   },
   {
     id: "s2",
@@ -103,6 +111,9 @@ export const stores: Store[] = [
     deliveryTime: "1h",
     image: storeConstrucao,
     description: "Cimento, tijolos e materiais para sua obra.",
+    sellerType: "empreendedor",
+    verificationStatus: "pendente",
+    verificationType: "manual",
   },
   {
     id: "s3",
@@ -115,6 +126,9 @@ export const stores: Store[] = [
     image: storeFerramentas,
     description: "Ferramentas, parafusos e acessórios para reparos.",
     freeShippingFrom: 80,
+    sellerType: "empreendedor",
+    verificationStatus: "verificado",
+    verificationType: "manual",
   },
   {
     id: "s4",
@@ -126,6 +140,8 @@ export const stores: Store[] = [
     deliveryTime: "40min",
     image: storeUtilidades,
     description: "Produtos de limpeza e utilidades domésticas.",
+    sellerType: "comum",
+    verificationStatus: "nao_verificado",
   },
   {
     id: "s5",
@@ -138,6 +154,10 @@ export const stores: Store[] = [
     image: storeFarmacia,
     description: "Medicamentos, perfumaria e cuidados pessoais.",
     freeShippingFrom: 40,
+    sellerType: "cnpj",
+    verificationStatus: "verificado",
+    verificationType: "cnpj",
+    cnpj: "98.765.432/0001-10",
   },
   {
     id: "s6",
@@ -149,6 +169,9 @@ export const stores: Store[] = [
     deliveryTime: "50min",
     image: storePapelaria,
     description: "Material escolar, escritório e arte.",
+    sellerType: "empreendedor",
+    verificationStatus: "rejeitado",
+    verificationType: "manual",
   },
   {
     id: "s7",
@@ -160,6 +183,8 @@ export const stores: Store[] = [
     deliveryTime: "1h",
     image: storeEletronicos,
     description: "Lâmpadas, tomadas e eletrônicos simples.",
+    sellerType: "comum",
+    verificationStatus: "nao_verificado",
   },
   {
     id: "s8",
@@ -171,6 +196,9 @@ export const stores: Store[] = [
     deliveryTime: "45min",
     image: storeFlores,
     description: "Buquês, arranjos e plantas para todas as ocasiões.",
+    sellerType: "empreendedor",
+    verificationStatus: "pendente",
+    verificationType: "manual",
   },
   {
     id: "s9",
@@ -182,8 +210,22 @@ export const stores: Store[] = [
     deliveryTime: "1h",
     image: storeRoupas,
     description: "Roupas e acessórios casuais.",
+    sellerType: "comum",
+    verificationStatus: "nao_verificado",
   },
 ];
+
+export const verificationRequests = stores
+  .filter((store) => store.verificationType === "manual")
+  .map((store) => ({
+    id: `vr-${store.id}`,
+    storeId: store.id,
+    storeName: store.name,
+    sellerName: store.id === "s2" ? "Rafael Nogueira" : store.id === "s8" ? "Bianca Prado" : "Marina Flores",
+    status: store.verificationStatus,
+    submittedAt: store.verificationStatus === "pendente" ? "Hoje" : "há 3 dias",
+    proofs: ["Vídeo dos produtos ou estoque", "Histórico de vendas", "Redes sociais comerciais"],
+  }));
 
 export const products: Product[] = [
   // Construção
