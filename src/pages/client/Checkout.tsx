@@ -12,7 +12,7 @@ const fulfillmentLabel: Record<FulfillmentType, string> = {
 };
 
 const Checkout = () => {
-  const { subtotal, items, fulfillmentType, clear } = useCart();
+  const { subtotal, items, fulfillmentType, setFulfillmentType, clear } = useCart();
   const [address, setAddress] = useState("Rua das Flores, 200 — Apto 42");
   const [payment, setPayment] = useState<Payment>("pix");
   const [loading, setLoading] = useState(false);
@@ -39,16 +39,31 @@ const Checkout = () => {
           {/* Fulfillment */}
           <section className="bg-card rounded-2xl p-5 shadow-card">
             <h2 className="text-sm font-bold text-muted-foreground uppercase tracking-wider mb-3">Recebimento</h2>
-            <div className="flex items-center gap-3">
-              <div className="size-10 rounded-xl bg-accent flex items-center justify-center text-primary">
-                <FulfillmentIcon className="w-5 h-5" />
-              </div>
-              <div>
-                <p className="text-sm font-extrabold">{fulfillmentLabel[fulfillmentType]}</p>
-                <p className="text-xs text-muted-foreground">
-                  {fulfillmentType === "delivery" ? "Pedido será entregue no endereço informado" : "Pedido será retirado conforme combinado com a loja"}
-                </p>
-              </div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+              {(["delivery", "pickup"] as FulfillmentType[]).map((type) => {
+                const Icon = type === "delivery" ? Truck : StoreIcon;
+                return (
+                  <button
+                    key={type}
+                    onClick={() => setFulfillmentType(type)}
+                    className={`rounded-2xl border-2 p-3 text-left transition-all ${
+                      fulfillmentType === type ? "border-primary bg-primary/10" : "border-border bg-background hover:border-primary/40"
+                    }`}
+                  >
+                    <div className="flex items-start gap-3">
+                      <div className="size-10 rounded-xl bg-accent flex items-center justify-center text-primary shrink-0">
+                        <Icon className="w-5 h-5" />
+                      </div>
+                      <div>
+                        <p className="text-sm font-extrabold">{fulfillmentLabel[type]}</p>
+                        <p className="text-xs text-muted-foreground mt-0.5">
+                          {type === "delivery" ? "Receber no endereço informado" : "Retirar diretamente com a loja"}
+                        </p>
+                      </div>
+                    </div>
+                  </button>
+                );
+              })}
             </div>
           </section>
 
