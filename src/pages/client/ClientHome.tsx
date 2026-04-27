@@ -1,6 +1,6 @@
 import { Link, useNavigate } from "react-router-dom";
-import { Star, ChevronRight, Tag, Truck } from "lucide-react";
-import { categories, stores, products } from "@/data/mockData";
+import { Star, ChevronRight, Tag, Truck, UserRound } from "lucide-react";
+import { categories, stores, products, getProductSeller } from "@/data/mockData";
 import { VerifiedBadge } from "@/components/VerifiedBadge";
 
 const ClientHome = () => {
@@ -8,9 +8,8 @@ const ClientHome = () => {
 
   const popular = products.filter((p) => p.popular);
   const onSale = products.filter((p) => p.onSale);
+  const usedItems = products.filter((p) => p.sellerId);
   const nearbyStores = stores.slice(0, 6);
-
-  const storeOf = (storeId: string) => stores.find((s) => s.id === storeId);
 
   return (
     <div className="px-4 lg:px-8 py-6 lg:py-8 max-w-[1400px] mx-auto space-y-8">
@@ -66,7 +65,7 @@ const ClientHome = () => {
         </div>
         <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4">
           {onSale.map((p) => {
-            const store = storeOf(p.storeId);
+            const seller = getProductSeller(p);
             const off = p.originalPrice
               ? Math.round(((p.originalPrice - p.price) / p.originalPrice) * 100)
               : 0;
@@ -90,10 +89,10 @@ const ClientHome = () => {
                     <p className="text-xs text-muted-foreground line-through mt-1">R$ {p.originalPrice.toFixed(2)}</p>
                   )}
                   <p className="text-base font-extrabold text-primary leading-none">R$ {p.price.toFixed(2)}</p>
-                  {store && (
+                  {seller && (
                     <p className="text-[11px] text-muted-foreground mt-2 truncate flex items-center gap-1">
-                      <Star className="w-3 h-3 fill-warning text-warning" /> {store.rating} • {store.name}
-                      {store.verificationStatus === "verificado" && <VerifiedBadge compact />}
+                      {seller.type === "store" ? <Star className="w-3 h-3 fill-warning text-warning" /> : <UserRound className="w-3 h-3" />} {seller.rating} • {seller.name}
+                      {seller.verified && <VerifiedBadge compact />}
                     </p>
                   )}
                 </div>
@@ -113,7 +112,7 @@ const ClientHome = () => {
         </div>
         <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4">
           {popular.map((p) => {
-            const store = storeOf(p.storeId);
+            const seller = getProductSeller(p);
             return (
               <Link
                 key={p.id}
@@ -126,12 +125,38 @@ const ClientHome = () => {
                 <div className="p-3">
                   <p className="text-sm font-semibold leading-tight line-clamp-2 min-h-[40px]">{p.name}</p>
                   <p className="text-base font-extrabold text-primary mt-1">R$ {p.price.toFixed(2)}</p>
-                  {store && (
+                  {seller && (
                     <p className="text-[11px] text-muted-foreground mt-2 truncate flex items-center gap-1">
-                      <Star className="w-3 h-3 fill-warning text-warning" /> {store.rating} • {store.name}
-                      {store.verificationStatus === "verificado" && <VerifiedBadge compact />}
+                      {seller.type === "store" ? <Star className="w-3 h-3 fill-warning text-warning" /> : <UserRound className="w-3 h-3" />} {seller.rating} • {seller.name}
+                      {seller.verified && <VerifiedBadge compact />}
                     </p>
                   )}
+                </div>
+              </Link>
+            );
+          })}
+        </div>
+      </section>
+
+      <section>
+        <div className="flex justify-between items-center mb-4">
+          <h2 className="text-lg lg:text-xl font-extrabold">Vendedores comuns</h2>
+          <Link to="/cliente/busca?tipo=pessoa" className="text-sm text-primary font-semibold flex items-center gap-1 hover:underline">
+            Ver usados <ChevronRight className="w-4 h-4" />
+          </Link>
+        </div>
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4">
+          {usedItems.map((p) => {
+            const seller = getProductSeller(p);
+            return (
+              <Link key={p.id} to={`/cliente/produto/${p.id}`} className="bg-card rounded-2xl shadow-card overflow-hidden hover:shadow-elevated hover:-translate-y-0.5 transition-all">
+                <div className="aspect-square bg-muted">
+                  <img src={p.image} alt={p.name} loading="lazy" className="w-full h-full object-cover" />
+                </div>
+                <div className="p-3">
+                  <p className="text-sm font-semibold leading-tight line-clamp-2 min-h-[40px]">{p.name}</p>
+                  <p className="text-base font-extrabold text-primary mt-1">R$ {p.price.toFixed(2)}</p>
+                  {seller && <p className="text-[11px] text-muted-foreground mt-2 truncate flex items-center gap-1"><UserRound className="w-3 h-3" /> {seller.name} • sem selo</p>}
                 </div>
               </Link>
             );
@@ -142,7 +167,7 @@ const ClientHome = () => {
       {/* Lojas próximas */}
       <section>
         <div className="flex justify-between items-center mb-4">
-          <h2 className="text-lg lg:text-xl font-extrabold">Lojas próximas</h2>
+          <h2 className="text-lg lg:text-xl font-extrabold">Lojas oficiais</h2>
           <Link to="/cliente/lojas" className="text-sm text-primary font-semibold flex items-center gap-1 hover:underline">
             Ver todas <ChevronRight className="w-4 h-4" />
           </Link>
