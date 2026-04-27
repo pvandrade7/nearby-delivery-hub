@@ -307,7 +307,27 @@ export const products: Product[] = [
   { id: "p12", storeId: "s8", name: "Buquê de Rosas Mistas", price: 89.0, description: "Buquê artesanal com 12 rosas em embalagem kraft.", category: "flores", image: pFlores },
   // Farmácia
   { id: "p13", storeId: "s5", name: "Paracetamol 500mg c/ 20", price: 8.9, description: "Analgésico e antitérmico, caixa com 20 comprimidos.", category: "farmacia", image: pRemedio, popular: true },
+  // Pessoas físicas / usados
+  { id: "p14", sellerId: "u1", name: "Cadeira de escritório usada", price: 180.0, originalPrice: 260.0, description: "Cadeira giratória em bom estado, com regulagem de altura e marcas leves de uso.", category: "usados", image: storeUtilidades, onSale: true, popular: true },
+  { id: "p15", sellerId: "u2", name: "Smartphone seminovo 128GB", price: 890.0, description: "Aparelho pessoal com carregador, funcionando bem e com pequenos riscos na lateral.", category: "eletronicos", image: storeEletronicos, popular: true },
+  { id: "p16", sellerId: "u3", name: "Bicicleta aro 29", price: 650.0, originalPrice: 780.0, description: "Bicicleta usada para passeio, revisada recentemente e pronta para retirada.", category: "usados", image: storeFerramentas, onSale: true },
+  { id: "p17", sellerId: "u1", name: "Lote de roupas infantis", price: 120.0, description: "Peças usadas em ótimo estado, tamanhos variados para criança.", category: "roupas", image: storeRoupas },
+  { id: "p18", sellerId: "u3", name: "Mesa pequena de madeira", price: 95.0, description: "Mesa compacta para cozinha ou área de serviço, retirada com o vendedor.", category: "usados", image: storeConstrucao },
 ];
+
+export const getProductSeller = (product: Product) => {
+  if (product.storeId) {
+    const store = stores.find((s) => s.id === product.storeId);
+    return store ? { type: "store" as const, id: store.id, name: store.name, image: store.image, rating: store.rating, reviews: store.reviews, description: store.description, location: store.distance, responseTime: store.deliveryTime, verified: store.verificationStatus === "verificado", accountInfo: "Loja oficial/comercial" } : null;
+  }
+
+  if (product.sellerId) {
+    const seller = individualSellers.find((s) => s.id === product.sellerId);
+    return seller ? { type: "individual" as const, id: seller.id, name: seller.name, avatar: seller.avatar, rating: seller.rating, reviews: seller.reviews, description: seller.accountInfo, location: seller.city, responseTime: seller.responseTime, verified: false, accountInfo: seller.memberSince } : null;
+  }
+
+  return null;
+};
 
 export const initialOrders: Order[] = [
   {
