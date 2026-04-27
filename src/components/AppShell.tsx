@@ -1,6 +1,7 @@
 import { ReactNode, useEffect, useRef, useState } from "react";
 import { Link, NavLink, useLocation, useNavigate } from "react-router-dom";
 import {
+  ArrowLeft,
   Home,
   Search,
   Store as StoreIcon,
@@ -170,6 +171,14 @@ export const AppShell = ({ children }: { children: ReactNode }) => {
               V+
             </div>
           </div>
+
+          <button
+            onClick={() => navigate(-1)}
+            className="size-10 rounded-full bg-muted hover:bg-muted/70 transition-colors flex items-center justify-center shrink-0"
+            aria-label="Voltar"
+          >
+            <ArrowLeft className="w-4 h-4" />
+          </button>
 
           {/* Centered search (clients) */}
           {profile === "cliente" ? (
