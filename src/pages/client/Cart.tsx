@@ -16,7 +16,7 @@ const Cart = () => {
         <span className="text-6xl mb-4 inline-block">🛒</span>
         <h2 className="text-xl font-bold">Seu carrinho está vazio</h2>
         <p className="text-sm text-muted-foreground mt-1">Que tal explorar as lojas pertinho?</p>
-        <button onClick={() => navigate("/cliente")} className="mt-6 gradient-brand text-primary-foreground rounded-xl px-6 py-3 font-bold shadow-card">
+        <button onClick={() => navigate("/cliente/home")} className="mt-6 gradient-brand text-primary-foreground rounded-xl px-6 py-3 font-bold shadow-card">
           Ver lojas
         </button>
       </div>

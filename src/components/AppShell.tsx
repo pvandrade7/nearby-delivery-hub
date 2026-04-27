@@ -21,7 +21,7 @@ import { useCart } from "@/context/CartContext";
 type NavItem = { to: string; icon: typeof Home; label: string };
 
 const clientNav: NavItem[] = [
-  { to: "/cliente", icon: Home, label: "Início" },
+  { to: "/cliente/home", icon: Home, label: "Início" },
   { to: "/cliente/busca", icon: Search, label: "Buscar" },
   { to: "/cliente/lojas", icon: StoreIcon, label: "Lojas" },
   { to: "/cliente/pedidos", icon: ShoppingBag, label: "Pedidos" },
@@ -36,7 +36,7 @@ const sellerNav: NavItem[] = [
 ];
 
 const courierNav: NavItem[] = [
-  { to: "/entregador", icon: Bike, label: "Corridas" },
+  { to: "/entregador/painel", icon: Bike, label: "Corridas" },
   { to: "/entregador/finalizada", icon: Wallet, label: "Ganhos" },
 ];
 

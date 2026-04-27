@@ -27,7 +27,7 @@ const CourierComplete = () => {
       </div>
 
       <Link
-        to="/entregador"
+        to="/entregador/painel"
         className="mt-8 block gradient-brand text-primary-foreground rounded-xl py-3.5 font-bold shadow-card hover:shadow-elevated transition-shadow"
       >
         Ver mais corridas

@@ -24,7 +24,7 @@ const OrderConfirmation = () => {
       >
         Acompanhar entrega
       </Link>
-      <Link to="/cliente" className="text-sm text-muted-foreground mt-4 font-semibold inline-block">
+      <Link to="/cliente/home" className="text-sm text-muted-foreground mt-4 font-semibold inline-block">
         Voltar ao início
       </Link>
     </div>
