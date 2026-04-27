@@ -1,4 +1,4 @@
-import { ReactNode, useState } from "react";
+import { ReactNode, useEffect, useRef, useState } from "react";
 import { Link, NavLink, useLocation, useNavigate } from "react-router-dom";
 import {
   Home,
@@ -75,6 +75,20 @@ export const AppShell = ({ children }: { children: ReactNode }) => {
   const profile = useProfile();
   const { count } = useCart();
   const [notificationsOpen, setNotificationsOpen] = useState(false);
+  const notificationsRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!notificationsOpen) return;
+
+    const closeOnOutsideClick = (event: MouseEvent) => {
+      if (!notificationsRef.current?.contains(event.target as Node)) {
+        setNotificationsOpen(false);
+      }
+    };
+
+    document.addEventListener("mousedown", closeOnOutsideClick);
+    return () => document.removeEventListener("mousedown", closeOnOutsideClick);
+  }, [notificationsOpen]);
 
   // Landing page (RoleSelect): full bleed, no shell.
   if (location.pathname === "/" || !profile) {
@@ -161,7 +175,7 @@ export const AppShell = ({ children }: { children: ReactNode }) => {
           )}
 
           <div className="flex items-center gap-2">
-            <div className="relative">
+            <div ref={notificationsRef} className="relative">
               <button
                 onClick={() => setNotificationsOpen((open) => !open)}
                 className="size-10 rounded-full bg-muted hover:bg-muted/70 transition-colors flex items-center justify-center relative"
