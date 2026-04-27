@@ -1,4 +1,4 @@
-import { ReactNode, useMemo } from "react";
+import { ReactNode, useState } from "react";
 import { Link, NavLink, useLocation, useNavigate } from "react-router-dom";
 import {
   Home,
@@ -19,6 +19,18 @@ import { cn } from "@/lib/utils";
 import { useCart } from "@/context/CartContext";
 
 type NavItem = { to: string; icon: typeof Home; label: string };
+
+const notificationsByProfile: Record<"cliente" | "lojista" | "entregador", { title: string; body: string; time: string }[]> = {
+  cliente: [
+    { title: "Pedido atualizado", body: "Sua compra #1043 está sendo preparada.", time: "Agora" },
+    { title: "Oferta perto de você", body: "Lâmpadas e ferramentas com desconto hoje.", time: "12 min" },
+  ],
+  lojista: [
+    { title: "Novo pedido recebido", body: "Pedido #1045 aguardando confirmação.", time: "Agora" },
+    { title: "Estoque baixo", body: "Detergente neutro está com poucas unidades.", time: "35 min" },
+  ],
+  entregador: [],
+};
 
 const clientNav: NavItem[] = [
   { to: "/cliente/home", icon: Home, label: "Início" },
@@ -62,6 +74,7 @@ export const AppShell = ({ children }: { children: ReactNode }) => {
   const navigate = useNavigate();
   const profile = useProfile();
   const { count } = useCart();
+  const [notificationsOpen, setNotificationsOpen] = useState(false);
 
   // Landing page (RoleSelect): full bleed, no shell.
   if (location.pathname === "/" || !profile) {
@@ -148,10 +161,44 @@ export const AppShell = ({ children }: { children: ReactNode }) => {
           )}
 
           <div className="flex items-center gap-2">
-            <button className="size-10 rounded-full bg-muted hover:bg-muted/70 transition-colors flex items-center justify-center relative" aria-label="Notificações">
+            <div className="relative">
+              <button
+                onClick={() => setNotificationsOpen((open) => !open)}
+                className="size-10 rounded-full bg-muted hover:bg-muted/70 transition-colors flex items-center justify-center relative"
+                aria-label="Notificações"
+                aria-expanded={notificationsOpen}
+              >
               <Bell className="w-4 h-4" />
-              <span className="absolute top-2 right-2 size-2 rounded-full bg-secondary" />
-            </button>
+                {notificationsByProfile[profile].length > 0 && (
+                  <span className="absolute top-2 right-2 size-2 rounded-full bg-secondary" />
+                )}
+              </button>
+              {notificationsOpen && (
+                <div className="absolute right-0 top-12 w-80 max-w-[calc(100vw-2rem)] rounded-2xl border border-border bg-card text-card-foreground shadow-elevated z-50 overflow-hidden">
+                  <div className="px-4 py-3 border-b border-border">
+                    <p className="font-extrabold text-sm">Notificações</p>
+                    <p className="text-xs text-muted-foreground">Atualizações recentes do Vendy+</p>
+                  </div>
+                  {notificationsByProfile[profile].length > 0 ? (
+                    <div className="max-h-80 overflow-y-auto divide-y divide-border">
+                      {notificationsByProfile[profile].map((notification) => (
+                        <div key={`${notification.title}-${notification.time}`} className="px-4 py-3 hover:bg-muted/60 transition-colors">
+                          <div className="flex items-start justify-between gap-3">
+                            <p className="text-sm font-bold leading-tight">{notification.title}</p>
+                            <span className="text-[11px] text-muted-foreground shrink-0">{notification.time}</span>
+                          </div>
+                          <p className="text-xs text-muted-foreground mt-1 leading-relaxed">{notification.body}</p>
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="px-4 py-8 text-center">
+                      <p className="text-sm font-semibold">Voce nao tem notificacoes</p>
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
             {profile === "cliente" && (
               <Link
                 to="/cliente/carrinho"
