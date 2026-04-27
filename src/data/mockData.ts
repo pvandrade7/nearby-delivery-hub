@@ -45,9 +45,23 @@ export type Store = {
   cnpj?: string;
 };
 
+export type IndividualSeller = {
+  id: string;
+  name: string;
+  avatar: string;
+  city: string;
+  memberSince: string;
+  responseTime: string;
+  accountInfo: string;
+  rating: number;
+  reviews: number;
+  verificationStatus: "nao_verificado" | "pendente" | "verificado" | "rejeitado";
+};
+
 export type Product = {
   id: string;
-  storeId: string;
+  storeId?: string;
+  sellerId?: string;
   name: string;
   price: number;
   originalPrice?: number;
@@ -82,6 +96,46 @@ export const categories: Category[] = [
   { id: "flores", name: "Flores", emoji: "💐" },
   { id: "eletronicos", name: "Eletrônicos", emoji: "💡" },
   { id: "roupas", name: "Roupas", emoji: "👕" },
+  { id: "usados", name: "Usados", emoji: "♻️" },
+];
+
+export const individualSellers: IndividualSeller[] = [
+  {
+    id: "u1",
+    name: "Ana Ribeiro",
+    avatar: "AR",
+    city: "Centro",
+    memberSince: "Conta criada em 2023",
+    responseTime: "Responde em até 20 min",
+    accountInfo: "Pessoa física vendendo itens próprios usados",
+    rating: 4.6,
+    reviews: 18,
+    verificationStatus: "nao_verificado",
+  },
+  {
+    id: "u2",
+    name: "Lucas Martins",
+    avatar: "LM",
+    city: "Jardim América",
+    memberSince: "Conta criada em 2024",
+    responseTime: "Responde em até 1h",
+    accountInfo: "Vendedor ocasional de eletrônicos e móveis",
+    rating: 4.4,
+    reviews: 9,
+    verificationStatus: "nao_verificado",
+  },
+  {
+    id: "u3",
+    name: "Patrícia Gomes",
+    avatar: "PG",
+    city: "Vila Nova",
+    memberSince: "Conta criada em 2022",
+    responseTime: "Responde hoje",
+    accountInfo: "Anúncios pessoais sem loja formal",
+    rating: 4.8,
+    reviews: 26,
+    verificationStatus: "nao_verificado",
+  },
 ];
 
 export const stores: Store[] = [
@@ -111,9 +165,9 @@ export const stores: Store[] = [
     deliveryTime: "1h",
     image: storeConstrucao,
     description: "Cimento, tijolos e materiais para sua obra.",
-    sellerType: "empreendedor",
-    verificationStatus: "pendente",
-    verificationType: "manual",
+    sellerType: "cnpj",
+    verificationStatus: "verificado",
+    verificationType: "cnpj",
   },
   {
     id: "s3",
@@ -140,8 +194,9 @@ export const stores: Store[] = [
     deliveryTime: "40min",
     image: storeUtilidades,
     description: "Produtos de limpeza e utilidades domésticas.",
-    sellerType: "comum",
-    verificationStatus: "nao_verificado",
+    sellerType: "cnpj",
+    verificationStatus: "verificado",
+    verificationType: "cnpj",
   },
   {
     id: "s5",
@@ -169,9 +224,9 @@ export const stores: Store[] = [
     deliveryTime: "50min",
     image: storePapelaria,
     description: "Material escolar, escritório e arte.",
-    sellerType: "empreendedor",
-    verificationStatus: "rejeitado",
-    verificationType: "manual",
+    sellerType: "cnpj",
+    verificationStatus: "verificado",
+    verificationType: "cnpj",
   },
   {
     id: "s7",
@@ -183,8 +238,9 @@ export const stores: Store[] = [
     deliveryTime: "1h",
     image: storeEletronicos,
     description: "Lâmpadas, tomadas e eletrônicos simples.",
-    sellerType: "comum",
-    verificationStatus: "nao_verificado",
+    sellerType: "cnpj",
+    verificationStatus: "verificado",
+    verificationType: "cnpj",
   },
   {
     id: "s8",
@@ -196,9 +252,9 @@ export const stores: Store[] = [
     deliveryTime: "45min",
     image: storeFlores,
     description: "Buquês, arranjos e plantas para todas as ocasiões.",
-    sellerType: "empreendedor",
-    verificationStatus: "pendente",
-    verificationType: "manual",
+    sellerType: "cnpj",
+    verificationStatus: "verificado",
+    verificationType: "cnpj",
   },
   {
     id: "s9",
@@ -210,8 +266,9 @@ export const stores: Store[] = [
     deliveryTime: "1h",
     image: storeRoupas,
     description: "Roupas e acessórios casuais.",
-    sellerType: "comum",
-    verificationStatus: "nao_verificado",
+    sellerType: "cnpj",
+    verificationStatus: "verificado",
+    verificationType: "cnpj",
   },
 ];
 
