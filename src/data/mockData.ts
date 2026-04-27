@@ -45,9 +45,23 @@ export type Store = {
   cnpj?: string;
 };
 
+export type IndividualSeller = {
+  id: string;
+  name: string;
+  avatar: string;
+  city: string;
+  memberSince: string;
+  responseTime: string;
+  accountInfo: string;
+  rating: number;
+  reviews: number;
+  verificationStatus: "nao_verificado" | "pendente" | "verificado" | "rejeitado";
+};
+
 export type Product = {
   id: string;
-  storeId: string;
+  storeId?: string;
+  sellerId?: string;
   name: string;
   price: number;
   originalPrice?: number;
@@ -82,6 +96,46 @@ export const categories: Category[] = [
   { id: "flores", name: "Flores", emoji: "💐" },
   { id: "eletronicos", name: "Eletrônicos", emoji: "💡" },
   { id: "roupas", name: "Roupas", emoji: "👕" },
+  { id: "usados", name: "Usados", emoji: "♻️" },
+];
+
+export const individualSellers: IndividualSeller[] = [
+  {
+    id: "u1",
+    name: "Ana Ribeiro",
+    avatar: "AR",
+    city: "Centro",
+    memberSince: "Conta criada em 2023",
+    responseTime: "Responde em até 20 min",
+    accountInfo: "Pessoa física vendendo itens próprios usados",
+    rating: 4.6,
+    reviews: 18,
+    verificationStatus: "nao_verificado",
+  },
+  {
+    id: "u2",
+    name: "Lucas Martins",
+    avatar: "LM",
+    city: "Jardim América",
+    memberSince: "Conta criada em 2024",
+    responseTime: "Responde em até 1h",
+    accountInfo: "Vendedor ocasional de eletrônicos e móveis",
+    rating: 4.4,
+    reviews: 9,
+    verificationStatus: "nao_verificado",
+  },
+  {
+    id: "u3",
+    name: "Patrícia Gomes",
+    avatar: "PG",
+    city: "Vila Nova",
+    memberSince: "Conta criada em 2022",
+    responseTime: "Responde hoje",
+    accountInfo: "Anúncios pessoais sem loja formal",
+    rating: 4.8,
+    reviews: 26,
+    verificationStatus: "nao_verificado",
+  },
 ];
 
 export const stores: Store[] = [
@@ -111,9 +165,9 @@ export const stores: Store[] = [
     deliveryTime: "1h",
     image: storeConstrucao,
     description: "Cimento, tijolos e materiais para sua obra.",
-    sellerType: "empreendedor",
-    verificationStatus: "pendente",
-    verificationType: "manual",
+    sellerType: "cnpj",
+    verificationStatus: "verificado",
+    verificationType: "cnpj",
   },
   {
     id: "s3",
@@ -140,8 +194,9 @@ export const stores: Store[] = [
     deliveryTime: "40min",
     image: storeUtilidades,
     description: "Produtos de limpeza e utilidades domésticas.",
-    sellerType: "comum",
-    verificationStatus: "nao_verificado",
+    sellerType: "cnpj",
+    verificationStatus: "verificado",
+    verificationType: "cnpj",
   },
   {
     id: "s5",
@@ -169,9 +224,9 @@ export const stores: Store[] = [
     deliveryTime: "50min",
     image: storePapelaria,
     description: "Material escolar, escritório e arte.",
-    sellerType: "empreendedor",
-    verificationStatus: "rejeitado",
-    verificationType: "manual",
+    sellerType: "cnpj",
+    verificationStatus: "verificado",
+    verificationType: "cnpj",
   },
   {
     id: "s7",
@@ -183,8 +238,9 @@ export const stores: Store[] = [
     deliveryTime: "1h",
     image: storeEletronicos,
     description: "Lâmpadas, tomadas e eletrônicos simples.",
-    sellerType: "comum",
-    verificationStatus: "nao_verificado",
+    sellerType: "cnpj",
+    verificationStatus: "verificado",
+    verificationType: "cnpj",
   },
   {
     id: "s8",
@@ -196,9 +252,9 @@ export const stores: Store[] = [
     deliveryTime: "45min",
     image: storeFlores,
     description: "Buquês, arranjos e plantas para todas as ocasiões.",
-    sellerType: "empreendedor",
-    verificationStatus: "pendente",
-    verificationType: "manual",
+    sellerType: "cnpj",
+    verificationStatus: "verificado",
+    verificationType: "cnpj",
   },
   {
     id: "s9",
@@ -210,8 +266,9 @@ export const stores: Store[] = [
     deliveryTime: "1h",
     image: storeRoupas,
     description: "Roupas e acessórios casuais.",
-    sellerType: "comum",
-    verificationStatus: "nao_verificado",
+    sellerType: "cnpj",
+    verificationStatus: "verificado",
+    verificationType: "cnpj",
   },
 ];
 
@@ -250,7 +307,27 @@ export const products: Product[] = [
   { id: "p12", storeId: "s8", name: "Buquê de Rosas Mistas", price: 89.0, description: "Buquê artesanal com 12 rosas em embalagem kraft.", category: "flores", image: pFlores },
   // Farmácia
   { id: "p13", storeId: "s5", name: "Paracetamol 500mg c/ 20", price: 8.9, description: "Analgésico e antitérmico, caixa com 20 comprimidos.", category: "farmacia", image: pRemedio, popular: true },
+  // Pessoas físicas / usados
+  { id: "p14", sellerId: "u1", name: "Cadeira de escritório usada", price: 180.0, originalPrice: 260.0, description: "Cadeira giratória em bom estado, com regulagem de altura e marcas leves de uso.", category: "usados", image: storeUtilidades, onSale: true, popular: true },
+  { id: "p15", sellerId: "u2", name: "Smartphone seminovo 128GB", price: 890.0, description: "Aparelho pessoal com carregador, funcionando bem e com pequenos riscos na lateral.", category: "eletronicos", image: storeEletronicos, popular: true },
+  { id: "p16", sellerId: "u3", name: "Bicicleta aro 29", price: 650.0, originalPrice: 780.0, description: "Bicicleta usada para passeio, revisada recentemente e pronta para retirada.", category: "usados", image: storeFerramentas, onSale: true },
+  { id: "p17", sellerId: "u1", name: "Lote de roupas infantis", price: 120.0, description: "Peças usadas em ótimo estado, tamanhos variados para criança.", category: "roupas", image: storeRoupas },
+  { id: "p18", sellerId: "u3", name: "Mesa pequena de madeira", price: 95.0, description: "Mesa compacta para cozinha ou área de serviço, retirada com o vendedor.", category: "usados", image: storeConstrucao },
 ];
+
+export const getProductSeller = (product: Product) => {
+  if (product.storeId) {
+    const store = stores.find((s) => s.id === product.storeId);
+    return store ? { type: "store" as const, id: store.id, name: store.name, image: store.image, rating: store.rating, reviews: store.reviews, description: store.description, location: store.distance, responseTime: store.deliveryTime, verified: store.verificationStatus === "verificado", accountInfo: "Loja oficial/comercial" } : null;
+  }
+
+  if (product.sellerId) {
+    const seller = individualSellers.find((s) => s.id === product.sellerId);
+    return seller ? { type: "individual" as const, id: seller.id, name: seller.name, avatar: seller.avatar, rating: seller.rating, reviews: seller.reviews, description: seller.accountInfo, location: seller.city, responseTime: seller.responseTime, verified: false, accountInfo: seller.memberSince } : null;
+  }
+
+  return null;
+};
 
 export const initialOrders: Order[] = [
   {

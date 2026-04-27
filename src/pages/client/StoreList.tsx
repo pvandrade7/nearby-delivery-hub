@@ -7,8 +7,8 @@ const StoreList = () => {
   return (
     <div className="px-4 lg:px-8 py-6 lg:py-8 max-w-[1400px] mx-auto">
       <div className="mb-6">
-        <h1 className="text-2xl lg:text-3xl font-extrabold">Lojas próximas</h1>
-        <p className="text-sm text-muted-foreground mt-1">{stores.length} lojas atendendo na sua região</p>
+        <h1 className="text-2xl lg:text-3xl font-extrabold">Lojas oficiais</h1>
+        <p className="text-sm text-muted-foreground mt-1">{stores.length} lojas comerciais verificadas atendendo na sua região</p>
       </div>
       <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
         {stores.map((s) => {
@@ -26,7 +26,7 @@ const StoreList = () => {
                   <div className="flex items-start justify-between gap-2">
                     <div className="min-w-0">
                       <h3 className="text-base font-bold leading-tight">{s.name}</h3>
-                      {s.verificationStatus === "verificado" && <VerifiedBadge compact className="mt-1" />}
+                      <VerifiedBadge compact className="mt-1" />
                     </div>
                     <span className="bg-accent text-accent-foreground px-2 py-0.5 rounded-md font-bold text-xs flex items-center gap-1 shrink-0">
                       <Star className="w-3 h-3 fill-current" /> {s.rating}
