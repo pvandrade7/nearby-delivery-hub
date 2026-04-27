@@ -21,6 +21,11 @@ import pArroz from "@/assets/p-arroz.jpg";
 import pCamiseta from "@/assets/p-camiseta.jpg";
 import pFlores from "@/assets/p-flores.jpg";
 import pRemedio from "@/assets/p-remedio.jpg";
+import pCadeiraUsada from "@/assets/p-cadeira-usada.jpg";
+import pSmartphoneSeminovo from "@/assets/p-smartphone-seminovo.jpg";
+import pBicicletaUsada from "@/assets/p-bicicleta-usada.jpg";
+import pRoupasInfantisUsadas from "@/assets/p-roupas-infantis-usadas.jpg";
+import pMesaMadeiraUsada from "@/assets/p-mesa-madeira-usada.jpg";
 
 export type Category = {
   id: string;
@@ -308,11 +313,11 @@ export const products: Product[] = [
   // Farmácia
   { id: "p13", storeId: "s5", name: "Paracetamol 500mg c/ 20", price: 8.9, description: "Analgésico e antitérmico, caixa com 20 comprimidos.", category: "farmacia", image: pRemedio, popular: true },
   // Pessoas físicas / usados
-  { id: "p14", sellerId: "u1", name: "Cadeira de escritório usada", price: 180.0, originalPrice: 260.0, description: "Cadeira giratória em bom estado, com regulagem de altura e marcas leves de uso.", category: "usados", image: storeUtilidades, onSale: true, popular: true },
-  { id: "p15", sellerId: "u2", name: "Smartphone seminovo 128GB", price: 890.0, description: "Aparelho pessoal com carregador, funcionando bem e com pequenos riscos na lateral.", category: "eletronicos", image: storeEletronicos, popular: true },
-  { id: "p16", sellerId: "u3", name: "Bicicleta aro 29", price: 650.0, originalPrice: 780.0, description: "Bicicleta usada para passeio, revisada recentemente e pronta para retirada.", category: "usados", image: storeFerramentas, onSale: true },
-  { id: "p17", sellerId: "u1", name: "Lote de roupas infantis", price: 120.0, description: "Peças usadas em ótimo estado, tamanhos variados para criança.", category: "roupas", image: storeRoupas },
-  { id: "p18", sellerId: "u3", name: "Mesa pequena de madeira", price: 95.0, description: "Mesa compacta para cozinha ou área de serviço, retirada com o vendedor.", category: "usados", image: storeConstrucao },
+  { id: "p14", sellerId: "u1", name: "Cadeira de escritório usada", price: 180.0, originalPrice: 260.0, description: "Cadeira giratória em bom estado, com regulagem de altura e marcas leves de uso.", category: "usados", image: pCadeiraUsada, onSale: true, popular: true },
+  { id: "p15", sellerId: "u2", name: "Smartphone seminovo 128GB", price: 890.0, description: "Aparelho pessoal com carregador, funcionando bem e com pequenos riscos na lateral.", category: "eletronicos", image: pSmartphoneSeminovo, popular: true },
+  { id: "p16", sellerId: "u3", name: "Bicicleta aro 29", price: 650.0, originalPrice: 780.0, description: "Bicicleta usada para passeio, revisada recentemente e pronta para retirada.", category: "usados", image: pBicicletaUsada, onSale: true },
+  { id: "p17", sellerId: "u1", name: "Lote de roupas infantis", price: 120.0, description: "Peças usadas em ótimo estado, tamanhos variados para criança.", category: "roupas", image: pRoupasInfantisUsadas },
+  { id: "p18", sellerId: "u3", name: "Mesa pequena de madeira", price: 95.0, description: "Mesa compacta para cozinha ou área de serviço, retirada com o vendedor.", category: "usados", image: pMesaMadeiraUsada },
 ];
 
 export const getProductSeller = (product: Product) => {
