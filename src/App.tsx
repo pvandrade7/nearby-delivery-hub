@@ -20,6 +20,7 @@ import OrderConfirmation from "./pages/client/OrderConfirmation";
 import OrderTracking from "./pages/client/OrderTracking";
 import ClientOrders from "./pages/client/ClientOrders";
 import ClientProfile from "./pages/client/ClientProfile";
+import ClientLogin from "./pages/client/ClientLogin";
 
 // Lojista
 import SellerLogin from "./pages/seller/SellerLogin";
@@ -31,6 +32,7 @@ import SellerOrders from "./pages/seller/SellerOrders";
 
 // Entregador
 import CourierHome from "./pages/courier/CourierHome";
+import CourierLogin from "./pages/courier/CourierLogin";
 import CourierRoute from "./pages/courier/CourierRoute";
 import CourierComplete from "./pages/courier/CourierComplete";
 
@@ -54,7 +56,8 @@ const App = () => (
             />
 
             {/* Cliente */}
-            <Route path="/cliente" element={<AppShell><ClientHome /></AppShell>} />
+            <Route path="/cliente" element={<AppShell><ClientLogin /></AppShell>} />
+            <Route path="/cliente/home" element={<AppShell><ClientHome /></AppShell>} />
             <Route path="/cliente/busca" element={<AppShell><ClientSearch /></AppShell>} />
             <Route path="/cliente/lojas" element={<AppShell><StoreList /></AppShell>} />
             <Route path="/cliente/loja/:id" element={<AppShell><StoreDetail /></AppShell>} />
@@ -76,7 +79,8 @@ const App = () => (
             <Route path="/lojista/config" element={<AppShell><SellerDashboard /></AppShell>} />
 
             {/* Entregador */}
-            <Route path="/entregador" element={<AppShell><CourierHome /></AppShell>} />
+            <Route path="/entregador" element={<AppShell><CourierLogin /></AppShell>} />
+            <Route path="/entregador/painel" element={<AppShell><CourierHome /></AppShell>} />
             <Route path="/entregador/corrida/:id" element={<AppShell><CourierRoute /></AppShell>} />
             <Route path="/entregador/finalizada" element={<AppShell><CourierComplete /></AppShell>} />
 
