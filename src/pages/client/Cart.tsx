@@ -1,14 +1,28 @@
 import { useNavigate } from "react-router-dom";
-import { Minus, Plus, Trash2 } from "lucide-react";
-import { useCart } from "@/context/CartContext";
+import { Minus, Plus, Trash2, MapPin, Store as StoreIcon, Truck } from "lucide-react";
+import { FulfillmentType, useCart } from "@/context/CartContext";
 import { stores } from "@/data/mockData";
 
+const fulfillmentLabel: Record<FulfillmentType, string> = {
+  delivery: "Entrega",
+  pickup: "Retirada",
+  public_meetup: "Encontro em local público",
+};
+
+const fulfillmentIcon = {
+  delivery: Truck,
+  pickup: StoreIcon,
+  public_meetup: MapPin,
+};
+
 const Cart = () => {
-  const { items, setQty, remove, subtotal, storeId, count } = useCart();
+  const { items, setQty, remove, subtotal, storeId, count, fulfillmentType, setFulfillmentType } = useCart();
   const navigate = useNavigate();
   const store = stores.find((s) => s.id === storeId);
   const deliveryFee = subtotal > 50 ? 0 : 6.9;
-  const total = subtotal + deliveryFee;
+  const fee = fulfillmentType === "delivery" ? deliveryFee : 0;
+  const total = subtotal + fee;
+  const FulfillmentIcon = fulfillmentIcon[fulfillmentType];
 
   if (count === 0) {
     return (
@@ -36,6 +50,29 @@ const Cart = () => {
               <div>
                 <p className="text-xs text-muted-foreground">Pedindo de</p>
                 <p className="text-sm font-bold">{store.name}</p>
+              </div>
+            </div>
+          )}
+
+          {store && (
+            <div className="bg-card rounded-2xl p-4 shadow-card">
+              <p className="text-sm font-bold mb-3">Forma de recebimento</p>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                {(["delivery", "pickup"] as FulfillmentType[]).map((type) => {
+                  const Icon = fulfillmentIcon[type];
+                  return (
+                    <button
+                      key={type}
+                      onClick={() => setFulfillmentType(type)}
+                      className={`rounded-xl border-2 p-3 text-left transition-all ${fulfillmentType === type ? "border-primary bg-primary/10" : "border-border bg-background hover:border-primary/40"}`}
+                    >
+                      <div className="flex items-center gap-2">
+                        <Icon className="w-4 h-4 text-primary" />
+                        <span className="text-sm font-extrabold">{fulfillmentLabel[type]}</span>
+                      </div>
+                    </button>
+                  );
+                })}
               </div>
             </div>
           )}
@@ -69,9 +106,13 @@ const Cart = () => {
               <span>R$ {subtotal.toFixed(2)}</span>
             </div>
             <div className="flex justify-between text-muted-foreground">
+              <span className="inline-flex items-center gap-1"><FulfillmentIcon className="w-3.5 h-3.5" /> Recebimento</span>
+              <span>{fulfillmentLabel[fulfillmentType]}</span>
+            </div>
+            <div className="flex justify-between text-muted-foreground">
               <span>Frete</span>
-              <span className={deliveryFee === 0 ? "text-success font-semibold" : ""}>
-                {deliveryFee === 0 ? "Grátis 🎉" : `R$ ${deliveryFee.toFixed(2)}`}
+              <span className={fee === 0 ? "text-success font-semibold" : ""}>
+                {fulfillmentType !== "delivery" ? "Não se aplica" : fee === 0 ? "Grátis 🎉" : `R$ ${fee.toFixed(2)}`}
               </span>
             </div>
             <div className="border-t border-border pt-3 flex justify-between font-extrabold text-base">

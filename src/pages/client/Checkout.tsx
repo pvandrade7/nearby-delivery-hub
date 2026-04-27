@@ -1,19 +1,26 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { MapPin, CreditCard, Banknote, QrCode, Check } from "lucide-react";
-import { useCart } from "@/context/CartContext";
+import { MapPin, CreditCard, Banknote, QrCode, Check, Store as StoreIcon, Truck } from "lucide-react";
+import { FulfillmentType, useCart } from "@/context/CartContext";
 
 type Payment = "pix" | "credit" | "cash";
 
+const fulfillmentLabel: Record<FulfillmentType, string> = {
+  delivery: "Entrega",
+  pickup: "Retirada",
+  public_meetup: "Encontro em local público",
+};
+
 const Checkout = () => {
-  const { subtotal, items, clear } = useCart();
+  const { subtotal, items, fulfillmentType, clear } = useCart();
   const [address, setAddress] = useState("Rua das Flores, 200 — Apto 42");
   const [payment, setPayment] = useState<Payment>("pix");
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
 
-  const deliveryFee = subtotal > 50 ? 0 : 6.9;
+  const deliveryFee = fulfillmentType === "delivery" ? (subtotal > 50 ? 0 : 6.9) : 0;
   const total = subtotal + deliveryFee;
+  const FulfillmentIcon = fulfillmentType === "delivery" ? Truck : StoreIcon;
 
   const confirm = () => {
     setLoading(true);
@@ -29,9 +36,25 @@ const Checkout = () => {
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <div className="lg:col-span-2 space-y-5">
+          {/* Fulfillment */}
+          <section className="bg-card rounded-2xl p-5 shadow-card">
+            <h2 className="text-sm font-bold text-muted-foreground uppercase tracking-wider mb-3">Recebimento</h2>
+            <div className="flex items-center gap-3">
+              <div className="size-10 rounded-xl bg-accent flex items-center justify-center text-primary">
+                <FulfillmentIcon className="w-5 h-5" />
+              </div>
+              <div>
+                <p className="text-sm font-extrabold">{fulfillmentLabel[fulfillmentType]}</p>
+                <p className="text-xs text-muted-foreground">
+                  {fulfillmentType === "delivery" ? "Pedido será entregue no endereço informado" : "Pedido será retirado conforme combinado com a loja"}
+                </p>
+              </div>
+            </div>
+          </section>
+
           {/* Address */}
           <section className="bg-card rounded-2xl p-5 shadow-card">
-            <h2 className="text-sm font-bold text-muted-foreground uppercase tracking-wider mb-3">Entregar em</h2>
+            <h2 className="text-sm font-bold text-muted-foreground uppercase tracking-wider mb-3">{fulfillmentType === "delivery" ? "Entregar em" : "Referência de contato"}</h2>
             <div className="flex items-center gap-3">
               <div className="size-10 rounded-xl bg-accent flex items-center justify-center text-primary">
                 <MapPin className="w-5 h-5" />
@@ -92,7 +115,8 @@ const Checkout = () => {
             ))}
             <div className="border-t border-border pt-2 mt-2 space-y-1">
               <div className="flex justify-between text-muted-foreground"><span>Subtotal</span><span>R$ {subtotal.toFixed(2)}</span></div>
-              <div className="flex justify-between text-muted-foreground"><span>Frete</span><span>{deliveryFee === 0 ? "Grátis" : `R$ ${deliveryFee.toFixed(2)}`}</span></div>
+              <div className="flex justify-between text-muted-foreground"><span>Recebimento</span><span>{fulfillmentLabel[fulfillmentType]}</span></div>
+              <div className="flex justify-between text-muted-foreground"><span>Frete</span><span>{fulfillmentType !== "delivery" ? "Não se aplica" : deliveryFee === 0 ? "Grátis" : `R$ ${deliveryFee.toFixed(2)}`}</span></div>
               <div className="flex justify-between font-extrabold text-base pt-1">
                 <span>Total</span><span className="text-primary">R$ {total.toFixed(2)}</span>
               </div>

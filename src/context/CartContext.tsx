@@ -1,12 +1,15 @@
 import { createContext, ReactNode, useContext, useMemo, useState } from "react";
 import { Product } from "@/data/mockData";
 
-type CartItem = Product & { quantity: number };
+export type FulfillmentType = "delivery" | "pickup" | "public_meetup";
+export type CartItem = Product & { quantity: number; fulfillmentType: FulfillmentType };
 
 type CartContextValue = {
   items: CartItem[];
   storeId: string | null;
-  add: (product: Product) => void;
+  fulfillmentType: FulfillmentType;
+  add: (product: Product, fulfillmentType?: FulfillmentType) => void;
+  setFulfillmentType: (type: FulfillmentType) => void;
   remove: (productId: string) => void;
   setQty: (productId: string, qty: number) => void;
   clear: () => void;
@@ -19,22 +22,25 @@ const CartContext = createContext<CartContextValue | undefined>(undefined);
 export const CartProvider = ({ children }: { children: ReactNode }) => {
   const [items, setItems] = useState<CartItem[]>([]);
   const [storeId, setStoreId] = useState<string | null>(null);
+  const [fulfillmentType, setFulfillmentType] = useState<FulfillmentType>("delivery");
 
-  const add = (product: Product) => {
+  const add = (product: Product, selectedFulfillment: FulfillmentType = fulfillmentType) => {
     if (!product.storeId) return;
 
     setItems((prev) => {
       // If different store, replace cart
       if (storeId && storeId !== product.storeId) {
         setStoreId(product.storeId);
-        return [{ ...product, quantity: 1 }];
+        setFulfillmentType(selectedFulfillment);
+        return [{ ...product, quantity: 1, fulfillmentType: selectedFulfillment }];
       }
       setStoreId(product.storeId);
+      setFulfillmentType(selectedFulfillment);
       const existing = prev.find((i) => i.id === product.id);
       if (existing) {
-        return prev.map((i) => (i.id === product.id ? { ...i, quantity: i.quantity + 1 } : i));
+        return prev.map((i) => (i.id === product.id ? { ...i, quantity: i.quantity + 1, fulfillmentType: selectedFulfillment } : i));
       }
-      return [...prev, { ...product, quantity: 1 }];
+      return [...prev, { ...product, quantity: 1, fulfillmentType: selectedFulfillment }];
     });
   };
 
@@ -54,14 +60,15 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
   const clear = () => {
     setItems([]);
     setStoreId(null);
+    setFulfillmentType("delivery");
   };
 
   const value = useMemo<CartContextValue>(() => {
     const subtotal = items.reduce((s, i) => s + i.price * i.quantity, 0);
     const count = items.reduce((s, i) => s + i.quantity, 0);
-    return { items, storeId, add, remove, setQty, clear, subtotal, count };
+    return { items, storeId, fulfillmentType, add, remove, setQty, setFulfillmentType, clear, subtotal, count };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [items, storeId]);
+  }, [items, storeId, fulfillmentType]);
 
   return <CartContext.Provider value={value}>{children}</CartContext.Provider>;
 };
