@@ -1,7 +1,7 @@
 import { Link, useNavigate } from "react-router-dom";
 import { Star, ChevronRight, Tag, Truck, UserRound } from "lucide-react";
 import { categories, stores, products, getProductSeller } from "@/data/mockData";
-import { VerifiedBadge } from "@/components/VerifiedBadge";
+import { VerifiedBadge, VerifiedCheckIcon } from "@/components/VerifiedBadge";
 
 const ClientHome = () => {
   const navigate = useNavigate();
@@ -92,7 +92,7 @@ const ClientHome = () => {
                   {seller && (
                     <p className="text-[11px] text-muted-foreground mt-2 truncate flex items-center gap-1">
                       {seller.type === "store" ? <Star className="w-3 h-3 fill-warning text-warning" /> : <UserRound className="w-3 h-3" />} {seller.rating} • {seller.name}
-                      {seller.verified && <VerifiedBadge compact />}
+                      {seller.verified && <VerifiedCheckIcon />}
                     </p>
                   )}
                 </div>
@@ -128,7 +128,7 @@ const ClientHome = () => {
                   {seller && (
                     <p className="text-[11px] text-muted-foreground mt-2 truncate flex items-center gap-1">
                       {seller.type === "store" ? <Star className="w-3 h-3 fill-warning text-warning" /> : <UserRound className="w-3 h-3" />} {seller.rating} • {seller.name}
-                      {seller.verified && <VerifiedBadge compact />}
+                      {seller.verified && <VerifiedCheckIcon />}
                     </p>
                   )}
                 </div>

@@ -2,7 +2,7 @@ import { useMemo, useState } from "react";
 import { Link, useSearchParams } from "react-router-dom";
 import { Search, X, Star, UserRound } from "lucide-react";
 import { categories, getProductSeller, products, stores } from "@/data/mockData";
-import { VerifiedBadge } from "@/components/VerifiedBadge";
+import { VerifiedBadge, VerifiedCheckIcon } from "@/components/VerifiedBadge";
 
 const ClientSearch = () => {
   const [params, setParams] = useSearchParams();
@@ -130,7 +130,7 @@ const ClientSearch = () => {
                         <p className="text-[11px] text-muted-foreground mt-2 truncate flex items-center gap-1">
                           {seller.type === "store" ? <Star className="w-3 h-3 fill-warning text-warning" /> : <UserRound className="w-3 h-3" />}
                           {seller.rating} • {seller.name}
-                          {seller.verified ? <VerifiedBadge compact /> : <span>• sem selo</span>}
+                          {seller.verified && <VerifiedCheckIcon />}
                         </p>
                       )}
                     </div>
