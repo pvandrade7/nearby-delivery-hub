@@ -204,11 +204,11 @@ export const AppShell = ({ children }: { children: ReactNode }) => {
             </h1>
           )}
 
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-1 sm:gap-2 shrink-0">
             <div ref={notificationsRef} className="relative">
               <button
                 onClick={() => setNotificationsOpen((open) => !open)}
-                className="size-10 rounded-full bg-muted hover:bg-muted/70 transition-colors flex items-center justify-center relative"
+                className="size-9 sm:size-10 rounded-full bg-muted hover:bg-muted/70 transition-colors flex items-center justify-center relative"
                 aria-label="Notificações"
                 aria-expanded={notificationsOpen}
               >
@@ -218,7 +218,7 @@ export const AppShell = ({ children }: { children: ReactNode }) => {
                 )}
               </button>
               {notificationsOpen && (
-                <div className="absolute right-0 top-12 w-80 max-w-[calc(100vw-2rem)] rounded-2xl border border-border bg-card text-card-foreground shadow-elevated z-50 overflow-hidden">
+                <div className="absolute right-0 top-12 w-80 max-w-[calc(100vw-1.5rem)] rounded-2xl border border-border bg-card text-card-foreground shadow-elevated z-50 overflow-hidden">
                   <div className="px-4 py-3 border-b border-border">
                     <p className="font-extrabold text-sm">Notificações</p>
                     <p className="text-xs text-muted-foreground">Atualizações recentes do Vendy+</p>
@@ -246,7 +246,7 @@ export const AppShell = ({ children }: { children: ReactNode }) => {
             {profile === "cliente" && (
               <Link
                 to="/cliente/carrinho"
-                className="size-10 rounded-full bg-muted hover:bg-muted/70 transition-colors flex items-center justify-center relative"
+                className="size-9 sm:size-10 rounded-full bg-muted hover:bg-muted/70 transition-colors flex items-center justify-center relative"
                 aria-label="Carrinho"
               >
                 <ShoppingCart className="w-4 h-4" />
@@ -259,7 +259,7 @@ export const AppShell = ({ children }: { children: ReactNode }) => {
             )}
             <Link
               to="/"
-              className="size-10 rounded-full gradient-brand text-primary-foreground flex items-center justify-center font-bold text-sm shadow-card"
+              className="size-9 sm:size-10 rounded-full gradient-brand text-primary-foreground flex items-center justify-center font-bold text-sm shadow-card"
               title={meta.user}
             >
               {meta.initial}
