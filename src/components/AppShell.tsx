@@ -173,9 +173,9 @@ export const AppShell = ({ children }: { children: ReactNode }) => {
       {/* Main column */}
       <div className="flex-1 flex flex-col min-w-0">
         {/* Header */}
-        <header className="sticky top-0 z-30 bg-background/95 backdrop-blur border-b border-border h-16 px-4 lg:px-8 flex items-center gap-4">
+        <header className="sticky top-0 z-30 bg-background/95 backdrop-blur border-b border-border h-14 sm:h-16 px-3 sm:px-4 lg:px-8 flex items-center gap-2 sm:gap-3 lg:gap-4">
           {/* Mobile brand */}
-          <div className="lg:hidden flex items-center gap-2">
+          <div className="lg:hidden flex items-center shrink-0">
             <div className="size-8 rounded-lg gradient-brand text-primary-foreground flex items-center justify-center font-extrabold text-sm">
               V+
             </div>
@@ -183,7 +183,7 @@ export const AppShell = ({ children }: { children: ReactNode }) => {
 
           <button
             onClick={handleBack}
-            className="size-10 rounded-full bg-muted hover:bg-muted/70 transition-colors flex items-center justify-center shrink-0"
+            className="size-9 sm:size-10 rounded-full bg-muted hover:bg-muted/70 transition-colors flex items-center justify-center shrink-0"
             aria-label="Voltar"
           >
             <ArrowLeft className="w-4 h-4" />
@@ -193,13 +193,13 @@ export const AppShell = ({ children }: { children: ReactNode }) => {
           {profile === "cliente" ? (
             <button
               onClick={() => navigate("/cliente/busca")}
-              className="flex-1 max-w-2xl mx-auto bg-muted hover:bg-muted/70 transition-colors rounded-xl px-4 h-10 flex items-center gap-3 text-left text-sm text-muted-foreground"
+              className="flex-1 min-w-0 max-w-2xl mx-auto bg-muted hover:bg-muted/70 transition-colors rounded-xl px-3 sm:px-4 h-9 sm:h-10 flex items-center gap-2 sm:gap-3 text-left text-xs sm:text-sm text-muted-foreground"
             >
-              <Search className="w-4 h-4 text-primary" />
-              Buscar produtos ou lojas
+              <Search className="w-4 h-4 text-primary shrink-0" />
+              <span className="truncate">Buscar produtos ou lojas</span>
             </button>
           ) : (
-            <h1 className="flex-1 font-bold text-base lg:text-lg truncate">
+            <h1 className="flex-1 min-w-0 font-bold text-sm sm:text-base lg:text-lg truncate">
               {meta.label === "Lojista" ? "Painel da loja" : meta.label === "Admin" ? "Painel administrativo" : "Central do entregador"}
             </h1>
           )}
