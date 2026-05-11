@@ -12,9 +12,9 @@ const ClientHome = () => {
   const nearbyStores = stores.slice(0, 6);
 
   return (
-    <div className="px-4 lg:px-8 py-6 lg:py-8 max-w-[1400px] mx-auto space-y-8">
+    <div className="px-3 sm:px-4 lg:px-8 py-4 sm:py-6 lg:py-8 max-w-[1400px] mx-auto space-y-6 sm:space-y-8">
       {/* Hero / promo */}
-      <section className="rounded-2xl gradient-brand text-primary-foreground p-6 lg:p-10 shadow-elevated flex flex-col lg:flex-row items-start lg:items-center justify-between gap-4">
+      <section className="rounded-2xl gradient-brand text-primary-foreground p-4 sm:p-6 lg:p-10 shadow-elevated flex flex-col lg:flex-row items-start lg:items-center justify-between gap-4">
         <div>
           <p className="text-xs lg:text-sm font-bold uppercase tracking-wider opacity-90">Marketplace local</p>
           <h1 className="text-2xl lg:text-4xl font-extrabold mt-2 leading-tight">
@@ -36,7 +36,7 @@ const ClientHome = () => {
       {/* Categories */}
       <section>
         <h2 className="text-sm font-bold text-muted-foreground uppercase tracking-wider mb-4">Categorias</h2>
-        <div className="grid grid-cols-3 sm:grid-cols-5 lg:grid-cols-9 gap-3">
+        <div className="grid grid-cols-4 sm:grid-cols-5 lg:grid-cols-9 gap-2 sm:gap-3">
           {categories.map((cat) => (
             <button
               key={cat.id}
@@ -63,7 +63,7 @@ const ClientHome = () => {
             Ver mais <ChevronRight className="w-4 h-4" />
           </Link>
         </div>
-        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4">
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3 sm:gap-4">
           {onSale.map((p) => {
             const seller = getProductSeller(p);
             const off = p.originalPrice
@@ -110,7 +110,7 @@ const ClientHome = () => {
             Ver mais <ChevronRight className="w-4 h-4" />
           </Link>
         </div>
-        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4">
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3 sm:gap-4">
           {popular.map((p) => {
             const seller = getProductSeller(p);
             return (
@@ -145,7 +145,7 @@ const ClientHome = () => {
             Ver usados <ChevronRight className="w-4 h-4" />
           </Link>
         </div>
-        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4">
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3 sm:gap-4">
           {usedItems.map((p) => {
             const seller = getProductSeller(p);
             return (

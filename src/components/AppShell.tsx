@@ -173,9 +173,9 @@ export const AppShell = ({ children }: { children: ReactNode }) => {
       {/* Main column */}
       <div className="flex-1 flex flex-col min-w-0">
         {/* Header */}
-        <header className="sticky top-0 z-30 bg-background/95 backdrop-blur border-b border-border h-16 px-4 lg:px-8 flex items-center gap-4">
+        <header className="sticky top-0 z-30 bg-background/95 backdrop-blur border-b border-border h-14 sm:h-16 px-3 sm:px-4 lg:px-8 flex items-center gap-2 sm:gap-3 lg:gap-4">
           {/* Mobile brand */}
-          <div className="lg:hidden flex items-center gap-2">
+          <div className="lg:hidden flex items-center shrink-0">
             <div className="size-8 rounded-lg gradient-brand text-primary-foreground flex items-center justify-center font-extrabold text-sm">
               V+
             </div>
@@ -183,7 +183,7 @@ export const AppShell = ({ children }: { children: ReactNode }) => {
 
           <button
             onClick={handleBack}
-            className="size-10 rounded-full bg-muted hover:bg-muted/70 transition-colors flex items-center justify-center shrink-0"
+            className="size-9 sm:size-10 rounded-full bg-muted hover:bg-muted/70 transition-colors flex items-center justify-center shrink-0"
             aria-label="Voltar"
           >
             <ArrowLeft className="w-4 h-4" />
@@ -193,22 +193,22 @@ export const AppShell = ({ children }: { children: ReactNode }) => {
           {profile === "cliente" ? (
             <button
               onClick={() => navigate("/cliente/busca")}
-              className="flex-1 max-w-2xl mx-auto bg-muted hover:bg-muted/70 transition-colors rounded-xl px-4 h-10 flex items-center gap-3 text-left text-sm text-muted-foreground"
+              className="flex-1 min-w-0 max-w-2xl mx-auto bg-muted hover:bg-muted/70 transition-colors rounded-xl px-3 sm:px-4 h-9 sm:h-10 flex items-center gap-2 sm:gap-3 text-left text-xs sm:text-sm text-muted-foreground"
             >
-              <Search className="w-4 h-4 text-primary" />
-              Buscar produtos ou lojas
+              <Search className="w-4 h-4 text-primary shrink-0" />
+              <span className="truncate">Buscar produtos ou lojas</span>
             </button>
           ) : (
-            <h1 className="flex-1 font-bold text-base lg:text-lg truncate">
+            <h1 className="flex-1 min-w-0 font-bold text-sm sm:text-base lg:text-lg truncate">
               {meta.label === "Lojista" ? "Painel da loja" : meta.label === "Admin" ? "Painel administrativo" : "Central do entregador"}
             </h1>
           )}
 
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-1 sm:gap-2 shrink-0">
             <div ref={notificationsRef} className="relative">
               <button
                 onClick={() => setNotificationsOpen((open) => !open)}
-                className="size-10 rounded-full bg-muted hover:bg-muted/70 transition-colors flex items-center justify-center relative"
+                className="size-9 sm:size-10 rounded-full bg-muted hover:bg-muted/70 transition-colors flex items-center justify-center relative"
                 aria-label="Notificações"
                 aria-expanded={notificationsOpen}
               >
@@ -218,7 +218,7 @@ export const AppShell = ({ children }: { children: ReactNode }) => {
                 )}
               </button>
               {notificationsOpen && (
-                <div className="absolute right-0 top-12 w-80 max-w-[calc(100vw-2rem)] rounded-2xl border border-border bg-card text-card-foreground shadow-elevated z-50 overflow-hidden">
+                <div className="absolute right-0 top-12 w-80 max-w-[calc(100vw-1.5rem)] rounded-2xl border border-border bg-card text-card-foreground shadow-elevated z-50 overflow-hidden">
                   <div className="px-4 py-3 border-b border-border">
                     <p className="font-extrabold text-sm">Notificações</p>
                     <p className="text-xs text-muted-foreground">Atualizações recentes do Vendy+</p>
@@ -246,7 +246,7 @@ export const AppShell = ({ children }: { children: ReactNode }) => {
             {profile === "cliente" && (
               <Link
                 to="/cliente/carrinho"
-                className="size-10 rounded-full bg-muted hover:bg-muted/70 transition-colors flex items-center justify-center relative"
+                className="size-9 sm:size-10 rounded-full bg-muted hover:bg-muted/70 transition-colors flex items-center justify-center relative"
                 aria-label="Carrinho"
               >
                 <ShoppingCart className="w-4 h-4" />
@@ -259,7 +259,7 @@ export const AppShell = ({ children }: { children: ReactNode }) => {
             )}
             <Link
               to="/"
-              className="size-10 rounded-full gradient-brand text-primary-foreground flex items-center justify-center font-bold text-sm shadow-card"
+              className="size-9 sm:size-10 rounded-full gradient-brand text-primary-foreground flex items-center justify-center font-bold text-sm shadow-card"
               title={meta.user}
             >
               {meta.initial}
