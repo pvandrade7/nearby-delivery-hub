@@ -64,7 +64,7 @@ const StoreDetail = () => {
         )}
       </div>
 
-      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4">
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3 sm:gap-4">
         {storeProducts.map((p) => (
           <div key={p.id} className="bg-card rounded-2xl shadow-card overflow-hidden flex flex-col hover:shadow-elevated transition-all">
             <Link to={`/cliente/produto/${p.id}`} className="block">

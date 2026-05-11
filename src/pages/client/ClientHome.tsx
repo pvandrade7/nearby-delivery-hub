@@ -63,7 +63,7 @@ const ClientHome = () => {
             Ver mais <ChevronRight className="w-4 h-4" />
           </Link>
         </div>
-        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4">
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3 sm:gap-4">
           {onSale.map((p) => {
             const seller = getProductSeller(p);
             const off = p.originalPrice
@@ -110,7 +110,7 @@ const ClientHome = () => {
             Ver mais <ChevronRight className="w-4 h-4" />
           </Link>
         </div>
-        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4">
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3 sm:gap-4">
           {popular.map((p) => {
             const seller = getProductSeller(p);
             return (
@@ -145,7 +145,7 @@ const ClientHome = () => {
             Ver usados <ChevronRight className="w-4 h-4" />
           </Link>
         </div>
-        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4">
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3 sm:gap-4">
           {usedItems.map((p) => {
             const seller = getProductSeller(p);
             return (

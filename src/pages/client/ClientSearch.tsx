@@ -112,7 +112,7 @@ const ClientSearch = () => {
         {filteredProducts.length > 0 && (
           <section>
             <h2 className="text-sm font-bold text-muted-foreground uppercase tracking-wider mb-3">Produtos</h2>
-            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4">
+            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3 sm:gap-4">
               {filteredProducts.map((p) => {
                 const seller = getProductSeller(p);
                 return (
