@@ -36,7 +36,7 @@ const ClientHome = () => {
       {/* Categories */}
       <section>
         <h2 className="text-sm font-bold text-muted-foreground uppercase tracking-wider mb-4">Categorias</h2>
-        <div className="grid grid-cols-3 sm:grid-cols-5 lg:grid-cols-9 gap-3">
+        <div className="grid grid-cols-4 sm:grid-cols-5 lg:grid-cols-9 gap-2 sm:gap-3">
           {categories.map((cat) => (
             <button
               key={cat.id}
