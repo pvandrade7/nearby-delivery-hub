@@ -12,9 +12,9 @@ const ClientHome = () => {
   const nearbyStores = stores.slice(0, 6);
 
   return (
-    <div className="px-4 lg:px-8 py-6 lg:py-8 max-w-[1400px] mx-auto space-y-8">
+    <div className="px-3 sm:px-4 lg:px-8 py-4 sm:py-6 lg:py-8 max-w-[1400px] mx-auto space-y-6 sm:space-y-8">
       {/* Hero / promo */}
-      <section className="rounded-2xl gradient-brand text-primary-foreground p-6 lg:p-10 shadow-elevated flex flex-col lg:flex-row items-start lg:items-center justify-between gap-4">
+      <section className="rounded-2xl gradient-brand text-primary-foreground p-4 sm:p-6 lg:p-10 shadow-elevated flex flex-col lg:flex-row items-start lg:items-center justify-between gap-4">
         <div>
           <p className="text-xs lg:text-sm font-bold uppercase tracking-wider opacity-90">Marketplace local</p>
           <h1 className="text-2xl lg:text-4xl font-extrabold mt-2 leading-tight">
