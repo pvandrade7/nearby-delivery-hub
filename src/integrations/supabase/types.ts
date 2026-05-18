@@ -14,7 +14,123 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      conversations: {
+        Row: {
+          buyer_id: string
+          created_at: string
+          id: string
+          last_message: string | null
+          last_message_at: string
+          product_id: string
+          product_image: string | null
+          product_name: string | null
+          seller_id: string | null
+          seller_ref: string | null
+        }
+        Insert: {
+          buyer_id: string
+          created_at?: string
+          id?: string
+          last_message?: string | null
+          last_message_at?: string
+          product_id: string
+          product_image?: string | null
+          product_name?: string | null
+          seller_id?: string | null
+          seller_ref?: string | null
+        }
+        Update: {
+          buyer_id?: string
+          created_at?: string
+          id?: string
+          last_message?: string | null
+          last_message_at?: string
+          product_id?: string
+          product_image?: string | null
+          product_name?: string | null
+          seller_id?: string | null
+          seller_ref?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "conversations_buyer_id_fkey"
+            columns: ["buyer_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "conversations_seller_id_fkey"
+            columns: ["seller_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      messages: {
+        Row: {
+          content: string
+          conversation_id: string
+          created_at: string
+          id: string
+          read_at: string | null
+          sender_id: string
+        }
+        Insert: {
+          content: string
+          conversation_id: string
+          created_at?: string
+          id?: string
+          read_at?: string | null
+          sender_id: string
+        }
+        Update: {
+          content?: string
+          conversation_id?: string
+          created_at?: string
+          id?: string
+          read_at?: string | null
+          sender_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "messages_conversation_id_fkey"
+            columns: ["conversation_id"]
+            isOneToOne: false
+            referencedRelation: "conversations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "messages_sender_id_fkey"
+            columns: ["sender_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      profiles: {
+        Row: {
+          avatar_url: string | null
+          created_at: string
+          display_name: string | null
+          id: string
+        }
+        Insert: {
+          avatar_url?: string | null
+          created_at?: string
+          display_name?: string | null
+          id: string
+        }
+        Update: {
+          avatar_url?: string | null
+          created_at?: string
+          display_name?: string | null
+          id?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
