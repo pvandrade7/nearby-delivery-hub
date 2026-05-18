@@ -55,7 +55,6 @@ const App = () => (
           <Routes>
             <Route path="/auth" element={<AppShell><Auth /></AppShell>} />
             <Route path="/cliente/conversas" element={<AppShell><Conversations /></AppShell>} />
-          <Routes>
             <Route
               path="/"
               element={
