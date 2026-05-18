@@ -16,9 +16,12 @@ import {
   ShoppingCart,
   Bell,
   BadgeCheck,
+  MessageCircle,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useCart } from "@/context/CartContext";
+import { useAuth } from "@/hooks/useAuth";
+import { supabase } from "@/integrations/supabase/client";
 
 type NavItem = { to: string; icon: typeof Home; label: string };
 
@@ -87,8 +90,36 @@ export const AppShell = ({ children }: { children: ReactNode }) => {
   const navigate = useNavigate();
   const profile = useProfile();
   const { count } = useCart();
+  const { user } = useAuth();
+  const [unread, setUnread] = useState(0);
   const [notificationsOpen, setNotificationsOpen] = useState(false);
   const notificationsRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!user) { setUnread(0); return; }
+    let cancelled = false;
+    const refresh = async () => {
+      const { data: convs } = await supabase
+        .from("conversations")
+        .select("id")
+        .or(`buyer_id.eq.${user.id},seller_id.eq.${user.id}`);
+      const ids = (convs ?? []).map((c) => c.id);
+      if (ids.length === 0) { if (!cancelled) setUnread(0); return; }
+      const { count: c } = await supabase
+        .from("messages")
+        .select("*", { count: "exact", head: true })
+        .in("conversation_id", ids)
+        .neq("sender_id", user.id)
+        .is("read_at", null);
+      if (!cancelled) setUnread(c ?? 0);
+    };
+    void refresh();
+    const ch = supabase
+      .channel("unread-badge")
+      .on("postgres_changes", { event: "*", schema: "public", table: "messages" }, refresh)
+      .subscribe();
+    return () => { cancelled = true; supabase.removeChannel(ch); };
+  }, [user]);
 
   useEffect(() => {
     if (!notificationsOpen) return;
@@ -243,6 +274,20 @@ export const AppShell = ({ children }: { children: ReactNode }) => {
                 </div>
               )}
             </div>
+            {profile === "cliente" && (
+              <Link
+                to="/cliente/conversas"
+                className="size-9 sm:size-10 rounded-full bg-muted hover:bg-muted/70 transition-colors flex items-center justify-center relative"
+                aria-label="Conversas"
+              >
+                <MessageCircle className="w-4 h-4" />
+                {unread > 0 && (
+                  <span className="absolute -top-0.5 -right-0.5 min-w-4 h-4 px-1 bg-primary text-primary-foreground text-[10px] font-bold rounded-full flex items-center justify-center">
+                    {unread}
+                  </span>
+                )}
+              </Link>
+            )}
             {profile === "cliente" && (
               <Link
                 to="/cliente/carrinho"
