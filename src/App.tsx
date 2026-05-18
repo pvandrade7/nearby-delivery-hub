@@ -5,6 +5,9 @@ import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { CartProvider } from "@/context/CartContext";
 import { AppShell } from "@/components/AppShell";
+import { AuthProvider } from "@/hooks/useAuth";
+import Auth from "./pages/Auth";
+import Conversations from "./pages/client/Conversations";
 import RoleSelect from "./pages/RoleSelect";
 import NotFound from "./pages/NotFound.tsx";
 
@@ -46,8 +49,12 @@ const App = () => (
     <TooltipProvider>
       <Toaster />
       <Sonner />
+      <AuthProvider>
       <CartProvider>
         <BrowserRouter>
+          <Routes>
+            <Route path="/auth" element={<AppShell><Auth /></AppShell>} />
+            <Route path="/cliente/conversas" element={<AppShell><Conversations /></AppShell>} />
           <Routes>
             <Route
               path="/"
