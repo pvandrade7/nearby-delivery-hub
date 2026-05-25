@@ -115,19 +115,28 @@ export type Database = {
           avatar_url: string | null
           created_at: string
           display_name: string | null
+          extras: Json | null
           id: string
+          phone: string | null
+          role: string | null
         }
         Insert: {
           avatar_url?: string | null
           created_at?: string
           display_name?: string | null
+          extras?: Json | null
           id: string
+          phone?: string | null
+          role?: string | null
         }
         Update: {
           avatar_url?: string | null
           created_at?: string
           display_name?: string | null
+          extras?: Json | null
           id?: string
+          phone?: string | null
+          role?: string | null
         }
         Relationships: []
       }
@@ -136,7 +145,7 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      email_for_phone: { Args: { _phone: string }; Returns: string }
     }
     Enums: {
       [_ in never]: never
