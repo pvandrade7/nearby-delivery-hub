@@ -37,7 +37,15 @@ const Auth = () => {
         if (error) throw error;
         toast.success("Conta criada! Verifique seu e-mail para confirmar.");
       } else {
-        const { error } = await supabase.auth.signInWithPassword({ email, password });
+        let loginEmail = email.trim();
+        if (!loginEmail.includes("@")) {
+          const { data, error: resErr } = await supabase.functions.invoke("resolve-login", {
+            body: { identifier: loginEmail },
+          });
+          if (resErr || !data?.email) throw new Error("Conta não encontrada");
+          loginEmail = data.email;
+        }
+        const { error } = await supabase.auth.signInWithPassword({ email: loginEmail, password });
         if (error) throw error;
         toast.success("Bem-vindo de volta!");
       }
