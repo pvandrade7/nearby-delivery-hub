@@ -37,7 +37,15 @@ const Auth = () => {
         if (error) throw error;
         toast.success("Conta criada! Verifique seu e-mail para confirmar.");
       } else {
-        const { error } = await supabase.auth.signInWithPassword({ email, password });
+        let loginEmail = email.trim();
+        if (!loginEmail.includes("@")) {
+          const { data, error: resErr } = await supabase.functions.invoke("resolve-login", {
+            body: { identifier: loginEmail },
+          });
+          if (resErr || !data?.email) throw new Error("Conta não encontrada");
+          loginEmail = data.email;
+        }
+        const { error } = await supabase.auth.signInWithPassword({ email: loginEmail, password });
         if (error) throw error;
         toast.success("Bem-vindo de volta!");
       }
@@ -75,7 +83,7 @@ const Auth = () => {
           )}
           <div className="relative">
             <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-            <input value={email} onChange={(e) => setEmail(e.target.value)} type="email" required placeholder="seu@email.com"
+            <input value={email} onChange={(e) => setEmail(e.target.value)} required placeholder={mode === "login" ? "seu@email.com ou telefone" : "seu@email.com"}
               className="w-full bg-background border border-border rounded-xl pl-10 pr-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-primary/30" />
           </div>
           <div className="relative">
