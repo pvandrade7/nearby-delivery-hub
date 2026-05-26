@@ -1,8 +1,9 @@
 import { useEffect, useState, type ComponentType } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { ArrowLeft, CheckCircle2, Lock, Mail, Phone, User } from "lucide-react";
+import { ArrowLeft, CheckCircle2, Lock, Mail, Phone, ShieldCheck, User } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
+import { ImagePicker } from "@/components/ImagePicker";
 import { toast } from "sonner";
 
 type Field = {
@@ -22,6 +23,8 @@ type AuthFlowProps = {
   detailsTitle: string;
   detailsSubtitle: string;
   fields: Field[];
+  allowSkip?: boolean; // cliente pode "entrar depois"
+  skipPath?: string;
 };
 
 const defaultValues: Record<string, string> = {
@@ -30,6 +33,8 @@ const defaultValues: Record<string, string> = {
   name: "",
   email: "",
   password: "",
+  cnpj: "",
+  avatar: "",
 };
 
 const onlyDigits = (s: string) => s.replace(/\D/g, "");
@@ -43,11 +48,14 @@ export const AuthFlow = ({
   detailsTitle,
   detailsSubtitle,
   fields,
+  allowSkip,
+  skipPath,
 }: AuthFlowProps) => {
   const [step, setStep] = useState(0);
   const [values, setValues] = useState<Record<string, string>>(defaultValues);
   const [mode, setMode] = useState<"signup" | "login">("signup");
   const [busy, setBusy] = useState(false);
+  const [cnpjVerified, setCnpjVerified] = useState(false);
   const navigate = useNavigate();
   const { session, loading } = useAuth();
 
@@ -62,7 +70,7 @@ export const AuthFlow = ({
       : "cliente";
 
   const updateValue = (name: string, value: string) => {
-    setValues((current) => ({ ...current, [name]: value.slice(0, 160) }));
+    setValues((current) => ({ ...current, [name]: value.slice(0, 200) }));
   };
 
   const checkPhoneExists = async (phone: string) => {
@@ -70,10 +78,30 @@ export const AuthFlow = ({
     return !!data;
   };
 
+  const verifyCnpj = async () => {
+    const digits = onlyDigits(values.cnpj);
+    if (digits.length !== 14) {
+      toast.error("CNPJ precisa ter 14 dígitos");
+      return;
+    }
+    setBusy(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("validate-cnpj", {
+        body: { cnpj: digits },
+      });
+      if (error || !data?.valid) throw new Error(data?.error || "CNPJ inválido");
+      setCnpjVerified(true);
+      toast.success(`Verificado: ${data.razaoSocial || data.nomeFantasia || "CNPJ válido"}`);
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Não foi possível validar");
+    } finally {
+      setBusy(false);
+    }
+  };
+
   const goNext = async () => {
     if (busy) return;
 
-    // Step 0: phone — detect if account exists to switch to login
     if (step === 0) {
       const phone = onlyDigits(values.phone);
       if (phone.length < 10) {
@@ -84,7 +112,6 @@ export const AuthFlow = ({
       try {
         const exists = await checkPhoneExists(phone);
         setMode(exists ? "login" : "signup");
-        // Skip SMS step (3rd party not configured); jump straight to next
         setStep(exists ? 3 : 1);
       } finally {
         setBusy(false);
@@ -92,13 +119,11 @@ export const AuthFlow = ({
       return;
     }
 
-    // Step 1: SMS — disabled, treat as confirmation pass-through
     if (step === 1) {
       setStep(2);
       return;
     }
 
-    // Step 2: name + email (signup only)
     if (step === 2) {
       if (!values.name || !values.email) {
         toast.error("Preencha nome e email");
@@ -108,7 +133,6 @@ export const AuthFlow = ({
       return;
     }
 
-    // Step 3: details + password — submit
     if (!values.password || values.password.length < 6) {
       toast.error("Senha precisa de pelo menos 6 caracteres");
       return;
@@ -117,7 +141,6 @@ export const AuthFlow = ({
     setBusy(true);
     try {
       if (mode === "login") {
-        // Login by phone: resolve email via edge function, then signIn
         const phone = onlyDigits(values.phone);
         const { data, error } = await supabase.functions.invoke("resolve-login", {
           body: { identifier: phone },
@@ -135,6 +158,8 @@ export const AuthFlow = ({
         fields.forEach((f) => {
           if (values[f.name]) extras[f.name] = values[f.name];
         });
+        if (values.avatar) extras.avatar_url = values.avatar;
+        const cnpjDigits = onlyDigits(values.cnpj);
         const { error: signErr } = await supabase.auth.signUp({
           email: values.email.trim().toLowerCase(),
           password: values.password,
@@ -144,11 +169,23 @@ export const AuthFlow = ({
               display_name: values.name,
               phone,
               role,
+              avatar_url: values.avatar || undefined,
               extras,
             },
           },
         });
         if (signErr) throw signErr;
+
+        // Persist CNPJ + verified flag after signup if applicable
+        if (role === "lojista" && cnpjDigits && cnpjVerified) {
+          const { data: sess } = await supabase.auth.getSession();
+          if (sess.session) {
+            await supabase
+              .from("profiles")
+              .update({ cnpj: cnpjDigits, verified: true })
+              .eq("id", sess.session.user.id);
+          }
+        }
         toast.success("Conta criada!");
       }
       navigate(finalPath, { replace: true });
@@ -162,6 +199,7 @@ export const AuthFlow = ({
   const progress = ((step + 1) / 4) * 100;
   const showNameEmail = step === 2 && mode === "signup";
   const isFinal = step === 3;
+  const isSellerSignupFinal = isFinal && mode === "signup" && role === "lojista";
 
   return (
     <div className="px-6 py-10 max-w-md mx-auto">
@@ -221,6 +259,16 @@ export const AuthFlow = ({
 
         {showNameEmail && (
           <div className="space-y-3">
+            <div className="flex justify-center">
+              <ImagePicker
+                value={values.avatar}
+                onChange={(url) => updateValue("avatar", url)}
+                folder="avatar"
+                shape="circle"
+                label="Foto"
+                className="w-24"
+              />
+            </div>
             <label className="bg-card border border-border rounded-xl px-4 py-3 flex items-center gap-3 shadow-card">
               <User className="w-5 h-5 text-primary" />
               <input
@@ -261,6 +309,45 @@ export const AuthFlow = ({
                   />
                 </label>
               ))}
+
+            {isSellerSignupFinal && (
+              <div className="bg-card border border-border rounded-xl px-4 py-3 shadow-card space-y-2">
+                <span className="text-xs font-bold text-muted-foreground">CNPJ (selo verificado)</span>
+                <div className="flex gap-2">
+                  <input
+                    value={values.cnpj}
+                    onChange={(e) => {
+                      setCnpjVerified(false);
+                      updateValue("cnpj", e.target.value);
+                    }}
+                    placeholder="00.000.000/0000-00"
+                    inputMode="numeric"
+                    maxLength={20}
+                    className="flex-1 bg-transparent text-sm font-semibold focus:outline-none"
+                  />
+                  <button
+                    type="button"
+                    onClick={verifyCnpj}
+                    disabled={busy || cnpjVerified}
+                    className="px-3 py-1.5 text-xs font-bold rounded-lg bg-primary text-primary-foreground disabled:opacity-60"
+                  >
+                    {cnpjVerified ? "✓ Verificado" : "Validar"}
+                  </button>
+                </div>
+                {cnpjVerified && (
+                  <p className="text-xs text-primary flex items-center gap-1">
+                    <ShieldCheck className="w-3 h-3" /> CNPJ validado — sua loja terá selo verificado.
+                  </p>
+                )}
+                <Link
+                  to="/cliente/chat/suporte-verificacao"
+                  className="block text-xs text-muted-foreground underline pt-1"
+                >
+                  Não tenho CNPJ — falar com administrador
+                </Link>
+              </div>
+            )}
+
             <label className="bg-card border border-border rounded-xl px-4 py-3 flex items-center gap-3 shadow-card">
               <Lock className="w-5 h-5 text-primary" />
               <input
@@ -284,6 +371,15 @@ export const AuthFlow = ({
           {busy ? "..." : isFinal ? (mode === "login" ? "Entrar" : "Criar conta") : "Continuar"}
           {isFinal && !busy && <CheckCircle2 className="w-4 h-4" />}
         </button>
+
+        {allowSkip && step === 0 && skipPath && (
+          <Link
+            to={skipPath}
+            className="block text-center text-sm font-semibold text-muted-foreground py-2 hover:text-foreground"
+          >
+            Fazer login depois
+          </Link>
+        )}
       </div>
 
       <p className="text-center text-xs text-muted-foreground mt-12">
