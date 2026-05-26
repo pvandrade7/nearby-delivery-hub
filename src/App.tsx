@@ -6,6 +6,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { CartProvider } from "@/context/CartContext";
 import { AppShell } from "@/components/AppShell";
 import { AuthProvider } from "@/hooks/useAuth";
+import { RequireAuth } from "@/components/RequireAuth";
 import Auth from "./pages/Auth";
 import Conversations from "./pages/client/Conversations";
 import RoleSelect from "./pages/RoleSelect";
@@ -44,64 +45,68 @@ import CourierComplete from "./pages/courier/CourierComplete";
 
 const queryClient = new QueryClient();
 
+// Wrappers
+const Seller = ({ children }: { children: React.ReactNode }) => (
+  <RequireAuth redirectTo="/lojista">{children}</RequireAuth>
+);
+const Courier = ({ children }: { children: React.ReactNode }) => (
+  <RequireAuth redirectTo="/entregador">{children}</RequireAuth>
+);
+const Client = ({ children }: { children: React.ReactNode }) => (
+  <RequireAuth redirectTo="/cliente">{children}</RequireAuth>
+);
+
 const App = () => (
   <QueryClientProvider client={queryClient}>
     <TooltipProvider>
       <Toaster />
       <Sonner />
       <AuthProvider>
-      <CartProvider>
-        <BrowserRouter>
-          <Routes>
-            <Route path="/auth" element={<AppShell><Auth /></AppShell>} />
-            <Route path="/cliente/conversas" element={<AppShell><Conversations /></AppShell>} />
-            <Route
-              path="/"
-              element={
-                <AppShell>
-                  <RoleSelect />
-                </AppShell>
-              }
-            />
+        <CartProvider>
+          <BrowserRouter>
+            <Routes>
+              <Route path="/auth" element={<AppShell><Auth /></AppShell>} />
+              <Route path="/" element={<AppShell><RoleSelect /></AppShell>} />
 
-            {/* Cliente */}
-            <Route path="/cliente" element={<AppShell><ClientLogin /></AppShell>} />
-            <Route path="/cliente/home" element={<AppShell><ClientHome /></AppShell>} />
-            <Route path="/cliente/busca" element={<AppShell><ClientSearch /></AppShell>} />
-            <Route path="/cliente/lojas" element={<AppShell><StoreList /></AppShell>} />
-            <Route path="/cliente/loja/:id" element={<AppShell><StoreDetail /></AppShell>} />
-            <Route path="/cliente/produto/:id" element={<AppShell><ProductDetail /></AppShell>} />
-            <Route path="/cliente/chat/:productId" element={<AppShell><SellerChat /></AppShell>} />
-            <Route path="/cliente/carrinho" element={<AppShell><Cart /></AppShell>} />
-            <Route path="/cliente/checkout" element={<AppShell><Checkout /></AppShell>} />
-            <Route path="/cliente/confirmacao" element={<AppShell><OrderConfirmation /></AppShell>} />
-            <Route path="/cliente/rastreamento/:id" element={<AppShell><OrderTracking /></AppShell>} />
-            <Route path="/cliente/pedidos" element={<AppShell><ClientOrders /></AppShell>} />
-            <Route path="/cliente/perfil" element={<AppShell><ClientProfile /></AppShell>} />
+              {/* Cliente — navegação livre, ações sensíveis protegidas */}
+              <Route path="/cliente" element={<AppShell><ClientLogin /></AppShell>} />
+              <Route path="/cliente/home" element={<AppShell><ClientHome /></AppShell>} />
+              <Route path="/cliente/busca" element={<AppShell><ClientSearch /></AppShell>} />
+              <Route path="/cliente/lojas" element={<AppShell><StoreList /></AppShell>} />
+              <Route path="/cliente/loja/:id" element={<AppShell><StoreDetail /></AppShell>} />
+              <Route path="/cliente/produto/:id" element={<AppShell><ProductDetail /></AppShell>} />
+              <Route path="/cliente/chat/:productId" element={<AppShell><Client><SellerChat /></Client></AppShell>} />
+              <Route path="/cliente/conversas" element={<AppShell><Client><Conversations /></Client></AppShell>} />
+              <Route path="/cliente/carrinho" element={<AppShell><Cart /></AppShell>} />
+              <Route path="/cliente/checkout" element={<AppShell><Client><Checkout /></Client></AppShell>} />
+              <Route path="/cliente/confirmacao" element={<AppShell><Client><OrderConfirmation /></Client></AppShell>} />
+              <Route path="/cliente/rastreamento/:id" element={<AppShell><Client><OrderTracking /></Client></AppShell>} />
+              <Route path="/cliente/pedidos" element={<AppShell><Client><ClientOrders /></Client></AppShell>} />
+              <Route path="/cliente/perfil" element={<AppShell><Client><ClientProfile /></Client></AppShell>} />
 
-            {/* Lojista */}
-            <Route path="/lojista" element={<AppShell><SellerLogin /></AppShell>} />
-            <Route path="/lojista/criar-loja" element={<AppShell><CreateStore /></AppShell>} />
-            <Route path="/lojista/painel" element={<AppShell><SellerDashboard /></AppShell>} />
-            <Route path="/lojista/produtos" element={<AppShell><SellerProducts /></AppShell>} />
-            <Route path="/lojista/produtos/novo" element={<AppShell><NewProduct /></AppShell>} />
-            <Route path="/lojista/pedidos" element={<AppShell><SellerOrders /></AppShell>} />
-            <Route path="/lojista/verificacao" element={<AppShell><SellerVerification /></AppShell>} />
-            <Route path="/lojista/config" element={<AppShell><SellerDashboard /></AppShell>} />
+              {/* Lojista — tudo protegido exceto a tela de login */}
+              <Route path="/lojista" element={<AppShell><SellerLogin /></AppShell>} />
+              <Route path="/lojista/criar-loja" element={<AppShell><Seller><CreateStore /></Seller></AppShell>} />
+              <Route path="/lojista/painel" element={<AppShell><Seller><SellerDashboard /></Seller></AppShell>} />
+              <Route path="/lojista/produtos" element={<AppShell><Seller><SellerProducts /></Seller></AppShell>} />
+              <Route path="/lojista/produtos/novo" element={<AppShell><Seller><NewProduct /></Seller></AppShell>} />
+              <Route path="/lojista/pedidos" element={<AppShell><Seller><SellerOrders /></Seller></AppShell>} />
+              <Route path="/lojista/verificacao" element={<AppShell><Seller><SellerVerification /></Seller></AppShell>} />
+              <Route path="/lojista/config" element={<AppShell><Seller><SellerDashboard /></Seller></AppShell>} />
 
-            {/* Admin */}
-            <Route path="/admin/verificacoes" element={<AppShell><AdminVerification /></AppShell>} />
+              {/* Admin */}
+              <Route path="/admin/verificacoes" element={<AppShell><Seller><AdminVerification /></Seller></AppShell>} />
 
-            {/* Entregador */}
-            <Route path="/entregador" element={<AppShell><CourierLogin /></AppShell>} />
-            <Route path="/entregador/painel" element={<AppShell><CourierHome /></AppShell>} />
-            <Route path="/entregador/corrida/:id" element={<AppShell><CourierRoute /></AppShell>} />
-            <Route path="/entregador/finalizada" element={<AppShell><CourierComplete /></AppShell>} />
+              {/* Entregador — tudo protegido exceto login */}
+              <Route path="/entregador" element={<AppShell><CourierLogin /></AppShell>} />
+              <Route path="/entregador/painel" element={<AppShell><Courier><CourierHome /></Courier></AppShell>} />
+              <Route path="/entregador/corrida/:id" element={<AppShell><Courier><CourierRoute /></Courier></AppShell>} />
+              <Route path="/entregador/finalizada" element={<AppShell><Courier><CourierComplete /></Courier></AppShell>} />
 
-            <Route path="*" element={<NotFound />} />
-          </Routes>
-        </BrowserRouter>
-      </CartProvider>
+              <Route path="*" element={<NotFound />} />
+            </Routes>
+          </BrowserRouter>
+        </CartProvider>
       </AuthProvider>
     </TooltipProvider>
   </QueryClientProvider>

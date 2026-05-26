@@ -1,22 +1,55 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Camera } from "lucide-react";
+import { ImagePicker } from "@/components/ImagePicker";
+import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/hooks/useAuth";
+import { toast } from "sonner";
+
+const categories = ["mercado", "construcao", "ferramentas", "limpeza", "farmacia", "papelaria", "eletronicos", "roupas", "outro"];
 
 const CreateStore = () => {
   const [name, setName] = useState("Ferragens do Bairro");
   const [desc, setDesc] = useState("Ferramentas, parafusos e acessórios para reparos.");
   const [cat, setCat] = useState("ferramentas");
+  const [image, setImage] = useState("");
+  const [busy, setBusy] = useState(false);
+  const { user } = useAuth();
   const navigate = useNavigate();
+
+  useEffect(() => {
+    if (!user) return;
+    supabase.from("profiles").select("extras").eq("id", user.id).maybeSingle().then(({ data }) => {
+      const extras = (data?.extras as Record<string, string>) || {};
+      if (extras.storeName) setName(extras.storeName);
+      if (extras.storeDescription) setDesc(extras.storeDescription);
+      if (extras.storeCategory) setCat(extras.storeCategory);
+      if (extras.storeImage) setImage(extras.storeImage);
+    });
+  }, [user]);
+
+  const save = async () => {
+    if (!user) return;
+    setBusy(true);
+    try {
+      const { data } = await supabase.from("profiles").select("extras").eq("id", user.id).maybeSingle();
+      const extras = { ...((data?.extras as Record<string, string>) || {}), storeName: name, storeDescription: desc, storeCategory: cat, storeImage: image };
+      const { error } = await supabase.from("profiles").update({ extras }).eq("id", user.id);
+      if (error) throw error;
+      toast.success("Loja criada!");
+      navigate("/lojista/painel");
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Falha ao salvar");
+    } finally {
+      setBusy(false);
+    }
+  };
 
   return (
     <div className="px-4 lg:px-8 py-6 lg:py-8 max-w-3xl mx-auto">
       <h1 className="text-2xl lg:text-3xl font-extrabold mb-6">Criar minha loja</h1>
 
       <div className="bg-card rounded-2xl p-6 shadow-card space-y-5">
-        <button className="w-full aspect-[3/1] rounded-xl gradient-warm flex flex-col items-center justify-center gap-2 text-muted-foreground border-2 border-dashed border-border hover:border-primary transition-colors">
-          <Camera className="w-8 h-8" />
-          <span className="text-sm font-semibold">Adicionar foto da loja</span>
-        </button>
+        <ImagePicker value={image} onChange={setImage} folder="store" shape="rect" label="Adicionar foto da loja" />
 
         <div>
           <label className="text-xs font-bold text-muted-foreground uppercase tracking-wider">Nome da loja</label>
@@ -38,7 +71,7 @@ const CreateStore = () => {
         <div>
           <label className="text-xs font-bold text-muted-foreground uppercase tracking-wider">Categoria</label>
           <div className="grid grid-cols-3 sm:grid-cols-4 gap-2 mt-2">
-            {["mercado", "construcao", "ferramentas", "limpeza", "farmacia", "papelaria", "eletronicos", "roupas"].map((c) => (
+            {categories.map((c) => (
               <button
                 key={c}
                 onClick={() => setCat(c)}
@@ -53,10 +86,11 @@ const CreateStore = () => {
         </div>
 
         <button
-          onClick={() => navigate("/lojista/painel")}
-          className="w-full gradient-brand text-primary-foreground rounded-xl py-3.5 font-bold shadow-card hover:shadow-elevated transition-shadow"
+          onClick={save}
+          disabled={busy}
+          className="w-full gradient-brand text-primary-foreground rounded-xl py-3.5 font-bold shadow-card hover:shadow-elevated transition-shadow disabled:opacity-60"
         >
-          Criar loja e continuar
+          {busy ? "Salvando..." : "Criar loja e continuar"}
         </button>
       </div>
     </div>

@@ -4,11 +4,15 @@ import { Minus, Plus, Heart, Share2, Star, Shield, Truck, MessageCircle, UserRou
 import { getProductSeller, products } from "@/data/mockData";
 import { FulfillmentType, useCart } from "@/context/CartContext";
 import { VerifiedBadge } from "@/components/VerifiedBadge";
+import { LoginGate } from "@/components/LoginGate";
+import { useAuth } from "@/hooks/useAuth";
 
 const ProductDetail = () => {
   const { id } = useParams();
   const navigate = useNavigate();
   const { add } = useCart();
+  const { session } = useAuth();
+  const [gate, setGate] = useState(false);
   const [qty, setQty] = useState(1);
   const [fulfillmentType, setFulfillmentType] = useState<FulfillmentType>("delivery");
   const [meetupPlace, setMeetupPlace] = useState("");
@@ -23,8 +27,14 @@ const ProductDetail = () => {
     : 0;
 
   const handleAdd = () => {
+    if (!session) { setGate(true); return; }
     for (let i = 0; i < qty; i++) add(product, fulfillmentType);
     navigate("/cliente/carrinho");
+  };
+
+  const guardedAdd = () => {
+    if (!session) { setGate(true); return; }
+    add(product, fulfillmentType);
   };
 
   const fulfillmentOptions = [
@@ -153,7 +163,7 @@ const ProductDetail = () => {
             <div className="flex flex-col sm:flex-row gap-3">
               {seller.type === "store" ? (
                 <button
-                  onClick={() => add(product, fulfillmentType)}
+                  onClick={guardedAdd}
                   className="flex-1 border-2 border-primary text-primary rounded-xl py-3 font-bold hover:bg-primary/5 transition-colors"
                 >
                   Adicionar ao carrinho
@@ -190,6 +200,7 @@ const ProductDetail = () => {
           </div>
         </div>
       </div>
+      <LoginGate open={gate} onClose={() => setGate(false)} title="Entre para comprar" description="Crie sua conta ou faça login para adicionar itens ao carrinho." />
     </div>
   );
 };
