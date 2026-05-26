@@ -1,7 +1,10 @@
+import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Minus, Plus, Trash2, MapPin, Store as StoreIcon, Truck } from "lucide-react";
 import { FulfillmentType, useCart } from "@/context/CartContext";
 import { stores } from "@/data/mockData";
+import { LoginGate } from "@/components/LoginGate";
+import { useAuth } from "@/hooks/useAuth";
 
 const fulfillmentLabel: Record<FulfillmentType, string> = {
   delivery: "Entrega",
@@ -18,11 +21,14 @@ const fulfillmentIcon = {
 const Cart = () => {
   const { items, setQty, remove, subtotal, storeId, count, fulfillmentType, setFulfillmentType } = useCart();
   const navigate = useNavigate();
+  const { session } = useAuth();
+  const [gate, setGate] = useState(false);
   const store = stores.find((s) => s.id === storeId);
   const deliveryFee = subtotal > 50 ? 0 : 6.9;
   const fee = fulfillmentType === "delivery" ? deliveryFee : 0;
   const total = subtotal + fee;
   const FulfillmentIcon = fulfillmentIcon[fulfillmentType];
+  const goCheckout = () => session ? navigate("/cliente/checkout") : setGate(true);
 
   if (count === 0) {
     return (
@@ -120,7 +126,7 @@ const Cart = () => {
               <span className="text-primary">R$ {total.toFixed(2)}</span>
             </div>
             <button
-              onClick={() => navigate("/cliente/checkout")}
+              onClick={goCheckout}
               className="w-full gradient-brand text-primary-foreground rounded-xl py-3.5 font-bold shadow-card hover:shadow-elevated transition-shadow mt-2"
             >
               Continuar para o pagamento
@@ -128,6 +134,7 @@ const Cart = () => {
           </div>
         </aside>
       </div>
+      <LoginGate open={gate} onClose={() => setGate(false)} title="Entre para finalizar" description="Faça login para concluir o pedido e acompanhar a entrega." />
     </div>
   );
 };
