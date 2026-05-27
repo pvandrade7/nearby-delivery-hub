@@ -36,14 +36,21 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    // fallback: se o Supabase não responder em 5s (projeto pausado), desbloqueia a UI
+    const fallback = setTimeout(() => setLoading(false), 5000);
+
     // 1) Busca sessão no servidor + role no banco — estado inicial autoritativo
     supabase.auth.getSession().then(async ({ data }) => {
+      clearTimeout(fallback);
       const s = data.session;
       setSession(s);
       if (s?.user) {
         const r = await fetchRole(s.user.id);
         setRole(r);
       }
+      setLoading(false);
+    }).catch(() => {
+      clearTimeout(fallback);
       setLoading(false);
     });
 

@@ -39,8 +39,12 @@ const RoleSelect = () => {
     }
   }, [loading, session, role, navigate]);
 
-  // Não mostra nada enquanto verifica auth (evita flash do RoleSelect)
-  if (loading || (session && role)) return null;
+  if (loading) return (
+    <div className="min-h-dvh flex items-center justify-center">
+      <div className="w-6 h-6 rounded-full border-2 border-primary border-t-transparent animate-spin" />
+    </div>
+  );
+  if (session && role) return null;
 
   return (
     <main className="min-h-dvh w-full gradient-warm flex items-center justify-center p-6">
