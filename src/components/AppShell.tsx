@@ -12,7 +12,6 @@ import {
   Settings,
   Bike,
   Wallet,
-  RefreshCw,
   ShoppingCart,
   Bell,
   BadgeCheck,
@@ -68,12 +67,12 @@ const courierNav: NavItem[] = [
 
 const profileMeta: Record<
   "cliente" | "lojista" | "entregador" | "admin",
-  { label: string; user: string; initial: string; nav: NavItem[] }
+  { label: string; user: string; initial: string; nav: NavItem[]; profilePath: string }
 > = {
-  cliente: { label: "Cliente", user: "João Souza", initial: "J", nav: clientNav },
-  lojista: { label: "Lojista", user: "Marina Flores", initial: "M", nav: sellerNav },
-  entregador: { label: "Entregador", user: "Carlos Mendes", initial: "C", nav: courierNav },
-  admin: { label: "Admin", user: "Admin Vendy+", initial: "A", nav: adminNav },
+  cliente:     { label: "Cliente",     user: "João Souza",    initial: "J", nav: clientNav,  profilePath: "/cliente/perfil" },
+  lojista:     { label: "Lojista",     user: "Marina Flores", initial: "M", nav: sellerNav,  profilePath: "/lojista/config" },
+  entregador:  { label: "Entregador",  user: "Carlos Mendes", initial: "C", nav: courierNav, profilePath: "/entregador/painel" },
+  admin:       { label: "Admin",       user: "Admin Vendy+",  initial: "A", nav: adminNav,   profilePath: "/admin/verificacoes" },
 };
 
 const useProfile = () => {
@@ -90,7 +89,7 @@ export const AppShell = ({ children }: { children: ReactNode }) => {
   const navigate = useNavigate();
   const profile = useProfile();
   const { count } = useCart();
-  const { user } = useAuth();
+  const { user, loading: authLoading } = useAuth();
   const [unread, setUnread] = useState(0);
   const [notificationsOpen, setNotificationsOpen] = useState(false);
   const notificationsRef = useRef<HTMLDivElement>(null);
@@ -134,9 +133,11 @@ export const AppShell = ({ children }: { children: ReactNode }) => {
     return () => document.removeEventListener("mousedown", closeOnOutsideClick);
   }, [notificationsOpen]);
 
-  // Landing page (RoleSelect): full bleed, no shell.
-  if (location.pathname === "/" || !profile) {
-    return <div className="min-h-dvh w-full bg-background">{children}</div>;
+  // Rotas de autenticação: sem shell (AppShell não é montado).
+  // O layout próprio (AuthLayout) é responsável pela UI dessas rotas.
+  const AUTH_ROUTES = new Set(["/", "/auth", "/cliente", "/lojista", "/entregador"]);
+  if (AUTH_ROUTES.has(location.pathname) || !profile) {
+    return <>{children}</>;
   }
 
   const meta = profileMeta[profile];
@@ -190,15 +191,6 @@ export const AppShell = ({ children }: { children: ReactNode }) => {
           ))}
         </nav>
 
-        <div className="border-t border-border p-3">
-          <Link
-            to="/"
-            className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-semibold text-muted-foreground hover:bg-muted hover:text-foreground transition-colors"
-          >
-            <RefreshCw className="w-4 h-4" />
-            Trocar de perfil
-          </Link>
-        </div>
       </aside>
 
       {/* Main column */}
@@ -302,13 +294,18 @@ export const AppShell = ({ children }: { children: ReactNode }) => {
                 )}
               </Link>
             )}
-            <Link
-              to="/"
-              className="size-9 sm:size-10 rounded-full gradient-brand text-primary-foreground flex items-center justify-center font-bold text-sm shadow-card"
-              title={meta.user}
-            >
-              {meta.initial}
-            </Link>
+            {/* Avatar: skeleton durante loading, perfil real após auth resolver */}
+            {authLoading ? (
+              <div className="size-9 sm:size-10 rounded-full bg-muted animate-pulse" aria-hidden="true" />
+            ) : user ? (
+              <Link
+                to={meta.profilePath}
+                className="size-9 sm:size-10 rounded-full gradient-brand text-primary-foreground flex items-center justify-center font-bold text-sm shadow-card"
+                title={user.email ?? meta.user}
+              >
+                {(user.email?.[0] ?? meta.initial).toUpperCase()}
+              </Link>
+            ) : null}
           </div>
         </header>
 

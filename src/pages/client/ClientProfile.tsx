@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
-import { ChevronRight, MapPin, CreditCard, Heart, HelpCircle, LogOut, RefreshCw } from "lucide-react";
+import { useNavigate } from "react-router-dom";
+import { ChevronRight, MapPin, CreditCard, Heart, HelpCircle, LogOut } from "lucide-react";
 import { ImagePicker } from "@/components/ImagePicker";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
@@ -66,14 +66,6 @@ const ClientProfile = () => {
           </button>
         ))}
       </div>
-
-      <Link to="/" className="bg-card rounded-2xl mt-4 shadow-card overflow-hidden block hover:bg-muted/40 transition-colors">
-        <div className="w-full px-5 py-4 flex items-center gap-3">
-          <RefreshCw className="w-5 h-5 text-secondary" />
-          <span className="flex-1 text-left text-sm font-semibold">Trocar de perfil</span>
-          <ChevronRight className="w-4 h-4 text-muted-foreground" />
-        </div>
-      </Link>
 
       <button onClick={logout} className="w-full mt-4 py-3 text-destructive font-semibold text-sm flex items-center justify-center gap-2">
         <LogOut className="w-4 h-4" /> Sair

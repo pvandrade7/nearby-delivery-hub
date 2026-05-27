@@ -1,5 +1,8 @@
-import { Link } from "react-router-dom";
+import { useEffect } from "react";
+import { Link, useNavigate } from "react-router-dom";
 import { ShoppingBag, Store, Bike, ArrowRight } from "lucide-react";
+import { useAuth } from "@/hooks/useAuth";
+import { HOME_BY_ROLE } from "@/components/RequireRole";
 
 const roles = [
   {
@@ -26,6 +29,19 @@ const roles = [
 ];
 
 const RoleSelect = () => {
+  const { session, role, loading } = useAuth();
+  const navigate = useNavigate();
+
+  // Usuário já autenticado → manda direto para a home do seu perfil
+  useEffect(() => {
+    if (!loading && session && role) {
+      navigate(HOME_BY_ROLE[role] ?? "/", { replace: true });
+    }
+  }, [loading, session, role, navigate]);
+
+  // Não mostra nada enquanto verifica auth (evita flash do RoleSelect)
+  if (loading || (session && role)) return null;
+
   return (
     <main className="min-h-dvh w-full gradient-warm flex items-center justify-center p-6">
       <div className="w-full max-w-3xl">
