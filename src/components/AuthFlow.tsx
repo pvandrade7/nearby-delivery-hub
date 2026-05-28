@@ -43,6 +43,7 @@ const defaultValues: Record<string, string> = {
 };
 
 const onlyDigits = (s: string) => s.replace(/\D/g, "");
+const isValidEmail = (email: string) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim());
 
 export const AuthFlow = ({
   title,
@@ -94,11 +95,6 @@ export const AuthFlow = ({
   const updateValue = (name: string, value: string) =>
     setValues((cur) => ({ ...cur, [name]: value.slice(0, 200) }));
 
-  const checkPhoneExists = async (phone: string) => {
-    const { data } = await supabase.from("profiles").select("id").eq("phone", phone).maybeSingle();
-    return !!data;
-  };
-
   const verifyCnpj = async () => {
     const digits = onlyDigits(values.cnpj);
     if (digits.length !== 14) { toast.error("CNPJ precisa ter 14 dígitos"); return; }
@@ -121,21 +117,21 @@ export const AuthFlow = ({
     if (step === 0) {
       const phone = onlyDigits(values.phone);
       if (phone.length < 10) { toast.error("Informe um telefone válido"); return; }
-      setBusy(true);
-      try {
-        const exists = await checkPhoneExists(phone);
-        setSignupMode(exists ? "login" : "signup");
-        setStep(exists ? 3 : 1);
-      } finally {
-        setBusy(false);
-      }
+      setSignupMode("signup");
+      setStep(1);
       return;
     }
 
-    if (step === 1) { setStep(2); return; }
+    if (step === 1) {
+      if (!values.code || values.code.length < 4) { toast.error("Informe o código recebido"); return; }
+      setStep(2);
+      return;
+    }
 
     if (step === 2) {
-      if (!values.name || !values.email) { toast.error("Preencha nome e email"); return; }
+      if (!values.name?.trim()) { toast.error("Informe seu nome"); return; }
+      if (!values.email?.trim()) { toast.error("Informe seu email"); return; }
+      if (!isValidEmail(values.email)) { toast.error("Email inválido. Use o formato: seu@email.com"); return; }
       setStep(3);
       return;
     }
@@ -169,26 +165,54 @@ export const AuthFlow = ({
         fields.forEach((f) => { if (values[f.name]) extras[f.name] = values[f.name]; });
         if (values.avatar) extras.avatar_url = values.avatar;
         const cnpjDigits = onlyDigits(values.cnpj);
-        const { error: signErr } = await supabase.auth.signUp({
+        const signupPromise = supabase.auth.signUp({
           email: values.email.trim().toLowerCase(),
           password: values.password,
           options: {
-            emailRedirectTo: `${window.location.origin}${finalPath}`,
+            emailRedirectTo: window.location.origin,
             data: { display_name: values.name, phone, role, avatar_url: values.avatar || undefined, extras },
           },
         });
+        const timeoutPromise = new Promise<never>((_, reject) =>
+          setTimeout(() => reject(new Error("Tempo esgotado. Verifique sua conexão e tente novamente.")), 15000)
+        );
+        const { data: signUpResult, error: signErr } = await Promise.race([signupPromise, timeoutPromise]);
         if (signErr) throw signErr;
-        if (role === "lojista" && cnpjDigits && cnpjVerified) {
-          const { data: sess } = await supabase.auth.getSession();
-          if (sess.session) {
-            await supabase.from("profiles").update({ cnpj: cnpjDigits, verified: true }).eq("id", sess.session.user.id);
+
+        let finalSession = signUpResult?.session;
+
+        if (!finalSession) {
+          // Sessão nula = email já cadastrado ou confirmação pendente
+          // Tenta fazer login com as credenciais fornecidas
+          const { data: signInData, error: signInErr } = await supabase.auth.signInWithPassword({
+            email: values.email.trim().toLowerCase(),
+            password: values.password,
+          });
+          if (signInErr) {
+            toast.info("Conta criada! Verifique seu email para ativar a conta e depois faça login.");
+            setBusy(false);
+            return;
           }
+          finalSession = signInData.session;
         }
-        toast.success("Conta criada!");
+
+        if (role === "lojista" && cnpjDigits && cnpjVerified && finalSession) {
+          await supabase.from("profiles").update({ cnpj: cnpjDigits, verified: true }).eq("id", finalSession.user.id);
+        }
+        toast.success("Conta criada! Bem-vindo!");
       }
       navigate(finalPath, { replace: true });
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Falha na autenticação");
+      const msg = err instanceof Error ? err.message : "";
+      if (msg.toLowerCase().includes("already registered") || msg.toLowerCase().includes("already been registered")) {
+        toast.error("Este email já está cadastrado. Faça login.");
+      } else if (msg.toLowerCase().includes("email")) {
+        toast.error("Email inválido. Verifique o endereço e tente novamente.");
+      } else if (msg.toLowerCase().includes("password") || msg.toLowerCase().includes("weak")) {
+        toast.error("Senha fraca. Use letras, números e símbolos.");
+      } else {
+        toast.error(msg || "Falha ao criar conta. Tente novamente.");
+      }
     } finally {
       setBusy(false);
     }

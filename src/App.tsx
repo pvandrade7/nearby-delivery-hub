@@ -24,6 +24,10 @@ import OrderConfirmation from "./pages/client/OrderConfirmation";
 import OrderTracking from "./pages/client/OrderTracking";
 import ClientOrders from "./pages/client/ClientOrders";
 import ClientProfile from "./pages/client/ClientProfile";
+import SavedAddresses from "./pages/client/SavedAddresses";
+import PaymentMethods from "./pages/client/PaymentMethods";
+import Favorites from "./pages/client/Favorites";
+import Help from "./pages/client/Help";
 import ClientLogin from "./pages/client/ClientLogin";
 import SellerChat from "./pages/client/SellerChat";
 
@@ -87,6 +91,10 @@ const App = () => (
               <Route path="/cliente/rastreamento/:id" element={<AppShell><Client><OrderTracking /></Client></AppShell>} />
               <Route path="/cliente/pedidos" element={<AppShell><Client><ClientOrders /></Client></AppShell>} />
               <Route path="/cliente/perfil" element={<AppShell><Client><ClientProfile /></Client></AppShell>} />
+              <Route path="/cliente/enderecos" element={<AppShell><Client><SavedAddresses /></Client></AppShell>} />
+              <Route path="/cliente/pagamento" element={<AppShell><Client><PaymentMethods /></Client></AppShell>} />
+              <Route path="/cliente/favoritos" element={<AppShell><Client><Favorites /></Client></AppShell>} />
+              <Route path="/cliente/ajuda" element={<AppShell><Client><Help /></Client></AppShell>} />
 
               {/* Lojista — tudo protegido por role=lojista exceto login */}
               <Route path="/lojista" element={<AppShell><SellerLogin /></AppShell>} />

@@ -37,10 +37,10 @@ const DeliveryScene = () => (
       </div>
 
       {/* Orbiting icons */}
-      <OrbitIcon icon={ShoppingBag} radius={100} duration={14} startDeg={0}  size="sm" />
-      <OrbitIcon icon={Package}     radius={100} duration={14} startDeg={90} size="sm" delay={-3.5} />
-      <OrbitIcon icon={Bike}        radius={100} duration={14} startDeg={180} size="sm" delay={-7} />
-      <OrbitIcon icon={MapPin}      radius={100} duration={14} startDeg={270} size="sm" delay={-10.5} />
+      <OrbitIcon icon={ShoppingBag} radius={100} startDeg={0}   size="sm" />
+      <OrbitIcon icon={Package}     radius={100} startDeg={90}  size="sm" delay={-3.5} />
+      <OrbitIcon icon={Bike}        radius={100} startDeg={180} size="sm" delay={-7} />
+      <OrbitIcon icon={MapPin}      radius={100} startDeg={270} size="sm" delay={-10.5} />
 
       {/* Inner glow ring */}
       <div className="absolute w-32 h-32 rounded-full bg-white/10 blur-xl" />
@@ -85,9 +85,9 @@ const DeliveryScene = () => (
     <Star className="absolute top-1/3 left-8 w-4 h-4 text-white/50"
       style={{ animation: "auth-sparkle 3s ease-in-out infinite" }} />
     <Star className="absolute bottom-1/4 left-16 w-3 h-3 text-white/40"
-      style={{ animation: "auth-sparkle 4s ease-in-out infinite", animationDelay: "1s" }} />
+      style={{ animationName: "auth-sparkle", animationDuration: "4s", animationTimingFunction: "ease-in-out", animationIterationCount: "infinite", animationDelay: "1s" }} />
     <Star className="absolute top-16 right-16 w-3 h-3 text-white/50"
-      style={{ animation: "auth-sparkle 2.5s ease-in-out infinite", animationDelay: "0.5s" }} />
+      style={{ animationName: "auth-sparkle", animationDuration: "2.5s", animationTimingFunction: "ease-in-out", animationIterationCount: "infinite", animationDelay: "0.5s" }} />
   </div>
 );
 
@@ -95,14 +95,12 @@ const DeliveryScene = () => (
 function OrbitIcon({
   icon: Icon,
   radius,
-  duration,
   startDeg,
   size = "sm",
   delay = 0,
 }: {
   icon: React.ComponentType<{ className?: string }>;
   radius: number;
-  duration: number;
   startDeg: number;
   size?: "sm" | "md";
   delay?: number;
@@ -121,7 +119,10 @@ function OrbitIcon({
         top: "50%",
         marginLeft: `${ox - 18}px`,
         marginTop: `${oy - 18}px`,
-        animation: `auth-float ${2.5 + Math.random()}s ease-in-out infinite`,
+        animationName: "auth-float",
+        animationDuration: `${2.5 + (startDeg / 360) * 1.5}s`,
+        animationTimingFunction: "ease-in-out",
+        animationIterationCount: "infinite",
         animationDelay: `${delay}s`,
       }}
     >
@@ -150,7 +151,10 @@ function FloatingCard({
     <div
       className={`${className} bg-white/15 backdrop-blur-sm border border-white/25 rounded-2xl px-3 py-2 flex items-center gap-2 shadow-lg`}
       style={{
-        animation: `auth-float-r ${3 + delay * 0.4}s ease-in-out infinite`,
+        animationName: "auth-float-r",
+        animationDuration: `${3 + delay * 0.4}s`,
+        animationTimingFunction: "ease-in-out",
+        animationIterationCount: "infinite",
         animationDelay: `${delay * 0.6}s`,
       }}
     >

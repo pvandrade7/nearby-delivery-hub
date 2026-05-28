@@ -69,8 +69,9 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   }, []);
 
   const signOut = async () => {
+    setSession(null);   // limpa imediatamente antes do redirect
+    setRole(null);
     await supabase.auth.signOut();
-    setRole(null);       // limpa o role imediatamente no estado local
   };
 
   return (
