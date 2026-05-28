@@ -28,7 +28,7 @@ const Auth = () => {
       : "cliente";
 
   useEffect(() => {
-    if (loading || !session || role === null) return;
+    if (loading || !session) return;
     navigate(HOME_BY_ROLE[role] ?? redirectTo, { replace: true });
   }, [loading, session, role, navigate, redirectTo]);
 

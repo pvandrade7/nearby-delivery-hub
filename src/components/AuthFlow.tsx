@@ -85,8 +85,16 @@ export const AuthFlow = ({
       : "cliente";
 
   useEffect(() => {
-    if (loading || !session || userRole === null) return;
-    navigate(userRole === expectedRole ? finalPath : (HOME_BY_ROLE[userRole] ?? "/"), { replace: true });
+    if (loading || !session) return;
+    // Navega assim que a sessão for confirmada.
+    // Se o role já foi carregado e é diferente do esperado, vai para o home correto.
+    // Se o role ainda é null (fetch em andamento), vai para finalPath e o RequireRole
+    // gerenciará qualquer redirecionamento adicional quando o role carregar.
+    const dest =
+      userRole && userRole !== expectedRole
+        ? HOME_BY_ROLE[userRole] ?? finalPath
+        : finalPath;
+    navigate(dest, { replace: true });
   }, [loading, session, userRole, expectedRole, navigate, finalPath]);
 
   const role = expectedRole;
@@ -188,6 +196,7 @@ export const AuthFlow = ({
           await supabase.from("profiles").update({ cnpj: cnpjDigits, verified: true }).eq("id", signUpResult.session.user.id);
         }
         toast.success("Conta criada! Entrando...");
+        navigate(finalPath, { replace: true });
         return;
       }
     } catch (err) {
