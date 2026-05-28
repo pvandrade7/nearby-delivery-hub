@@ -165,7 +165,7 @@ export const AuthFlow = ({
         fields.forEach((f) => { if (values[f.name]) extras[f.name] = values[f.name]; });
         if (values.avatar) extras.avatar_url = values.avatar;
         const cnpjDigits = onlyDigits(values.cnpj);
-        const signupPromise = supabase.auth.signUp({
+        const signUpCall = supabase.auth.signUp({
           email: values.email.trim().toLowerCase(),
           password: values.password,
           options: {
@@ -173,35 +173,23 @@ export const AuthFlow = ({
             data: { display_name: values.name, phone, role, avatar_url: values.avatar || undefined, extras },
           },
         });
-        const timeoutPromise = new Promise<never>((_, reject) =>
-          setTimeout(() => reject(new Error("Tempo esgotado. Verifique sua conexão e tente novamente.")), 15000)
+        const signUpTimeout = new Promise<never>((_, reject) =>
+          setTimeout(() => reject(new Error("Tempo esgotado. Verifique sua conexão e tente novamente.")), 12000)
         );
-        const { data: signUpResult, error: signErr } = await Promise.race([signupPromise, timeoutPromise]);
+        const { data: signUpResult, error: signErr } = await Promise.race([signUpCall, signUpTimeout]);
         if (signErr) throw signErr;
 
-        let finalSession = signUpResult?.session;
-
-        if (!finalSession) {
-          // Sessão nula = email já cadastrado ou confirmação pendente
-          // Tenta fazer login com as credenciais fornecidas
-          const { data: signInData, error: signInErr } = await supabase.auth.signInWithPassword({
-            email: values.email.trim().toLowerCase(),
-            password: values.password,
-          });
-          if (signInErr) {
-            toast.info("Conta criada! Verifique seu email para ativar a conta e depois faça login.");
-            setBusy(false);
-            return;
-          }
-          finalSession = signInData.session;
+        if (!signUpResult?.session) {
+          toast.info("Conta criada! Verifique seu email para ativar a conta e depois faça login.");
+          return;
         }
 
-        if (role === "lojista" && cnpjDigits && cnpjVerified && finalSession) {
-          await supabase.from("profiles").update({ cnpj: cnpjDigits, verified: true }).eq("id", finalSession.user.id);
+        if (role === "lojista" && cnpjDigits && cnpjVerified) {
+          await supabase.from("profiles").update({ cnpj: cnpjDigits, verified: true }).eq("id", signUpResult.session.user.id);
         }
-        toast.success("Conta criada! Bem-vindo!");
+        toast.success("Conta criada! Entrando...");
+        return;
       }
-      navigate(finalPath, { replace: true });
     } catch (err) {
       const msg = err instanceof Error ? err.message : "";
       if (msg.toLowerCase().includes("already registered") || msg.toLowerCase().includes("already been registered")) {
