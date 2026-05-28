@@ -1,79 +1,284 @@
 import { useEffect, useState } from "react";
+import { useParams } from "react-router-dom";
 import { Check, Package, Bike, Home as HomeIcon, MessageCircle, Phone } from "lucide-react";
+import { ORDERS_KEY, type FakeOrder } from "./Checkout";
 
-const steps = [
-  { id: 0, icon: Check, label: "Pedido confirmado", desc: "Recebemos seu pedido" },
-  { id: 1, icon: Package, label: "Em preparação", desc: "A loja está preparando" },
-  { id: 2, icon: Bike, label: "Saiu para entrega", desc: "Carlos a caminho" },
-  { id: 3, icon: HomeIcon, label: "Entregue", desc: "Tudo certo!" },
+/* ── passos do status ───────────────────────────────── */
+const STEPS = [
+  { icon: Check,    label: "Pedido confirmado", desc: "Pagamento aprovado" },
+  { icon: Package,  label: "Em preparação",     desc: "A loja está preparando" },
+  { icon: Bike,     label: "Saiu para entrega", desc: "Carlos a caminho" },
+  { icon: HomeIcon, label: "Entregue",           desc: "Tudo certo!" },
 ];
 
-const OrderTracking = () => {
-  const [active, setActive] = useState(1);
+/* ── rota no SVG (grid de ruas fictícias) ───────────── */
+//  começa na loja (canto inferior-direito) → chega em casa (canto superior-esquerdo)
+const ROUTE = "M 360 235 L 290 235 L 290 195 L 220 195 L 220 140 L 150 140 L 150 80 L 90 80 L 90 40 L 45 40";
 
+/* ── mapa de cidade fake ────────────────────────────── */
+const CityMap = () => (
+  <>
+    {/* fundo de asfalto */}
+    <rect width="400" height="270" fill="#d1d5db" />
+
+    {/* quarteirões */}
+    {[
+      // linha superior
+      { x: 0,   y: 0,   w: 80,  h: 32 }, { x: 98,  y: 0,  w: 114, h: 32 },
+      { x: 220, y: 0,   w: 62,  h: 32 }, { x: 290, y: 0,  w: 110, h: 32 },
+      // linha 2
+      { x: 0,   y: 48,  w: 80,  h: 84 }, { x: 98,  y: 48, w: 114, h: 84 },
+      { x: 220, y: 48,  w: 62,  h: 84 }, { x: 290, y: 48, w: 110, h: 84 },
+      // linha 3
+      { x: 0,   y: 148, w: 80,  h: 39 }, { x: 98,  y: 148,w: 114, h: 39 },
+      { x: 220, y: 148, w: 62,  h: 39 }, { x: 290, y: 148,w: 110, h: 39 },
+      // linha 4
+      { x: 0,   y: 205, w: 80,  h: 65 }, { x: 98,  y: 205,w: 114, h: 65 },
+      { x: 220, y: 205, w: 62,  h: 65 }, { x: 290, y: 205,w: 110, h: 65 },
+    ].map((b, i) => (
+      <rect key={i} x={b.x} y={b.y} width={b.w} height={b.h}
+        fill={i % 3 === 0 ? "#e5e7eb" : i % 3 === 1 ? "#f3f4f6" : "#ede9fe"}
+        rx="2" />
+    ))}
+
+    {/* faixas de pedestre (decoração) */}
+    {[0, 8, 16, 24, 32, 40].map((x, i) => (
+      <rect key={i} x={88 + x} y={196} width="4" height="8" fill="white" opacity="0.7" rx="1" />
+    ))}
+
+    {/* setas de direção nas ruas */}
+    <text x="162" y="130" fontSize="10" fill="#9ca3af" textAnchor="middle" transform="rotate(-90, 162, 130)">▲</text>
+    <text x="162" y="105" fontSize="10" fill="#9ca3af" textAnchor="middle" transform="rotate(-90, 162, 105)">▲</text>
+
+    {/* labels de rua (decoração) */}
+    <text x="162" y="172" fontSize="7" fill="#6b7280" textAnchor="middle" fontWeight="bold">RUA DAS FLORES</text>
+    <text x="258" y="220" fontSize="7" fill="#6b7280" textAnchor="middle" fontWeight="bold">AV. CENTRAL</text>
+  </>
+);
+
+/* ══════════════════════════════════════════════════════ */
+const OrderTracking = () => {
+  const { id } = useParams();
+  const [active, setActive] = useState(1);
+  const [order, setOrder] = useState<FakeOrder | null>(null);
+
+  /* carrega pedido do localStorage */
   useEffect(() => {
-    const t = setInterval(() => setActive((a) => (a < 3 ? a + 1 : a)), 4000);
+    try {
+      const list: FakeOrder[] = JSON.parse(localStorage.getItem(ORDERS_KEY) || "[]");
+      const found = list.find((o) => o.id === id);
+      if (found) {
+        setOrder(found);
+        const statusMap: Record<string, number> = {
+          aprovado: 0, preparando: 1, saiu: 2, entregue: 3,
+        };
+        setActive(statusMap[found.status] ?? 1);
+      }
+    } catch { /* silent */ }
+  }, [id]);
+
+  /* avança status automaticamente (demo) */
+  useEffect(() => {
+    const t = setInterval(() => setActive((a) => (a < 3 ? a + 1 : a)), 5000);
     return () => clearInterval(t);
   }, []);
 
   return (
     <div className="px-4 lg:px-8 py-6 lg:py-8 max-w-[1200px] mx-auto">
-      <h1 className="text-2xl lg:text-3xl font-extrabold mb-6">Rastrear pedido</h1>
+      <h1 className="text-2xl lg:text-3xl font-extrabold mb-2">Rastrear pedido</h1>
+      {order && (
+        <p className="text-sm text-muted-foreground mb-6">
+          Pedido #{order.id} · {order.storeName}
+        </p>
+      )}
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Map */}
+
+        {/* ── Mapa animado ───────────────────────────── */}
         <div className="lg:col-span-2 bg-card rounded-2xl shadow-card overflow-hidden">
-          <div className="h-72 lg:h-96 bg-gradient-to-br from-success/30 via-warning/20 to-primary/30 relative overflow-hidden">
-            <svg className="absolute inset-0 w-full h-full opacity-50" viewBox="0 0 400 250" preserveAspectRatio="none">
-              <path d="M40,200 Q120,150 200,160 T380,60" stroke="hsl(var(--primary))" strokeWidth="3" strokeDasharray="6 4" fill="none" />
-              <circle cx="40" cy="200" r="8" fill="hsl(var(--secondary))" />
-              <circle cx="380" cy="60" r="8" fill="hsl(var(--success))" />
+          <div className="relative w-full" style={{ paddingBottom: "67.5%" }}>
+            <svg
+              viewBox="0 0 400 270"
+              className="absolute inset-0 w-full h-full"
+              xmlns="http://www.w3.org/2000/svg"
+            >
+              {/* cidade */}
+              <CityMap />
+
+              {/* sombra da rota */}
+              <path
+                d={ROUTE}
+                fill="none"
+                stroke="white"
+                strokeWidth="7"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                opacity="0.5"
+              />
+
+              {/* rota principal */}
+              <path
+                id="moto-route"
+                d={ROUTE}
+                fill="none"
+                stroke="#f97316"
+                strokeWidth="4"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeDasharray="10 6"
+              />
+
+              {/* ── Marcador LOJA (origem) ── */}
+              <g transform="translate(360, 235)">
+                {/* anel pulsando */}
+                <circle r="14" fill="#f97316" opacity="0.15">
+                  <animate attributeName="r"       values="14;22;14" dur="2.2s" repeatCount="indefinite" />
+                  <animate attributeName="opacity" values="0.15;0;0.15" dur="2.2s" repeatCount="indefinite" />
+                </circle>
+                <circle r="12" fill="#f97316" stroke="white" strokeWidth="2.5" />
+                <text textAnchor="middle" dominantBaseline="middle" fontSize="12">🏪</text>
+              </g>
+
+              {/* label loja */}
+              <rect x="325" y="248" width="30" height="12" rx="3" fill="white" opacity="0.85" />
+              <text x="340" y="257" textAnchor="middle" fontSize="7" fill="#374151" fontWeight="bold">LOJA</text>
+
+              {/* ── Marcador CASA (destino) ── */}
+              <g transform="translate(45, 40)">
+                <circle r="14" fill="#22c55e" opacity="0.15">
+                  <animate attributeName="r"       values="14;22;14" dur="1.9s" repeatCount="indefinite" />
+                  <animate attributeName="opacity" values="0.15;0;0.15" dur="1.9s" repeatCount="indefinite" />
+                </circle>
+                <circle r="12" fill="#22c55e" stroke="white" strokeWidth="2.5" />
+                <text textAnchor="middle" dominantBaseline="middle" fontSize="12">🏠</text>
+              </g>
+
+              {/* label casa */}
+              <rect x="10" y="57" width="30" height="12" rx="3" fill="white" opacity="0.85" />
+              <text x="25" y="66" textAnchor="middle" fontSize="7" fill="#374151" fontWeight="bold">VOCÊ</text>
+
+              {/* ── Motoboy animado: aparece apenas quando saiu para entrega ── */}
+              {active >= 2 && active < 3 && (
+                <g style={{ animation: "fadeIn 0.8s ease" }}>
+                  <animateMotion
+                    dur="9s"
+                    repeatCount="indefinite"
+                    calcMode="linear"
+                  >
+                    <mpath href="#moto-route" />
+                  </animateMotion>
+
+                  {/* glow externo */}
+                  <circle r="18" fill="#f97316" opacity="0.15">
+                    <animate attributeName="r"       values="18;24;18" dur="1.4s" repeatCount="indefinite" />
+                    <animate attributeName="opacity" values="0.15;0.05;0.15" dur="1.4s" repeatCount="indefinite" />
+                  </circle>
+
+                  {/* círculo principal */}
+                  <circle r="13" fill="#f97316" stroke="white" strokeWidth="2.5" />
+
+                  {/* ícone do motoboy */}
+                  <text
+                    textAnchor="middle"
+                    dominantBaseline="middle"
+                    fontSize="14"
+                    style={{ userSelect: "none" }}
+                  >
+                    🛵
+                  </text>
+                </g>
+              )}
+
+              {/* ── Motoboy parado no destino quando entregue ── */}
+              {active >= 3 && (
+                <g transform="translate(45, 40)">
+                  <circle r="16" fill="#22c55e" opacity="0.2">
+                    <animate attributeName="r"       values="16;24;16" dur="1.8s" repeatCount="indefinite" />
+                    <animate attributeName="opacity" values="0.2;0;0.2"  dur="1.8s" repeatCount="indefinite" />
+                  </circle>
+                  <circle r="13" fill="#22c55e" stroke="white" strokeWidth="2.5" />
+                  <text textAnchor="middle" dominantBaseline="middle" fontSize="14" style={{ userSelect: "none" }}>✅</text>
+                </g>
+              )}
+
+              {/* pontos de rota (decoração estática) */}
+              {[
+                [290, 235], [220, 195], [150, 140], [90, 80],
+              ].map(([cx, cy], i) => (
+                <circle key={i} cx={cx} cy={cy} r="3.5" fill="#f97316" opacity="0.5" />
+              ))}
             </svg>
-            <div className="absolute bottom-4 left-4 bg-background/95 backdrop-blur rounded-xl px-3 py-2 shadow-card text-xs font-semibold flex items-center gap-2 animate-pulse-soft">
-              <span className="size-2 rounded-full bg-success" />
+
+            {/* Badge de distância */}
+            <div className="absolute bottom-4 left-4 bg-background/95 backdrop-blur rounded-xl px-3 py-2 shadow-card text-xs font-semibold flex items-center gap-2">
+              <span className="size-2 rounded-full bg-green-500 animate-pulse" />
               Entregador a 600m
+            </div>
+
+            {/* Badge ETA */}
+            <div className="absolute top-4 right-4 bg-background/95 backdrop-blur rounded-xl px-3 py-2 shadow-card text-xs font-semibold">
+              ⏱ {order ? `${order.estimatedMin}–${order.estimatedMax} min` : "25–40 min"}
             </div>
           </div>
         </div>
 
-        {/* Steps + courier */}
+        {/* ── Painel lateral ─────────────────────────── */}
         <div className="space-y-4">
+
+          {/* Card do entregador */}
           <div className="bg-card rounded-2xl p-4 shadow-card flex items-center gap-3">
-            <div className="size-12 rounded-full gradient-brand text-primary-foreground flex items-center justify-center font-bold">C</div>
+            <div className="size-12 rounded-full gradient-brand text-primary-foreground flex items-center justify-center font-bold text-lg shrink-0">
+              C
+            </div>
             <div className="flex-1 min-w-0">
               <p className="font-bold text-sm">Carlos Mendes</p>
-              <p className="text-xs text-muted-foreground">Moto • Honda CG 160</p>
+              <p className="text-xs text-muted-foreground">🛵 Honda Biz 125 · ⭐ 4.9</p>
             </div>
-            <button className="size-9 rounded-full bg-accent text-primary flex items-center justify-center" aria-label="Mensagem">
+            <button
+              className="size-9 rounded-full bg-accent text-primary flex items-center justify-center hover:bg-accent/70 transition-colors"
+              aria-label="Mensagem"
+            >
               <MessageCircle className="w-4 h-4" />
             </button>
-            <button className="size-9 rounded-full gradient-brand text-primary-foreground flex items-center justify-center" aria-label="Ligar">
+            <button
+              className="size-9 rounded-full gradient-brand text-primary-foreground flex items-center justify-center hover:opacity-90 transition-opacity"
+              aria-label="Ligar"
+            >
               <Phone className="w-4 h-4" />
             </button>
           </div>
 
+          {/* Steps de status */}
           <div className="bg-card rounded-2xl p-5 shadow-card">
             <h2 className="font-bold text-sm mb-4">Status do pedido</h2>
             <div className="space-y-1">
-              {steps.map((s, i) => {
+              {STEPS.map((s, i) => {
                 const done = i <= active;
                 const isCurrent = i === active;
                 return (
-                  <div key={s.id} className="flex gap-3">
+                  <div key={i} className="flex gap-3">
                     <div className="flex flex-col items-center">
                       <div
-                        className={`size-9 rounded-full flex items-center justify-center transition-all ${
-                          done ? "gradient-brand text-primary-foreground shadow-glow" : "bg-muted text-muted-foreground"
-                        } ${isCurrent ? "animate-pulse-soft" : ""}`}
+                        className={`size-9 rounded-full flex items-center justify-center transition-all duration-500 ${
+                          done
+                            ? "gradient-brand text-primary-foreground shadow-glow"
+                            : "bg-muted text-muted-foreground"
+                        } ${isCurrent ? "animate-pulse-soft ring-2 ring-primary/30" : ""}`}
                       >
                         <s.icon className="w-4 h-4" />
                       </div>
-                      {i < steps.length - 1 && (
-                        <div className={`w-0.5 flex-1 my-1 min-h-[24px] ${done && i < active ? "bg-primary" : "bg-border"}`} />
+                      {i < STEPS.length - 1 && (
+                        <div
+                          className={`w-0.5 flex-1 my-1 min-h-[24px] transition-colors duration-700 ${
+                            done && i < active ? "bg-primary" : "bg-border"
+                          }`}
+                        />
                       )}
                     </div>
                     <div className="pb-4 flex-1">
-                      <p className={`font-bold text-sm ${done ? "text-foreground" : "text-muted-foreground"}`}>{s.label}</p>
+                      <p className={`font-bold text-sm transition-colors ${done ? "text-foreground" : "text-muted-foreground"}`}>
+                        {s.label}
+                      </p>
                       <p className="text-xs text-muted-foreground">{s.desc}</p>
                     </div>
                   </div>
@@ -81,6 +286,26 @@ const OrderTracking = () => {
               })}
             </div>
           </div>
+
+          {/* Resumo do pedido (se disponível) */}
+          {order && (
+            <div className="bg-card rounded-2xl p-4 shadow-card text-xs text-muted-foreground space-y-1">
+              <p className="font-bold text-sm text-foreground mb-2">Resumo</p>
+              {order.items.slice(0, 3).map((item, i) => (
+                <div key={i} className="flex justify-between">
+                  <span>{item.quantity}× {item.name}</span>
+                  <span>R$ {(item.price * item.quantity).toFixed(2)}</span>
+                </div>
+              ))}
+              {order.items.length > 3 && (
+                <p className="text-muted-foreground">+{order.items.length - 3} itens</p>
+              )}
+              <div className="border-t border-border pt-1 mt-1 flex justify-between font-bold text-foreground">
+                <span>Total</span>
+                <span className="text-primary">R$ {order.total.toFixed(2)}</span>
+              </div>
+            </div>
+          )}
         </div>
       </div>
     </div>

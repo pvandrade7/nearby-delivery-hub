@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { lovable } from "@/integrations/lovable";
@@ -6,7 +6,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { HOME_BY_ROLE } from "@/components/RequireRole";
 import { AuthLayout } from "@/components/AuthLayout";
 import { toast } from "sonner";
-import { Mail, Lock, User as UserIcon, LogIn } from "lucide-react";
+import { Mail, Lock, User as UserIcon, LogIn, CheckCircle2 } from "lucide-react";
 
 const Auth = () => {
   const [mode, setMode] = useState<"login" | "signup">("login");
@@ -17,7 +17,7 @@ const Auth = () => {
   const [busy, setBusy] = useState(false);
   const navigate = useNavigate();
   const location = useLocation();
-  const { session, loading, role } = useAuth();
+  const { session, loading, role, user, signOut } = useAuth();
   const redirectTo = (location.state as { from?: string } | null)?.from ?? "/cliente/home";
 
   // Infere o role pelo caminho de origem (usado no cadastro)
@@ -27,14 +27,19 @@ const Auth = () => {
       ? "entregador"
       : "cliente";
 
-  useEffect(() => {
-    if (loading || !session) return;
-    navigate(HOME_BY_ROLE[role] ?? redirectTo, { replace: true });
-  }, [loading, session, role, navigate, redirectTo]);
+  // Sem auto-redirect. O usuário vê o formulário e decide explicitamente.
+  // O banner abaixo mostra a sessão ativa e oferece um botão "Continuar".
 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError("");
+
+    // Validação explícita
+    if (!email.trim()) { setError("Informe seu e-mail."); return; }
+    if (!password)     { setError("Informe sua senha."); return; }
+    if (password.length < 6) { setError("Senha deve ter pelo menos 6 caracteres."); return; }
+    if (mode === "signup" && !name.trim()) { setError("Informe seu nome."); return; }
+
     setBusy(true);
     try {
       if (mode === "signup") {
@@ -60,6 +65,7 @@ const Auth = () => {
         const { error: err } = await supabase.auth.signInWithPassword({ email: loginEmail, password });
         if (err) throw err;
         toast.success("Bem-vindo de volta!");
+        navigate(HOME_BY_ROLE[role] ?? redirectTo, { replace: true });
       }
     } catch (err) {
       setError(err instanceof Error ? err.message : "Falha na autenticação");
@@ -79,6 +85,16 @@ const Auth = () => {
     }
   };
 
+  if (loading) {
+    return (
+      <AuthLayout>
+        <div className="flex items-center justify-center h-64">
+          <div className="w-6 h-6 rounded-full border-2 border-primary border-t-transparent animate-spin" />
+        </div>
+      </AuthLayout>
+    );
+  }
+
   return (
     <AuthLayout>
       <div className="px-6 py-10 max-w-md mx-auto w-full">
@@ -88,6 +104,29 @@ const Auth = () => {
         <p className="text-sm text-muted-foreground mt-1">
           {mode === "login" ? "Informe suas credenciais para acessar." : "Preencha os dados para criar sua conta."}
         </p>
+
+        {/* Banner de sessão ativa — o usuário decide se continua ou usa outra conta */}
+        {session && (
+          <div className="mt-5 bg-muted border border-border rounded-2xl p-4">
+            <div className="flex items-center gap-2 mb-1">
+              <span className="size-2 rounded-full bg-green-500 shrink-0" />
+              <span className="text-xs font-bold text-muted-foreground uppercase tracking-wide">Sessão ativa</span>
+            </div>
+            <p className="text-sm font-semibold truncate">{user?.email}</p>
+            <button
+              onClick={() => navigate(HOME_BY_ROLE[role] ?? redirectTo, { replace: true })}
+              className="mt-3 w-full gradient-brand text-primary-foreground rounded-xl py-3 font-bold text-sm shadow-card hover:shadow-elevated transition-shadow flex items-center justify-center gap-2"
+            >
+              <CheckCircle2 className="w-4 h-4" /> Continuar sessão
+            </button>
+            <button
+              onClick={() => signOut()}
+              className="mt-2 w-full text-xs text-muted-foreground hover:text-foreground text-center py-1"
+            >
+              Usar outra conta
+            </button>
+          </div>
+        )}
 
         <form onSubmit={submit} className="mt-6 space-y-3">
           {mode === "signup" && (
@@ -108,7 +147,7 @@ const Auth = () => {
               value={email}
               onChange={(e) => { setEmail(e.target.value); setError(""); }}
               required
-              placeholder={mode === "login" ? "seu@email.com ou telefone" : "seu@email.com"}
+              placeholder={mode === "login" ? "seu@email.com" : "seu@email.com"}
               type="email"
               autoComplete="email"
               className="flex-1 bg-transparent text-sm font-semibold focus:outline-none"
@@ -129,7 +168,6 @@ const Auth = () => {
             />
           </label>
 
-          {/* Erro inline */}
           {error && (
             <p className="text-sm text-destructive font-semibold px-1">{error}</p>
           )}
@@ -163,8 +201,8 @@ const Auth = () => {
           className="w-full text-sm text-muted-foreground mt-4 hover:text-foreground text-center"
         >
           {mode === "login"
-            ? <>Não tem conta? <span className="font-bold text-primary">Cadastre-se</span></>
-            : <>Já tem conta? <span className="font-bold text-primary">Entrar</span></>
+            ? <><span>Não tem conta?</span> <span className="font-bold text-primary">Cadastre-se</span></>
+            : <><span>Já tem conta?</span> <span className="font-bold text-primary">Entrar</span></>
           }
         </button>
 

@@ -1,7 +1,10 @@
+import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { TrendingUp, Clock, CheckCircle2, Plus, DollarSign, Eye, BadgeCheck } from "lucide-react";
 import { initialOrders, products } from "@/data/mockData";
 import { VerifiedBadge } from "@/components/VerifiedBadge";
+import { useAuth } from "@/hooks/useAuth";
+import { supabase } from "@/integrations/supabase/client";
 
 const stats = [
   { label: "Vendas hoje", value: "R$ 487,30", delta: "+22% vs ontem", icon: DollarSign, accent: "text-primary", bg: "bg-primary/10" },
@@ -22,6 +25,24 @@ const sales = [
 ];
 
 const SellerDashboard = () => {
+  const { user } = useAuth();
+  const [displayName, setDisplayName] = useState("");
+
+  useEffect(() => {
+    if (!user) return;
+    supabase
+      .from("profiles")
+      .select("display_name, extras")
+      .eq("id", user.id)
+      .maybeSingle()
+      .then(({ data }) => {
+        const ext = data?.extras as Record<string, string> | null;
+        const storeName = ext?.storeName;
+        const name = data?.display_name || user.email?.split("@")[0] || "";
+        setDisplayName(storeName ? `${name} · ${storeName}` : name);
+      });
+  }, [user]);
+
   const recent = initialOrders.slice(0, 5);
   const top = products.filter((p) => p.storeId === "s3").slice(0, 4);
   const max = Math.max(...sales.map((s) => s.v));
@@ -31,7 +52,9 @@ const SellerDashboard = () => {
       {/* Header */}
       <div className="flex flex-col lg:flex-row lg:items-end lg:justify-between gap-3">
         <div>
-          <p className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Bom dia, Marina 🌸</p>
+          <p className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
+            Bom dia{displayName ? `, ${displayName}` : ""} 🌸
+          </p>
           <h1 className="text-2xl lg:text-3xl font-extrabold mt-1">Painel da loja</h1>
         </div>
         <div className="flex flex-wrap items-center gap-2">

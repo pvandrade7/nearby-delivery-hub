@@ -8,9 +8,9 @@ import { toast } from "sonner";
 const categories = ["mercado", "construcao", "ferramentas", "limpeza", "farmacia", "papelaria", "eletronicos", "roupas", "outro"];
 
 const CreateStore = () => {
-  const [name, setName] = useState("Ferragens do Bairro");
-  const [desc, setDesc] = useState("Ferramentas, parafusos e acessórios para reparos.");
-  const [cat, setCat] = useState("ferramentas");
+  const [name, setName] = useState("");
+  const [desc, setDesc] = useState("");
+  const [cat, setCat] = useState("outro");
   const [image, setImage] = useState("");
   const [busy, setBusy] = useState(false);
   const { user } = useAuth();
@@ -29,6 +29,8 @@ const CreateStore = () => {
 
   const save = async () => {
     if (!user) return;
+    if (!name.trim()) { toast.error("Informe o nome da loja"); return; }
+    if (name.trim().length < 3) { toast.error("Nome da loja deve ter pelo menos 3 caracteres"); return; }
     setBusy(true);
     try {
       const { data } = await supabase.from("profiles").select("extras").eq("id", user.id).maybeSingle();

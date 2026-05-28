@@ -29,8 +29,8 @@ type AuthFlowProps = {
   skipPath?: string;
 };
 
-/** Fluxo visível: tela de escolha → login direto OU cadastro por telefone */
-type View = "choice" | "login" | "signup";
+/** Fluxo visível: tela de escolha → login direto OU cadastro por telefone OU adição de perfil */
+type View = "choice" | "login" | "signup" | "addRole";
 
 const defaultValues: Record<string, string> = {
   phone: "",
@@ -75,7 +75,7 @@ export const AuthFlow = ({
   /* ── compartilhado ────────────────────────────────────── */
   const [busy, setBusy] = useState(false);
   const navigate = useNavigate();
-  const { session, role: userRole, loading } = useAuth();
+  const { session, roles: userRoles, loading, refreshRoles, user, signOut } = useAuth();
 
   // Role esperado para esta tela de login (inferido do finalPath)
   const expectedRole = finalPath.startsWith("/lojista")
@@ -84,18 +84,22 @@ export const AuthFlow = ({
       ? "entregador"
       : "cliente";
 
+  const roleLabel =
+    expectedRole === "lojista" ? "Lojista" :
+    expectedRole === "entregador" ? "Entregador" :
+    "Cliente";
+
+  // Quando o usuário está autenticado mas NÃO tem o perfil esperado:
+  // → mostra formulário de adição de perfil (view "addRole")
+  // Se JÁ tem o perfil esperado: NÃO redireciona automaticamente.
+  // O usuário verá o banner "Sessão ativa" na tela de escolha e decide se continua.
   useEffect(() => {
     if (loading || !session) return;
-    // Navega assim que a sessão for confirmada.
-    // Se o role já foi carregado e é diferente do esperado, vai para o home correto.
-    // Se o role ainda é null (fetch em andamento), vai para finalPath e o RequireRole
-    // gerenciará qualquer redirecionamento adicional quando o role carregar.
-    const dest =
-      userRole && userRole !== expectedRole
-        ? HOME_BY_ROLE[userRole] ?? finalPath
-        : finalPath;
-    navigate(dest, { replace: true });
-  }, [loading, session, userRole, expectedRole, navigate, finalPath]);
+    if (!userRoles.includes(expectedRole as import("@/hooks/useAuth").UserRole)) {
+      setView("addRole");
+    }
+    // Perfil correto → mantém na tela de escolha, sem redirect silencioso
+  }, [loading, session, userRoles, expectedRole]);
 
   const role = expectedRole;
 
@@ -160,9 +164,14 @@ export const AuthFlow = ({
         toast.success("Bem-vindo!");
         const userId = authData?.user?.id;
         if (userId) {
-          const { data: p } = await supabase.from("profiles").select("role").eq("id", userId).maybeSingle();
-          const actualRole = p?.role as string | null;
-          navigate(actualRole && HOME_BY_ROLE[actualRole] ? HOME_BY_ROLE[actualRole] : finalPath, { replace: true });
+          const { data: p } = await supabase.from("profiles").select("roles").eq("id", userId).maybeSingle();
+          const profileRoles = ((p?.roles as string[]) ?? []);
+          if (profileRoles.includes(expectedRole)) {
+            navigate(finalPath, { replace: true });
+          } else {
+            // Usuário existe mas não tem o perfil esperado → adicionar perfil
+            setView("addRole");
+          }
         } else {
           navigate(finalPath, { replace: true });
         }
@@ -195,6 +204,23 @@ export const AuthFlow = ({
         if (role === "lojista" && cnpjDigits && cnpjVerified) {
           await supabase.from("profiles").update({ cnpj: cnpjDigits, verified: true }).eq("id", signUpResult.session.user.id);
         }
+
+        // Para clientes: salva o endereço preenchido no cadastro na tabela addresses
+        if (role === "cliente" && (values.address || values.city)) {
+          await supabase.from("addresses").insert({
+            user_id: signUpResult.session.user.id,
+            label: "Casa",
+            street: values.address || "",
+            number: "",
+            neighborhood: "",
+            city: values.city || "",
+            state: "",
+            zip_code: "",
+            complement: values.reference || "",
+            is_default: true,
+          });
+        }
+
         toast.success("Conta criada! Entrando...");
         navigate(finalPath, { replace: true });
         return;
@@ -220,6 +246,21 @@ export const AuthFlow = ({
     e.preventDefault();
     if (busy) return;
     setLoginError("");
+
+    // Validação explícita antes de qualquer chamada ao Supabase
+    if (!loginEmail.trim()) {
+      setLoginError("Informe seu e-mail para continuar.");
+      return;
+    }
+    if (!loginPassword) {
+      setLoginError("Informe sua senha para continuar.");
+      return;
+    }
+    if (loginPassword.length < 6) {
+      setLoginError("Senha deve ter pelo menos 6 caracteres.");
+      return;
+    }
+
     setBusy(true);
     try {
       let email = loginEmail.trim();
@@ -234,15 +275,82 @@ export const AuthFlow = ({
       toast.success("Bem-vindo de volta!");
       const userId = authData.user?.id;
       if (userId) {
-        const { data: p } = await supabase.from("profiles").select("role").eq("id", userId).maybeSingle();
-        const actualRole = p?.role as string | null;
-        navigate(actualRole && HOME_BY_ROLE[actualRole] ? HOME_BY_ROLE[actualRole] : finalPath, { replace: true });
+        const { data: p } = await supabase.from("profiles").select("roles").eq("id", userId).maybeSingle();
+        const profileRoles = ((p?.roles as string[]) ?? []);
+        if (profileRoles.includes(expectedRole)) {
+          navigate(finalPath, { replace: true });
+        } else {
+          // Conta encontrada, mas sem o perfil esperado → mostrar adição de perfil
+          setView("addRole");
+        }
       } else {
         navigate(finalPath, { replace: true });
       }
     } catch (err) {
       const msg = err instanceof Error ? err.message : "Credenciais inválidas";
       setLoginError(msg);
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  /* ── adição de perfil complementar (usuário já autenticado) ──────── */
+  const handleAddRole = async () => {
+    if (!session?.user?.id) return;
+    setBusy(true);
+    try {
+      const userId = session.user.id;
+
+      // Busca extras atual (select sem `roles` para funcionar mesmo sem migration)
+      const { data: profile } = await supabase
+        .from("profiles")
+        .select("extras")
+        .eq("id", userId)
+        .maybeSingle();
+
+      // Coleta dados extras específicos do novo perfil
+      const newExtras: Record<string, string> = {};
+      fields.forEach((f) => { if (values[f.name]) newExtras[f.name] = values[f.name]; });
+      const mergedExtras = { ...((profile?.extras as Record<string, string>) ?? {}), ...newExtras };
+
+      // Tenta salvar com a coluna roles (requer migration aplicada)
+      // Se a coluna não existir (migration pendente), salva só os extras e
+      // atualiza o role primário para o novo perfil.
+      const { error: errWithRoles } = await supabase
+        .from("profiles")
+        .update({ roles: [expectedRole], role: expectedRole, extras: mergedExtras })
+        .eq("id", userId);
+
+      if (errWithRoles) {
+        // Migration não aplicada: atualiza só role + extras (sem array multi-perfil)
+        const { error: errFallback } = await supabase
+          .from("profiles")
+          .update({ role: expectedRole, extras: mergedExtras })
+          .eq("id", userId);
+
+        if (errFallback) throw errFallback;
+
+        console.warn(
+          "[AuthFlow] Coluna `roles` não existe ainda. " +
+          "Execute a migration 20260528150000_add_roles_array.sql no Supabase para suporte completo a múltiplos perfis."
+        );
+      }
+
+      // Lojista com CNPJ verificado
+      const cnpjDigits = onlyDigits(values.cnpj);
+      if (expectedRole === "lojista" && cnpjDigits && cnpjVerified) {
+        await supabase
+          .from("profiles")
+          .update({ cnpj: cnpjDigits, verified: true })
+          .eq("id", userId);
+      }
+
+      await refreshRoles();
+      toast.success(`Perfil de ${roleLabel} ativado com sucesso!`);
+      navigate(finalPath, { replace: true });
+    } catch (err) {
+      console.error("[AuthFlow] handleAddRole:", err);
+      toast.error("Erro ao ativar perfil. Verifique sua conexão e tente novamente.");
     } finally {
       setBusy(false);
     }
@@ -277,6 +385,94 @@ export const AuthFlow = ({
   const isSellerSignupFinal = isFinal && signupMode === "signup" && role === "lojista";
 
   /* ══════════════════════════════════════════════════════
+     VISTA: ADICIONAR PERFIL (usuário já logado, sem o perfil esperado)
+  ══════════════════════════════════════════════════════ */
+  if (view === "addRole") {
+    return (
+      <AuthLayout>
+        <div className="px-6 py-10 max-w-md mx-auto w-full">
+          <button
+            onClick={() => navigate(-1)}
+            className="size-10 rounded-full bg-muted flex items-center justify-center mb-6"
+          >
+            <ArrowLeft className="w-5 h-5" />
+          </button>
+
+          {/* Header */}
+          <div className="mb-8">
+            <div className="size-16 rounded-2xl gradient-brand shadow-glow flex items-center justify-center mb-4">
+              <Icon className="w-8 h-8 text-primary-foreground" />
+            </div>
+            <div className="inline-flex items-center gap-1.5 bg-primary/10 text-primary rounded-full px-3 py-1 text-xs font-bold mb-3">
+              <CheckCircle2 className="w-3 h-3" /> Você já tem uma conta Vendy+
+            </div>
+            <h1 className="text-2xl font-extrabold">Ativar perfil de {roleLabel}</h1>
+            <p className="text-sm text-muted-foreground mt-1">
+              Preencha apenas os dados abaixo para habilitar o perfil de {roleLabel}.
+              Sua conta e senha permanecem as mesmas.
+            </p>
+          </div>
+
+          {/* Campos específicos do perfil */}
+          <div className="space-y-3">
+            {fields.map((field) => (
+              <label key={field.name} className="bg-card border border-border rounded-xl px-4 py-3 flex flex-col gap-1 shadow-card">
+                <span className="text-xs font-bold text-muted-foreground">{field.label}</span>
+                <input
+                  value={values[field.name] || ""}
+                  onChange={(e) => updateValue(field.name, e.target.value)}
+                  placeholder={field.placeholder}
+                  type={field.type || "text"}
+                  maxLength={field.maxLength || 120}
+                  className="bg-transparent text-sm font-semibold focus:outline-none"
+                />
+              </label>
+            ))}
+
+            {/* CNPJ para lojista */}
+            {expectedRole === "lojista" && (
+              <div className="bg-card border border-border rounded-xl px-4 py-3 shadow-card space-y-2">
+                <span className="text-xs font-bold text-muted-foreground">CNPJ (opcional — ativa selo verificado)</span>
+                <div className="flex gap-2">
+                  <input
+                    value={values.cnpj}
+                    onChange={(e) => { setCnpjVerified(false); updateValue("cnpj", e.target.value); }}
+                    placeholder="00.000.000/0000-00"
+                    inputMode="numeric"
+                    maxLength={20}
+                    className="flex-1 bg-transparent text-sm font-semibold focus:outline-none"
+                  />
+                  <button
+                    type="button"
+                    onClick={verifyCnpj}
+                    disabled={busy || cnpjVerified}
+                    className="px-3 py-1.5 text-xs font-bold rounded-lg bg-primary text-primary-foreground disabled:opacity-60"
+                  >
+                    {cnpjVerified ? "✓ OK" : "Validar"}
+                  </button>
+                </div>
+              </div>
+            )}
+
+            <button
+              onClick={handleAddRole}
+              disabled={busy}
+              className="w-full gradient-brand text-primary-foreground rounded-xl py-3.5 font-bold shadow-card hover:shadow-elevated transition-shadow flex items-center justify-center gap-2 disabled:opacity-60 mt-2"
+            >
+              {busy ? "Ativando..." : `Ativar perfil de ${roleLabel}`}
+              {!busy && <CheckCircle2 className="w-4 h-4" />}
+            </button>
+
+            <p className="text-center text-xs text-muted-foreground pt-2">
+              Você poderá alternar entre seus perfis a qualquer momento.
+            </p>
+          </div>
+        </div>
+      </AuthLayout>
+    );
+  }
+
+  /* ══════════════════════════════════════════════════════
      VISTA: ESCOLHA
   ══════════════════════════════════════════════════════ */
   if (view === "choice") {
@@ -296,6 +492,29 @@ export const AuthFlow = ({
         </div>
 
         <div className="space-y-3">
+          {/* Banner de sessão ativa — exibido SOMENTE quando há sessão válida com o perfil correto */}
+          {session && userRoles.includes(expectedRole as import("@/hooks/useAuth").UserRole) && (
+            <div className="bg-muted border border-border rounded-2xl p-4">
+              <div className="flex items-center gap-2 mb-2">
+                <span className="size-2 rounded-full bg-green-500 shrink-0" />
+                <span className="text-xs font-bold text-muted-foreground uppercase tracking-wide">Sessão ativa</span>
+              </div>
+              <p className="text-sm font-semibold truncate text-foreground">{user?.email}</p>
+              <button
+                onClick={() => navigate(finalPath, { replace: true })}
+                className="mt-3 w-full gradient-brand text-primary-foreground rounded-xl py-3 font-bold text-sm shadow-card hover:shadow-elevated transition-shadow"
+              >
+                Continuar como {roleLabel}
+              </button>
+              <button
+                onClick={() => signOut()}
+                className="mt-2 w-full text-xs text-muted-foreground hover:text-foreground text-center py-1"
+              >
+                Usar outra conta
+              </button>
+            </div>
+          )}
+
           {/* Entrar */}
           <button
             onClick={() => setView("login")}

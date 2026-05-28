@@ -373,25 +373,121 @@ export const initialOrders: Order[] = [
   },
 ];
 
-export const deliveryProposals = [
+export type DeliveryProposal = {
+  id: string;
+  orderId: string;
+  storeName: string;
+  category: string;
+  pickup: string;
+  pickupNeighborhood: string;
+  dropoff: string;
+  dropoffNeighborhood: string;
+  /** Distância do entregador até o ponto de coleta (km) */
+  distanceKm: number;
+  /** Distância total da corrida (coleta → entrega) */
+  routeKm: number;
+  distance: string;          // legado — string formatada
+  earnings: number;
+  estimatedTime: string;
+  items: number;
+  priority?: "alta";
+};
+
+export const deliveryProposals: DeliveryProposal[] = [
   {
-    id: "d1",
-    orderId: "#1042",
-    storeName: "Ferragens do Bairro",
-    pickup: "Rua do Comércio, 88 — Centro",
-    dropoff: "Rua das Flores, 200",
-    distance: "2.4 km",
-    earnings: 12.5,
-    estimatedTime: "15 min",
+    id: "d1", orderId: "#1042",
+    storeName: "Ferragens Central", category: "🔧",
+    pickup: "Rua do Comércio, 88", pickupNeighborhood: "Centro",
+    dropoff: "Rua das Flores, 200", dropoffNeighborhood: "Jardim América",
+    distanceKm: 1.2, routeKm: 2.8, distance: "2.8 km",
+    earnings: 12.5, estimatedTime: "14 min", items: 3,
   },
   {
-    id: "d2",
-    orderId: "#1043",
-    storeName: "Empório Alvorada",
-    pickup: "Av. Central, 220",
-    dropoff: "Rua dos Lírios, 12",
-    distance: "3.1 km",
-    earnings: 14.0,
-    estimatedTime: "20 min",
+    id: "d2", orderId: "#1043",
+    storeName: "Empório Alvorada", category: "🛒",
+    pickup: "Av. Central, 220", pickupNeighborhood: "Alvorada",
+    dropoff: "Rua dos Lírios, 12", dropoffNeighborhood: "Vila Nova",
+    distanceKm: 1.9, routeKm: 3.5, distance: "3.5 km",
+    earnings: 14.0, estimatedTime: "18 min", items: 5,
+  },
+  {
+    id: "d3", orderId: "#1044",
+    storeName: "Farmácia São José", category: "💊",
+    pickup: "Rua Sete de Setembro, 45", pickupNeighborhood: "Centro",
+    dropoff: "Av. Brasil, 1200", dropoffNeighborhood: "Parque Industrial",
+    distanceKm: 2.4, routeKm: 4.2, distance: "4.2 km",
+    earnings: 10.0, estimatedTime: "22 min", items: 2,
+  },
+  {
+    id: "d4", orderId: "#1045",
+    storeName: "Quitanda da Vila", category: "🥦",
+    pickup: "Rua das Palmeiras, 9", pickupNeighborhood: "Vila Nova",
+    dropoff: "Rua Campos Salles, 300", dropoffNeighborhood: "São Bento",
+    distanceKm: 3.2, routeKm: 5.1, distance: "5.1 km",
+    earnings: 16.0, estimatedTime: "26 min", items: 8,
+  },
+  {
+    id: "d5", orderId: "#1046",
+    storeName: "Eletrônicos Tech", category: "📱",
+    pickup: "Shopping Center Norte", pickupNeighborhood: "Bela Vista",
+    dropoff: "Condomínio Park, Ap. 42", dropoffNeighborhood: "Jardim Europa",
+    distanceKm: 4.6, routeKm: 7.0, distance: "7.0 km",
+    earnings: 22.0, estimatedTime: "35 min", items: 1, priority: "alta",
+  },
+  {
+    id: "d6", orderId: "#1047",
+    storeName: "Padaria Sabor Real", category: "🍞",
+    pickup: "Rua dos Pinheiros, 155", pickupNeighborhood: "Pinheiros",
+    dropoff: "Alameda Santos, 800", dropoffNeighborhood: "Bela Vista",
+    distanceKm: 0.7, routeKm: 1.8, distance: "1.8 km",
+    earnings: 8.0, estimatedTime: "10 min", items: 2,
+  },
+  {
+    id: "d7", orderId: "#1048",
+    storeName: "Açougue Nobre", category: "🥩",
+    pickup: "Rua Haddock Lobo, 200", pickupNeighborhood: "Cerqueira César",
+    dropoff: "Av. Rebouças, 1500", dropoffNeighborhood: "Pinheiros",
+    distanceKm: 2.8, routeKm: 4.9, distance: "4.9 km",
+    earnings: 15.5, estimatedTime: "28 min", items: 6, priority: "alta",
+  },
+  {
+    id: "d8", orderId: "#1049",
+    storeName: "Mercearia Boa Vista", category: "🛒",
+    pickup: "Rua Boa Vista, 340", pickupNeighborhood: "Centro",
+    dropoff: "Av. São João, 600", dropoffNeighborhood: "República",
+    distanceKm: 1.5, routeKm: 2.9, distance: "2.9 km",
+    earnings: 11.0, estimatedTime: "15 min", items: 4,
+  },
+  {
+    id: "d9", orderId: "#1050",
+    storeName: "Flores & Presentes", category: "🌸",
+    pickup: "Rua Augusta, 900", pickupNeighborhood: "Consolação",
+    dropoff: "Rua Pamplona, 400", dropoffNeighborhood: "Jardins",
+    distanceKm: 6.3, routeKm: 8.4, distance: "8.4 km",
+    earnings: 28.0, estimatedTime: "45 min", items: 1,
+  },
+  {
+    id: "d10", orderId: "#1051",
+    storeName: "Pet Shop Amigos", category: "🐾",
+    pickup: "Av. Paulista, 900", pickupNeighborhood: "Bela Vista",
+    dropoff: "Rua Oscar Freire, 500", dropoffNeighborhood: "Jardins",
+    distanceKm: 9.1, routeKm: 11.5, distance: "11.5 km",
+    earnings: 35.0, estimatedTime: "55 min", items: 3,
+  },
+  {
+    id: "d11", orderId: "#1052",
+    storeName: "Papelaria Criativa", category: "📚",
+    pickup: "Rua Direita, 50", pickupNeighborhood: "Centro",
+    dropoff: "Av. Ipiranga, 200", dropoffNeighborhood: "República",
+    distanceKm: 0.9, routeKm: 1.6, distance: "1.6 km",
+    earnings: 7.0, estimatedTime: "9 min", items: 5,
+  },
+  {
+    id: "d12", orderId: "#1053",
+    storeName: "Loja Construções", category: "🏗️",
+    pickup: "Av. do Estado, 1200", pickupNeighborhood: "Brás",
+    dropoff: "Rua da Mooca, 800", dropoffNeighborhood: "Mooca",
+    distanceKm: 7.8, routeKm: 10.2, distance: "10.2 km",
+    earnings: 32.0, estimatedTime: "50 min", items: 12,
   },
 ];

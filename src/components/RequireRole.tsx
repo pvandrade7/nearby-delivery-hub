@@ -9,6 +9,13 @@ export const HOME_BY_ROLE: Record<string, string> = {
   admin:      "/admin/verificacoes",
 };
 
+/** Página de login/onboarding de cada perfil (para redirecionar ao adicionar role) */
+export const LOGIN_BY_ROLE: Record<string, string> = {
+  cliente:    "/cliente",
+  lojista:    "/lojista",
+  entregador: "/entregador",
+};
+
 type Props = {
   children: ReactNode;
   role: UserRole | UserRole[];
@@ -16,13 +23,16 @@ type Props = {
 };
 
 /**
- * Guard duplo: verifica autenticação E role.
- * - Não autenticado  → redireciona para redirectTo (login do perfil)
- * - Role errado       → redireciona para a home do próprio role do usuário
- * - OK                → renderiza children
+ * Guard de autenticação + perfil para múltiplos roles.
+ *
+ * Comportamento:
+ * - Não autenticado       → redireciona para `redirectTo` (tela de login)
+ * - Sem o perfil exigido  → redireciona para a página de adição de perfil
+ *   (ex.: /entregador), que mostrará o fluxo de onboarding complementar
+ * - Perfil encontrado     → renderiza children
  */
 export const RequireRole = ({ children, role, redirectTo = "/auth" }: Props) => {
-  const { session, role: userRole, loading } = useAuth();
+  const { session, roles, loading } = useAuth();
   const location = useLocation();
 
   if (loading) {
@@ -40,8 +50,16 @@ export const RequireRole = ({ children, role, redirectTo = "/auth" }: Props) => 
 
   const allowed = (Array.isArray(role) ? role : [role]) as string[];
 
-  if (userRole && !allowed.includes(userRole)) {
-    return <Navigate to={HOME_BY_ROLE[userRole] ?? "/"} replace />;
+  // Verifica se o usuário possui ALGUM dos roles permitidos no array de perfis
+  const hasRole = roles.some((r) => r && allowed.includes(r));
+
+  if (!hasRole) {
+    // Usuário está logado mas não tem o perfil necessário.
+    // Redireciona para a tela de login/onboarding do perfil exigido,
+    // que mostrará o formulário de adição de perfil complementar.
+    const targetRole = allowed[0];
+    const addRolePage = targetRole ? (LOGIN_BY_ROLE[targetRole] ?? redirectTo) : redirectTo;
+    return <Navigate to={addRolePage} state={{ from: location.pathname }} replace />;
   }
 
   return <>{children}</>;

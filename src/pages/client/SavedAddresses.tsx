@@ -41,40 +41,128 @@ export default function SavedAddresses() {
 
   const load = async () => {
     if (!user) return;
-    const { data } = await supabase
+    setLoading(true);
+
+    const { data, error } = await supabase
       .from("addresses")
       .select("*")
       .eq("user_id", user.id)
       .order("is_default", { ascending: false })
       .order("created_at", { ascending: false });
-    setAddresses((data as Address[]) || []);
+
+    if (error) {
+      console.error("[SavedAddresses] erro ao carregar:", error);
+      toast.error("Não foi possível carregar seus endereços");
+      setLoading(false);
+      return;
+    }
+
+    // Se não há endereços, verifica se o perfil tem dados de endereço
+    // salvos em extras durante o cadastro e os migra automaticamente.
+    if (!data || data.length === 0) {
+      const migrated = await migrateFromProfile(user.id);
+      setAddresses(migrated);
+    } else {
+      setAddresses(data as Address[]);
+    }
+
     setLoading(false);
   };
 
-  useEffect(() => { load(); }, [user]);
+  // Migra endereço do campo extras do perfil (preenchido no cadastro)
+  // para a tabela addresses. Roda apenas uma vez por usuário.
+  const migrateFromProfile = async (userId: string): Promise<Address[]> => {
+    try {
+      const { data: profile } = await supabase
+        .from("profiles")
+        .select("extras")
+        .eq("id", userId)
+        .maybeSingle();
+
+      const extras = profile?.extras as Record<string, string> | null;
+      const hasAddress = extras && (extras.address || extras.city);
+      if (!hasAddress) return [];
+
+      const { data: inserted, error: insertErr } = await supabase
+        .from("addresses")
+        .insert({
+          user_id: userId,
+          label: "Casa",
+          street: extras.address || "",
+          number: "",
+          neighborhood: "",
+          city: extras.city || "",
+          state: "",
+          zip_code: "",
+          complement: extras.reference || "",
+          is_default: true,
+        })
+        .select("*");
+
+      if (insertErr) {
+        console.error("[SavedAddresses] erro ao migrar endereço do perfil:", insertErr);
+        return [];
+      }
+
+      return (inserted as Address[]) || [];
+    } catch (e) {
+      console.error("[SavedAddresses] migrateFromProfile:", e);
+      return [];
+    }
+  };
+
+  useEffect(() => {
+    load();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user?.id]);
 
   const openNew = () => { setEditing(null); setForm(empty); setShowForm(true); };
 
   const openEdit = (a: Address) => {
     setEditing(a);
-    setForm({ label: a.label, street: a.street, number: a.number, neighborhood: a.neighborhood, city: a.city, state: a.state, zip_code: a.zip_code, complement: a.complement });
+    setForm({
+      label: a.label,
+      street: a.street,
+      number: a.number,
+      neighborhood: a.neighborhood,
+      city: a.city,
+      state: a.state,
+      zip_code: a.zip_code,
+      complement: a.complement,
+    });
     setShowForm(true);
   };
 
   const save = async () => {
     if (!user) return;
-    if (!form.street || !form.number || !form.city) {
-      toast.error("Preencha rua, número e cidade");
+    if (!form.street || !form.city) {
+      toast.error("Preencha ao menos rua e cidade");
       return;
     }
     setSaving(true);
     if (editing) {
-      const { error } = await supabase.from("addresses").update({ ...form }).eq("id", editing.id);
-      if (error) { toast.error("Erro ao salvar"); setSaving(false); return; }
+      const { error } = await supabase
+        .from("addresses")
+        .update({ ...form })
+        .eq("id", editing.id);
+      if (error) {
+        console.error("[SavedAddresses] erro ao atualizar:", error);
+        toast.error("Erro ao salvar endereço");
+        setSaving(false);
+        return;
+      }
       toast.success("Endereço atualizado!");
     } else {
-      const { error } = await supabase.from("addresses").insert({ ...form, user_id: user.id, is_default: addresses.length === 0 });
-      if (error) { toast.error("Erro ao salvar"); setSaving(false); return; }
+      const isFirst = addresses.length === 0;
+      const { error } = await supabase
+        .from("addresses")
+        .insert({ ...form, user_id: user.id, is_default: isFirst });
+      if (error) {
+        console.error("[SavedAddresses] erro ao inserir:", error);
+        toast.error("Erro ao salvar endereço");
+        setSaving(false);
+        return;
+      }
       toast.success("Endereço adicionado!");
     }
     setSaving(false);
@@ -84,24 +172,39 @@ export default function SavedAddresses() {
 
   const remove = async (id: string) => {
     const { error } = await supabase.from("addresses").delete().eq("id", id);
-    if (error) { toast.error("Erro ao remover"); return; }
+    if (error) {
+      console.error("[SavedAddresses] erro ao remover:", error);
+      toast.error("Erro ao remover endereço");
+      return;
+    }
     toast.success("Endereço removido");
     load();
   };
 
   const setDefault = async (id: string) => {
     if (!user) return;
-    await supabase.from("addresses").update({ is_default: false }).eq("user_id", user.id);
-    await supabase.from("addresses").update({ is_default: true }).eq("id", id);
+    await supabase
+      .from("addresses")
+      .update({ is_default: false })
+      .eq("user_id", user.id);
+    await supabase
+      .from("addresses")
+      .update({ is_default: true })
+      .eq("id", id);
     load();
   };
 
-  const field = (label: string, key: keyof typeof form, placeholder?: string, half?: boolean) => (
+  const field = (
+    label: string,
+    key: keyof typeof form,
+    placeholder?: string,
+    half?: boolean,
+  ) => (
     <label className={`flex flex-col gap-1 ${half ? "flex-1" : "w-full"}`}>
       <span className="text-xs font-bold text-muted-foreground">{label}</span>
       <input
         value={form[key]}
-        onChange={e => setForm(f => ({ ...f, [key]: e.target.value }))}
+        onChange={(e) => setForm((f) => ({ ...f, [key]: e.target.value }))}
         placeholder={placeholder}
         className="bg-muted rounded-xl px-4 py-3 text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-primary/30"
       />
@@ -111,7 +214,10 @@ export default function SavedAddresses() {
   return (
     <div className="px-4 py-6 max-w-2xl mx-auto">
       <div className="flex items-center gap-3 mb-6">
-        <button onClick={() => navigate(-1)} className="size-10 rounded-full bg-muted flex items-center justify-center">
+        <button
+          onClick={() => navigate(-1)}
+          className="size-10 rounded-full bg-muted flex items-center justify-center"
+        >
           <ArrowLeft className="w-5 h-5" />
         </button>
         <h1 className="text-2xl font-extrabold">Endereços salvos</h1>
@@ -127,29 +233,57 @@ export default function SavedAddresses() {
             <div className="text-center py-12 text-muted-foreground">
               <MapPin className="w-10 h-10 mx-auto mb-3 opacity-30" />
               <p className="font-semibold">Nenhum endereço salvo</p>
-              <p className="text-sm mt-1">Adicione um endereço para agilizar seus pedidos</p>
+              <p className="text-sm mt-1">
+                Adicione um endereço para agilizar seus pedidos
+              </p>
             </div>
           )}
 
-          {addresses.map(a => (
+          {addresses.map((a) => (
             <div key={a.id} className="bg-card rounded-2xl shadow-card p-4 flex gap-3">
               <div className="flex-1">
                 <div className="flex items-center gap-2 mb-1">
-                  <span className="text-xs font-bold bg-primary/10 text-primary px-2 py-0.5 rounded-full">{a.label}</span>
-                  {a.is_default && <span className="text-xs font-bold text-amber-500 flex items-center gap-1"><Star className="w-3 h-3" /> Padrão</span>}
+                  <span className="text-xs font-bold bg-primary/10 text-primary px-2 py-0.5 rounded-full">
+                    {a.label}
+                  </span>
+                  {a.is_default && (
+                    <span className="text-xs font-bold text-amber-500 flex items-center gap-1">
+                      <Star className="w-3 h-3" /> Padrão
+                    </span>
+                  )}
                 </div>
-                <p className="font-semibold text-sm">{a.street}, {a.number}{a.complement ? ` — ${a.complement}` : ""}</p>
-                {a.neighborhood && <p className="text-xs text-muted-foreground">{a.neighborhood}</p>}
-                <p className="text-xs text-muted-foreground">{a.city}{a.state ? ` — ${a.state}` : ""}{a.zip_code ? `, ${a.zip_code}` : ""}</p>
+                <p className="font-semibold text-sm">
+                  {a.street}{a.number ? `, ${a.number}` : ""}
+                  {a.complement ? ` — ${a.complement}` : ""}
+                </p>
+                {a.neighborhood && (
+                  <p className="text-xs text-muted-foreground">{a.neighborhood}</p>
+                )}
+                <p className="text-xs text-muted-foreground">
+                  {a.city}
+                  {a.state ? ` — ${a.state}` : ""}
+                  {a.zip_code ? `, ${a.zip_code}` : ""}
+                </p>
               </div>
               <div className="flex flex-col gap-2 shrink-0">
                 {!a.is_default && (
-                  <button onClick={() => setDefault(a.id)} className="text-xs text-amber-500 font-bold hover:underline">Padrão</button>
+                  <button
+                    onClick={() => setDefault(a.id)}
+                    className="text-xs text-amber-500 font-bold hover:underline"
+                  >
+                    Padrão
+                  </button>
                 )}
-                <button onClick={() => openEdit(a)} className="text-primary hover:bg-primary/10 rounded-lg p-1.5 transition-colors">
+                <button
+                  onClick={() => openEdit(a)}
+                  className="text-primary hover:bg-primary/10 rounded-lg p-1.5 transition-colors"
+                >
                   <Pencil className="w-4 h-4" />
                 </button>
-                <button onClick={() => remove(a.id)} className="text-destructive hover:bg-destructive/10 rounded-lg p-1.5 transition-colors">
+                <button
+                  onClick={() => remove(a.id)}
+                  className="text-destructive hover:bg-destructive/10 rounded-lg p-1.5 transition-colors"
+                >
                   <Trash2 className="w-4 h-4" />
                 </button>
               </div>
@@ -158,7 +292,9 @@ export default function SavedAddresses() {
 
           {showForm && (
             <div className="bg-card rounded-2xl shadow-card p-5 space-y-3">
-              <h2 className="font-bold text-base">{editing ? "Editar endereço" : "Novo endereço"}</h2>
+              <h2 className="font-bold text-base">
+                {editing ? "Editar endereço" : "Novo endereço"}
+              </h2>
               <div className="flex gap-3">
                 {field("Rótulo", "label", "Casa, Trabalho...", true)}
                 {field("CEP", "zip_code", "00000-000", true)}
@@ -174,10 +310,17 @@ export default function SavedAddresses() {
                 {field("Estado", "state", "Ex: SP", true)}
               </div>
               <div className="flex gap-3 pt-1">
-                <button onClick={() => setShowForm(false)} className="flex-1 py-3 rounded-xl border border-border font-bold text-sm hover:bg-muted/40">
+                <button
+                  onClick={() => setShowForm(false)}
+                  className="flex-1 py-3 rounded-xl border border-border font-bold text-sm hover:bg-muted/40"
+                >
                   Cancelar
                 </button>
-                <button onClick={save} disabled={saving} className="flex-1 py-3 rounded-xl gradient-brand text-primary-foreground font-bold text-sm disabled:opacity-60">
+                <button
+                  onClick={save}
+                  disabled={saving}
+                  className="flex-1 py-3 rounded-xl gradient-brand text-primary-foreground font-bold text-sm disabled:opacity-60"
+                >
                   {saving ? "Salvando..." : "Salvar"}
                 </button>
               </div>
@@ -185,7 +328,10 @@ export default function SavedAddresses() {
           )}
 
           {!showForm && (
-            <button onClick={openNew} className="w-full py-4 rounded-2xl border-2 border-dashed border-border flex items-center justify-center gap-2 text-sm font-bold text-muted-foreground hover:border-primary hover:text-primary transition-colors">
+            <button
+              onClick={openNew}
+              className="w-full py-4 rounded-2xl border-2 border-dashed border-border flex items-center justify-center gap-2 text-sm font-bold text-muted-foreground hover:border-primary hover:text-primary transition-colors"
+            >
               <Plus className="w-5 h-5" /> Adicionar endereço
             </button>
           )}

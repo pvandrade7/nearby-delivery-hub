@@ -7,66 +7,96 @@ export type UserRole = "cliente" | "lojista" | "entregador" | "admin" | null;
 type AuthCtx = {
   session: Session | null;
   user: User | null;
+  /** Role primário (perfil principal do usuário) */
   role: UserRole;
+  /** Todos os perfis que o usuário possui */
+  roles: UserRole[];
+  /** true enquanto sessão + perfis ainda estão sendo carregados */
   loading: boolean;
   signOut: () => Promise<void>;
+  /** Re-busca os roles do banco — usar após adicionar um novo perfil */
+  refreshRoles: () => Promise<void>;
 };
 
 const Ctx = createContext<AuthCtx>({
   session: null,
   user: null,
   role: null,
+  roles: [],
   loading: true,
   signOut: async () => {},
+  refreshRoles: async () => {},
 });
 
-const fetchRole = async (userId: string): Promise<UserRole> => {
+type RolesResult = { role: UserRole; roles: UserRole[] };
+
+const fetchRoles = async (userId: string): Promise<RolesResult> => {
+  // Tenta buscar role + roles (array multi-perfil)
   try {
     const { data, error } = await supabase
       .from("profiles")
-      .select("role")
+      .select("role, roles")
       .eq("id", userId)
       .maybeSingle();
+
     if (error) throw error;
-    return (data?.role as UserRole) ?? null;
-  } catch (e) {
-    console.error("[useAuth] fetchRole falhou:", e);
-    return null;
+
+    const role = (data?.role as UserRole) ?? null;
+    const raw = ((data?.roles as string[]) ?? []).filter(Boolean) as UserRole[];
+    const roles: UserRole[] = role && !raw.includes(role) ? [role, ...raw] : raw;
+    return { role, roles };
+  } catch {
+    // Coluna `roles` ainda não existe (migration pendente) — usa só `role`
+    try {
+      const { data } = await supabase
+        .from("profiles")
+        .select("role")
+        .eq("id", userId)
+        .maybeSingle();
+      const role = (data?.role as UserRole) ?? null;
+      return { role, roles: role ? [role] : [] };
+    } catch (e2) {
+      console.error("[useAuth] fetchRoles falhou:", e2);
+      return { role: null, roles: [] };
+    }
   }
 };
 
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [session, setSession] = useState<Session | null>(null);
-  const [role, setRole] = useState<UserRole>(null);
+  const [role,    setRole]    = useState<UserRole>(null);
+  const [roles,   setRoles]   = useState<UserRole[]>([]);
   const [loading, setLoading] = useState(true);
 
-  // Inicialização: busca sessão + escuta mudanças de auth
+  // ── Inicialização: busca sessão e roles de forma sequencial ──────────
+  // loading só vai a false quando AMBOS estiverem prontos, evitando
+  // que AuthFlow/RequireRole tomem decisões com dados incompletos.
   useEffect(() => {
     let mounted = true;
+    const fallback = setTimeout(() => { if (mounted) setLoading(false); }, 5000);
 
-    // Fallback: desbloqueia UI após 5s caso Supabase não responda
-    const fallback = setTimeout(() => {
-      if (mounted) setLoading(false);
-    }, 5000);
-
-    // Busca sessão inicial (fonte autoritativa do estado de auth)
-    supabase.auth.getSession().then(({ data }) => {
+    supabase.auth.getSession().then(async ({ data }) => {
       clearTimeout(fallback);
       if (!mounted) return;
-      setSession(data.session ?? null);
-      setLoading(false);
+      const s = data.session ?? null;
+      setSession(s);
+      if (s?.user?.id) {
+        const result = await fetchRoles(s.user.id);
+        if (mounted) { setRole(result.role); setRoles(result.roles); }
+      }
+      if (mounted) setLoading(false);
     }).catch(() => {
       clearTimeout(fallback);
       if (mounted) setLoading(false);
     });
 
-    // Escuta mudanças de auth (login, logout, refresh de token)
-    // NÃO fazemos queries de banco aqui — apenas atualizamos a sessão.
-    // O fetch do role acontece num useEffect separado, reagindo à mudança de user ID.
+    // Escuta mudanças subsequentes (login, logout, refresh)
+    // NÃO faz query de banco aqui — apenas atualiza a sessão.
+    // O re-fetch de roles é disparado pelo useEffect abaixo.
     const { data: sub } = supabase.auth.onAuthStateChange((_event, s) => {
       if (!mounted) return;
       setSession(s);
-      if (!s) setRole(null);
+      if (!s) { setRole(null); setRoles([]); }
     });
 
     return () => {
@@ -76,28 +106,40 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     };
   }, []);
 
-  // Busca o role sempre que o usuário autenticado mudar
+  // ── Re-fetch de roles após mudança de usuário (pós-login) ───────────
   useEffect(() => {
     if (!session?.user?.id) return;
-
     let cancelled = false;
-    fetchRole(session.user.id).then((r) => {
-      if (!cancelled) setRole(r);
+    fetchRoles(session.user.id).then((result) => {
+      if (!cancelled) { setRole(result.role); setRoles(result.roles); }
     });
-
-    return () => {
-      cancelled = true;
-    };
+    return () => { cancelled = true; };
   }, [session?.user?.id]);
+
+  const refreshRoles = async () => {
+    if (!session?.user?.id) return;
+    const result = await fetchRoles(session.user.id);
+    setRole(result.role);
+    setRoles(result.roles);
+  };
 
   const signOut = async () => {
     setSession(null);
     setRole(null);
+    setRoles([]);
     await supabase.auth.signOut();
   };
 
   return (
-    <Ctx.Provider value={{ session, user: session?.user ?? null, role, loading, signOut }}>
+    <Ctx.Provider value={{
+      session,
+      user: session?.user ?? null,
+      role,
+      roles,
+      loading,
+      signOut,
+      refreshRoles,
+    }}>
       {children}
     </Ctx.Provider>
   );

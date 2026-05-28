@@ -14,6 +14,59 @@ export type Database = {
   }
   public: {
     Tables: {
+      addresses: {
+        Row: {
+          id: string
+          user_id: string
+          label: string
+          street: string
+          number: string
+          neighborhood: string
+          city: string
+          state: string
+          zip_code: string
+          complement: string
+          is_default: boolean
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          user_id: string
+          label?: string
+          street?: string
+          number?: string
+          neighborhood?: string
+          city?: string
+          state?: string
+          zip_code?: string
+          complement?: string
+          is_default?: boolean
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          user_id?: string
+          label?: string
+          street?: string
+          number?: string
+          neighborhood?: string
+          city?: string
+          state?: string
+          zip_code?: string
+          complement?: string
+          is_default?: boolean
+          created_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "addresses_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       conversations: {
         Row: {
           buyer_id: string
@@ -120,6 +173,7 @@ export type Database = {
           id: string
           phone: string | null
           role: string | null
+          roles: string[]
           verified: boolean
         }
         Insert: {
@@ -131,6 +185,7 @@ export type Database = {
           id: string
           phone?: string | null
           role?: string | null
+          roles?: string[]
           verified?: boolean
         }
         Update: {
@@ -142,6 +197,7 @@ export type Database = {
           id?: string
           phone?: string | null
           role?: string | null
+          roles?: string[]
           verified?: boolean
         }
         Relationships: []

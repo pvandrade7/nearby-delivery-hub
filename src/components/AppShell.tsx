@@ -155,7 +155,7 @@ export const AppShell = ({ children }: { children: ReactNode }) => {
     <div className="min-h-dvh w-full bg-muted/40 flex">
       {/* Sidebar */}
       <aside className="hidden lg:flex w-64 shrink-0 flex-col bg-card border-r border-border sticky top-0 h-dvh">
-        <div className="px-5 py-5 flex items-center gap-2.5 border-b border-border">
+        <Link to="/" className="px-5 py-5 flex items-center gap-2.5 border-b border-border hover:bg-muted/40 transition-colors">
           <div className="size-9 rounded-xl gradient-brand text-primary-foreground flex items-center justify-center font-extrabold shadow-glow">
             V+
           </div>
@@ -163,7 +163,7 @@ export const AppShell = ({ children }: { children: ReactNode }) => {
             <p className="font-extrabold text-base">Vendy<span className="text-primary">+</span></p>
             <p className="text-[10px] text-muted-foreground uppercase tracking-wider font-bold">{meta.label}</p>
           </div>
-        </div>
+        </Link>
 
         <nav className="flex-1 overflow-y-auto px-3 py-4 space-y-1">
           {meta.nav.map((item) => (
