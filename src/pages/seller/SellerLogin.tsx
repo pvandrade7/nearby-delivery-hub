@@ -1,5 +1,6 @@
 import { Store } from "lucide-react";
 import { AuthFlow } from "@/components/AuthFlow";
+import { SELLER_CATEGORIES } from "@/data/sellerCategories";
 
 const SellerLogin = () => {
   return (
@@ -12,8 +13,13 @@ const SellerLogin = () => {
       detailsTitle="Dados da loja"
       detailsSubtitle="Adicione informações básicas para configurar sua vitrine."
       fields={[
-        { name: "storeName", label: "Nome da loja", placeholder: "Ex: Casa Forte Materiais" },
-        { name: "category", label: "Categoria principal", placeholder: "Construção, farmácia, utilidades..." },
+        { name: "storeName", label: "Nome da loja", placeholder: "Ex: Tech Zone Acessórios" },
+        {
+          name: "storeCategory",
+          label: "Categoria principal",
+          placeholder: "Descreva sua categoria",
+          options: [...SELLER_CATEGORIES],
+        },
         { name: "address", label: "Endereço comercial", placeholder: "Rua, número e bairro" },
       ]}
     />

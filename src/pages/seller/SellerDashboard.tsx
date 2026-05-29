@@ -53,7 +53,7 @@ const SellerDashboard = () => {
       <div className="flex flex-col lg:flex-row lg:items-end lg:justify-between gap-3">
         <div>
           <p className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
-            Bom dia{displayName ? `, ${displayName}` : ""} 🌸
+            Bom dia{displayName ? `, ${displayName}` : ""}
           </p>
           <h1 className="text-2xl lg:text-3xl font-extrabold mt-1">Painel da loja</h1>
         </div>
