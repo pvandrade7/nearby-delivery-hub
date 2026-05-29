@@ -63,6 +63,7 @@ const adminNav: NavItem[] = [
 const courierNav: NavItem[] = [
   { to: "/entregador/painel", icon: Bike, label: "Corridas" },
   { to: "/entregador/finalizada", icon: Wallet, label: "Ganhos" },
+  { to: "/entregador/perfil", icon: User, label: "Perfil" },
 ];
 
 const profileMeta: Record<
@@ -71,7 +72,7 @@ const profileMeta: Record<
 > = {
   cliente:     { label: "Cliente",     user: "João Souza",    initial: "J", nav: clientNav,  profilePath: "/cliente/perfil" },
   lojista:     { label: "Lojista",     user: "Marina Flores", initial: "M", nav: sellerNav,  profilePath: "/lojista/config" },
-  entregador:  { label: "Entregador",  user: "Carlos Mendes", initial: "C", nav: courierNav, profilePath: "/entregador/painel" },
+  entregador:  { label: "Entregador",  user: "Carlos Mendes", initial: "C", nav: courierNav, profilePath: "/entregador/perfil" },
   admin:       { label: "Admin",       user: "Admin Vendy+",  initial: "A", nav: adminNav,   profilePath: "/admin/verificacoes" },
 };
 
@@ -260,7 +261,7 @@ export const AppShell = ({ children }: { children: ReactNode }) => {
                     </div>
                   ) : (
                     <div className="px-4 py-8 text-center">
-                      <p className="text-sm font-semibold">Voce nao tem notificacoes</p>
+                      <p className="text-sm font-semibold">Você não tem notificações</p>
                     </div>
                   )}
                 </div>

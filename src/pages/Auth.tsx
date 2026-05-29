@@ -62,10 +62,22 @@ const Auth = () => {
           if (resErr || !data?.email) throw new Error("Conta não encontrada");
           loginEmail = data.email;
         }
-        const { error: err } = await supabase.auth.signInWithPassword({ email: loginEmail, password });
+        const { data: authData, error: err } = await supabase.auth.signInWithPassword({ email: loginEmail, password });
         if (err) throw err;
         toast.success("Bem-vindo de volta!");
-        navigate(HOME_BY_ROLE[role] ?? redirectTo, { replace: true });
+        // Busca o role real do banco — o contexto useAuth ainda não foi atualizado neste ponto
+        const userId = authData.user?.id;
+        if (userId) {
+          const { data: profile } = await supabase
+            .from("profiles")
+            .select("role")
+            .eq("id", userId)
+            .maybeSingle();
+          const userRole = (profile?.role as string | null) ?? null;
+          navigate(HOME_BY_ROLE[userRole ?? ""] ?? redirectTo, { replace: true });
+        } else {
+          navigate(redirectTo, { replace: true });
+        }
       }
     } catch (err) {
       setError(err instanceof Error ? err.message : "Falha na autenticação");

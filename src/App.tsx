@@ -46,6 +46,7 @@ import CourierHome from "./pages/courier/CourierHome";
 import CourierLogin from "./pages/courier/CourierLogin";
 import CourierRoute from "./pages/courier/CourierRoute";
 import CourierComplete from "./pages/courier/CourierComplete";
+import CourierProfile from "./pages/courier/CourierProfile";
 
 const queryClient = new QueryClient();
 
@@ -114,6 +115,7 @@ const App = () => (
               <Route path="/entregador/painel" element={<AppShell><Courier><CourierHome /></Courier></AppShell>} />
               <Route path="/entregador/corrida/:id" element={<AppShell><Courier><CourierRoute /></Courier></AppShell>} />
               <Route path="/entregador/finalizada" element={<AppShell><Courier><CourierComplete /></Courier></AppShell>} />
+              <Route path="/entregador/perfil" element={<AppShell><Courier><CourierProfile /></Courier></AppShell>} />
 
               <Route path="*" element={<NotFound />} />
             </Routes>

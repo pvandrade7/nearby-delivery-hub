@@ -1,8 +1,5 @@
-import { useEffect } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { Link } from "react-router-dom";
 import { ShoppingBag, Store, Bike, ArrowRight } from "lucide-react";
-import { useAuth } from "@/hooks/useAuth";
-import { HOME_BY_ROLE } from "@/components/RequireRole";
 
 const roles = [
   {
@@ -29,27 +26,6 @@ const roles = [
 ];
 
 const RoleSelect = () => {
-  const { session, role, loading } = useAuth();
-  const navigate = useNavigate();
-
-  // Usuário já autenticado com perfil definido → redireciona para a home do perfil.
-  // Este redirect é da página INICIAL (/) e é intencional: o usuário estava logado
-  // e abriu o app — faz sentido levá-lo direto para onde estava.
-  // O redirect NÃO acontece nas páginas de login (AuthFlow), onde o usuário
-  // deve clicar explicitamente para continuar.
-  useEffect(() => {
-    if (!loading && session && role) {
-      navigate(HOME_BY_ROLE[role] ?? "/", { replace: true });
-    }
-  }, [loading, session, role, navigate]);
-
-  // Enquanto carrega ou está prestes a redirecionar: mostra spinner
-  if (loading || (session && role)) return (
-    <div className="min-h-dvh flex items-center justify-center">
-      <div className="w-6 h-6 rounded-full border-2 border-primary border-t-transparent animate-spin" />
-    </div>
-  );
-
   return (
     <main className="min-h-dvh w-full gradient-warm flex items-center justify-center p-6">
       <div className="w-full max-w-3xl">
