@@ -52,9 +52,12 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
     });
   };
 
+  const MAX_QTY = 99;
+
   const setQty = (productId: string, qty: number) => {
     if (qty <= 0) return remove(productId);
-    setItems((prev) => prev.map((i) => (i.id === productId ? { ...i, quantity: qty } : i)));
+    const clamped = Math.min(qty, MAX_QTY);
+    setItems((prev) => prev.map((i) => (i.id === productId ? { ...i, quantity: clamped } : i)));
   };
 
   const clear = () => {

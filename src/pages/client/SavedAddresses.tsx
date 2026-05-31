@@ -194,6 +194,31 @@ export default function SavedAddresses() {
     load();
   };
 
+  const [cepLoading, setCepLoading] = useState(false);
+
+  const handleCepBlur = async (cep: string) => {
+    const digits = cep.replace(/\D/g, "");
+    if (digits.length !== 8) return;
+    setCepLoading(true);
+    try {
+      const res = await fetch(`https://viacep.com.br/ws/${digits}/json/`);
+      const data = await res.json();
+      if (data.erro) { toast.error("CEP não encontrado"); return; }
+      setForm((f) => ({
+        ...f,
+        street: data.logradouro || f.street,
+        neighborhood: data.bairro || f.neighborhood,
+        city: data.localidade || f.city,
+        state: data.uf || f.state,
+      }));
+      toast.success("Endereço preenchido automaticamente!");
+    } catch {
+      toast.error("Não foi possível buscar o CEP");
+    } finally {
+      setCepLoading(false);
+    }
+  };
+
   const field = (
     label: string,
     key: keyof typeof form,
@@ -201,10 +226,16 @@ export default function SavedAddresses() {
     half?: boolean,
   ) => (
     <label className={`flex flex-col gap-1 ${half ? "flex-1" : "w-full"}`}>
-      <span className="text-xs font-bold text-muted-foreground">{label}</span>
+      <span className="text-xs font-bold text-muted-foreground">
+        {label}
+        {key === "zip_code" && cepLoading && (
+          <span className="ml-1 text-primary text-[10px]">buscando...</span>
+        )}
+      </span>
       <input
         value={form[key]}
         onChange={(e) => setForm((f) => ({ ...f, [key]: e.target.value }))}
+        onBlur={key === "zip_code" ? (e) => handleCepBlur(e.target.value) : undefined}
         placeholder={placeholder}
         className="bg-muted rounded-xl px-4 py-3 text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-primary/30"
       />

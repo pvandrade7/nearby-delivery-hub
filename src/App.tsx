@@ -104,6 +104,7 @@ const App = () => (
               <Route path="/lojista/painel" element={<AppShell><Seller><SellerDashboard /></Seller></AppShell>} />
               <Route path="/lojista/produtos" element={<AppShell><Seller><SellerProducts /></Seller></AppShell>} />
               <Route path="/lojista/produtos/novo" element={<AppShell><Seller><NewProduct /></Seller></AppShell>} />
+              <Route path="/lojista/produtos/editar/:id" element={<AppShell><Seller><NewProduct /></Seller></AppShell>} />
               <Route path="/lojista/pedidos" element={<AppShell><Seller><SellerOrders /></Seller></AppShell>} />
               <Route path="/lojista/verificacao" element={<AppShell><Seller><SellerVerification /></Seller></AppShell>} />
               <Route path="/lojista/config" element={<AppShell><Seller><SellerConfig /></Seller></AppShell>} />

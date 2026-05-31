@@ -1,14 +1,24 @@
 import { Link, useNavigate, useParams } from "react-router-dom";
-import { Star, Clock, MapPin, Plus, ArrowLeft } from "lucide-react";
-import { products, stores } from "@/data/mockData";
+import { Star, Clock, MapPin, Plus, ArrowLeft, Heart } from "lucide-react";
+import { products, stores, categories } from "@/data/mockData";
 import { useCart } from "@/context/CartContext";
 import { VerifiedBadge } from "@/components/VerifiedBadge";
+import { StoreLogo } from "@/components/StoreLogo";
+import { useFavorite } from "@/hooks/useFavorite";
 
 const StoreDetail = () => {
   const { id } = useParams();
   const navigate = useNavigate();
   const store = stores.find((s) => s.id === id);
   const { add, count } = useCart();
+
+  const cat = categories.find((c) => c.id === store?.category);
+
+  const { favorited, toggle, loading: favLoading } = useFavorite(
+    store
+      ? { id: store.id, name: store.name, image: store.image, category: cat?.name ?? store.category }
+      : { id: "", name: "" }
+  );
 
   if (!store) {
     return (
@@ -30,17 +40,59 @@ const StoreDetail = () => {
         <ArrowLeft className="w-4 h-4" /> Voltar
       </button>
 
-      {/* Hero */}
+      {/* Hero — banner de capa */}
       <div className="bg-card rounded-2xl shadow-card overflow-hidden mb-6">
-        <div className="h-44 lg:h-56 relative">
+        <div className="h-36 lg:h-48 relative">
           <img src={store.image} alt={store.name} className="w-full h-full object-cover" />
+          {/* Gradiente inferior para legibilidade */}
+          <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent" />
+
+          {/* Botão favoritar */}
+          <button
+            onClick={toggle}
+            disabled={favLoading}
+            aria-label={favorited ? "Remover dos favoritos" : "Adicionar aos favoritos"}
+            className={`absolute top-3 right-3 size-11 rounded-full backdrop-blur-sm flex items-center justify-center shadow-elevated transition-all active:scale-90 ${
+              favorited ? "bg-red-500 text-white" : "bg-black/30 text-white hover:bg-black/50"
+            }`}
+          >
+            <Heart className={`w-5 h-5 ${favorited ? "fill-white" : ""} ${favLoading ? "opacity-50" : ""}`} />
+          </button>
         </div>
-        <div className="p-5 lg:p-6">
-          <div className="flex flex-wrap items-center gap-2">
+
+        {/* Identidade visual: logo + nome + badges */}
+        <div className="px-5 lg:px-6 pt-0 pb-5 lg:pb-6">
+          {/* Logo sobreposto ao banner */}
+          <div className="flex items-end justify-between gap-4 -mt-8 mb-3">
+            <div className="ring-4 ring-card rounded-xl shadow-elevated">
+              <StoreLogo store={store} size="xl" whiteBg />
+            </div>
+            {/* Favoritar (desktop) */}
+            <button
+              onClick={toggle}
+              disabled={favLoading}
+              className={`hidden sm:flex items-center gap-2 px-4 py-2 rounded-xl border-2 font-bold text-sm transition-all ${
+                favorited
+                  ? "border-red-400 bg-red-50 dark:bg-red-950/30 text-red-500"
+                  : "border-border bg-background hover:border-red-300 hover:text-red-400 text-muted-foreground"
+              }`}
+            >
+              <Heart className={`w-4 h-4 ${favorited ? "fill-red-500 text-red-500" : ""}`} />
+              {favorited ? "Favoritada" : "Favoritar"}
+            </button>
+          </div>
+
+          <div className="flex flex-wrap items-center gap-2 mb-1">
             <h1 className="text-2xl lg:text-3xl font-extrabold">{store.name}</h1>
             {store.verificationStatus === "verificado" && <VerifiedBadge />}
+            {store.isLocal && (
+              <span className="text-xs font-bold px-2.5 py-1 rounded-full bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400">
+                🏪 Comércio local
+              </span>
+            )}
           </div>
-          <p className="text-sm text-muted-foreground mt-1">{store.description}</p>
+
+          <p className="text-sm text-muted-foreground">{store.description}</p>
           <div className="flex flex-wrap items-center gap-3 text-xs text-muted-foreground mt-3">
             <span className="bg-accent text-accent-foreground px-2.5 py-1 rounded-md font-bold flex items-center gap-1">
               <Star className="w-3 h-3 fill-current" /> {store.rating} ({store.reviews})

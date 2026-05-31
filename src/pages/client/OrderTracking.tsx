@@ -1,14 +1,15 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useParams } from "react-router-dom";
-import { Check, Package, Bike, Home as HomeIcon, MessageCircle, Phone } from "lucide-react";
+import { Check, Package, Bike, Home as HomeIcon, MessageCircle, Phone, X, Send } from "lucide-react";
 import { ORDERS_KEY, type FakeOrder } from "./Checkout";
+import { toast } from "sonner";
 
 /* ── passos do status ───────────────────────────────── */
 const STEPS = [
   { icon: Check,    label: "Pedido confirmado", desc: "Pagamento aprovado" },
-  { icon: Package,  label: "Em preparação",     desc: "A loja está preparando" },
-  { icon: Bike,     label: "Saiu para entrega", desc: "Carlos a caminho" },
-  { icon: HomeIcon, label: "Entregue",           desc: "Tudo certo!" },
+  { icon: Package,  label: "Em preparação",     desc: "A loja está separando seu pedido" },
+  { icon: Bike,     label: "Saiu para entrega", desc: "Entregador a caminho" },
+  { icon: HomeIcon, label: "Entregue",           desc: "Pedido recebido com sucesso!" },
 ];
 
 /* ── rota no SVG (grid de ruas fictícias) ───────────── */
@@ -56,11 +57,108 @@ const CityMap = () => (
   </>
 );
 
+/* ── dados do entregador (demo) ─────────────────────── */
+const COURIER = {
+  name: "Carlos Mendes",
+  phone: "+55 11 98888-7777",
+  vehicle: "Honda Biz 125",
+  rating: "4.9",
+  initial: "C",
+};
+
+/* ── modal de chat com o entregador ─────────────────── */
+type ChatMessage = { from: "me" | "courier"; text: string; time: string };
+
+const CourierChat = ({ onClose }: { onClose: () => void }) => {
+  const [text, setText] = useState("");
+  const [messages, setMessages] = useState<ChatMessage[]>([
+    { from: "courier", text: "Oi! Estou a caminho. Precisa de algo?", time: "agora" },
+  ]);
+  const bottomRef = useRef<HTMLDivElement>(null);
+
+  const send = () => {
+    const t = text.trim();
+    if (!t) return;
+    const now = new Date().toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" });
+    setMessages((prev) => [...prev, { from: "me", text: t, time: now }]);
+    setText("");
+    // Resposta automática do entregador após 1.5s
+    setTimeout(() => {
+      setMessages((prev) => [
+        ...prev,
+        { from: "courier", text: "Ok! Já estou chegando. 🛵", time: new Date().toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" }) },
+      ]);
+    }, 1500);
+  };
+
+  useEffect(() => {
+    bottomRef.current?.scrollIntoView({ behavior: "smooth" });
+  }, [messages]);
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/40 backdrop-blur-sm p-4">
+      <div className="bg-card w-full max-w-md rounded-2xl shadow-elevated overflow-hidden flex flex-col max-h-[80vh]">
+        {/* Header */}
+        <div className="flex items-center gap-3 p-4 border-b border-border">
+          <div className="size-10 rounded-full gradient-brand text-primary-foreground flex items-center justify-center font-bold shrink-0">
+            {COURIER.initial}
+          </div>
+          <div className="flex-1">
+            <p className="font-bold text-sm">{COURIER.name}</p>
+            <p className="text-xs text-muted-foreground flex items-center gap-1">
+              <span className="size-1.5 rounded-full bg-green-500 inline-block" /> Online
+            </p>
+          </div>
+          <button onClick={onClose} className="size-8 rounded-full bg-muted flex items-center justify-center hover:bg-muted/70">
+            <X className="w-4 h-4" />
+          </button>
+        </div>
+
+        {/* Mensagens */}
+        <div className="flex-1 overflow-y-auto p-4 space-y-3 min-h-[200px]">
+          {messages.map((m, i) => (
+            <div key={i} className={`flex ${m.from === "me" ? "justify-end" : "justify-start"}`}>
+              <div className={`max-w-[75%] rounded-2xl px-4 py-2.5 text-sm ${
+                m.from === "me"
+                  ? "gradient-brand text-primary-foreground rounded-br-sm"
+                  : "bg-muted text-foreground rounded-bl-sm"
+              }`}>
+                <p>{m.text}</p>
+                <p className={`text-[10px] mt-1 ${m.from === "me" ? "text-white/70" : "text-muted-foreground"}`}>{m.time}</p>
+              </div>
+            </div>
+          ))}
+          <div ref={bottomRef} />
+        </div>
+
+        {/* Input */}
+        <div className="p-3 border-t border-border flex gap-2">
+          <input
+            value={text}
+            onChange={(e) => setText(e.target.value)}
+            onKeyDown={(e) => e.key === "Enter" && !e.shiftKey && send()}
+            placeholder="Mensagem para o entregador..."
+            className="flex-1 bg-muted rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary/30"
+          />
+          <button
+            onClick={send}
+            disabled={!text.trim()}
+            className="size-10 rounded-xl gradient-brand text-primary-foreground flex items-center justify-center disabled:opacity-40 hover:opacity-90 transition-opacity"
+          >
+            <Send className="w-4 h-4" />
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+};
+
 /* ══════════════════════════════════════════════════════ */
 const OrderTracking = () => {
   const { id } = useParams();
   const [active, setActive] = useState(1);
   const [order, setOrder] = useState<FakeOrder | null>(null);
+  const [showChat, setShowChat] = useState(false);
 
   /* carrega pedido do localStorage */
   useEffect(() => {
@@ -228,24 +326,27 @@ const OrderTracking = () => {
           {/* Card do entregador */}
           <div className="bg-card rounded-2xl p-4 shadow-card flex items-center gap-3">
             <div className="size-12 rounded-full gradient-brand text-primary-foreground flex items-center justify-center font-bold text-lg shrink-0">
-              C
+              {COURIER.initial}
             </div>
             <div className="flex-1 min-w-0">
-              <p className="font-bold text-sm">Carlos Mendes</p>
-              <p className="text-xs text-muted-foreground">🛵 Honda Biz 125 · ⭐ 4.9</p>
+              <p className="font-bold text-sm">{COURIER.name}</p>
+              <p className="text-xs text-muted-foreground">🛵 {COURIER.vehicle} · ⭐ {COURIER.rating}</p>
             </div>
             <button
+              onClick={() => setShowChat(true)}
               className="size-9 rounded-full bg-accent text-primary flex items-center justify-center hover:bg-accent/70 transition-colors"
               aria-label="Mensagem"
             >
               <MessageCircle className="w-4 h-4" />
             </button>
-            <button
+            <a
+              href={`tel:${COURIER.phone.replace(/\D/g, "").replace(/^55/, "+55")}`}
+              onClick={() => toast.success(`Ligando para ${COURIER.name}…`)}
               className="size-9 rounded-full gradient-brand text-primary-foreground flex items-center justify-center hover:opacity-90 transition-opacity"
               aria-label="Ligar"
             >
               <Phone className="w-4 h-4" />
-            </button>
+            </a>
           </div>
 
           {/* Steps de status */}
@@ -308,6 +409,8 @@ const OrderTracking = () => {
           )}
         </div>
       </div>
+
+      {showChat && <CourierChat onClose={() => setShowChat(false)} />}
     </div>
   );
 };

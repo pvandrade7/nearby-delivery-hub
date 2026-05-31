@@ -163,6 +163,147 @@ export type Database = {
           },
         ]
       }
+      favorites: {
+        Row: {
+          id: string
+          user_id: string
+          store_id: string
+          store_name: string
+          store_image: string | null
+          store_category: string | null
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          user_id: string
+          store_id: string
+          store_name: string
+          store_image?: string | null
+          store_category?: string | null
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          user_id?: string
+          store_id?: string
+          store_name?: string
+          store_image?: string | null
+          store_category?: string | null
+          created_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "favorites_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      orders: {
+        Row: {
+          id: string
+          buyer_id: string
+          store_id: string | null
+          store_name: string
+          items: Json
+          total: number
+          address: string | null
+          payment: string
+          fulfillment: string
+          status: string
+          estimated_min: number | null
+          estimated_max: number | null
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          buyer_id: string
+          store_id?: string | null
+          store_name: string
+          items?: Json
+          total: number
+          address?: string | null
+          payment: string
+          fulfillment: string
+          status?: string
+          estimated_min?: number | null
+          estimated_max?: number | null
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          buyer_id?: string
+          store_id?: string | null
+          store_name?: string
+          items?: Json
+          total?: number
+          address?: string | null
+          payment?: string
+          fulfillment?: string
+          status?: string
+          estimated_min?: number | null
+          estimated_max?: number | null
+          created_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "orders_buyer_id_fkey"
+            columns: ["buyer_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      products: {
+        Row: {
+          id: string
+          seller_id: string
+          name: string
+          description: string | null
+          price: number
+          category: string | null
+          image: string | null
+          seller_kind: string | null
+          active: boolean
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          seller_id: string
+          name: string
+          description?: string | null
+          price: number
+          category?: string | null
+          image?: string | null
+          seller_kind?: string | null
+          active?: boolean
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          seller_id?: string
+          name?: string
+          description?: string | null
+          price?: number
+          category?: string | null
+          image?: string | null
+          seller_kind?: string | null
+          active?: boolean
+          created_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "products_seller_id_fkey"
+            columns: ["seller_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       profiles: {
         Row: {
           avatar_url: string | null

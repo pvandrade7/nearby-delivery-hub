@@ -1,12 +1,18 @@
-import { useState } from "react";
-import { useNavigate } from "react-router-dom";
-import { CheckCircle2, Store, UserRound } from "lucide-react";
+import { useEffect, useState } from "react";
+import { useNavigate, useParams } from "react-router-dom";
+import { CheckCircle2, Store, UserRound, ArrowLeft } from "lucide-react";
 import { ImagePicker } from "@/components/ImagePicker";
 import { SELLER_CATEGORIES } from "@/data/sellerCategories";
+import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/hooks/useAuth";
 import { toast } from "sonner";
 
 const NewProduct = () => {
   const navigate = useNavigate();
+  const { id: editId } = useParams<{ id?: string }>();
+  const { user } = useAuth();
+  const isEditing = Boolean(editId);
+
   const [name,       setName]       = useState("");
   const [price,      setPrice]      = useState("");
   const [desc,       setDesc]       = useState("");
@@ -14,6 +20,33 @@ const NewProduct = () => {
   const [image,      setImage]      = useState("");
   const [sellerKind, setSellerKind] = useState<"store" | "individual">("store");
   const [busy,       setBusy]       = useState(false);
+  const [loadingEdit, setLoadingEdit] = useState(isEditing);
+
+  // Carrega produto existente para edição
+  useEffect(() => {
+    if (!editId || !user) return;
+    (async () => {
+      const { data, error } = await supabase
+        .from("products")
+        .select("*")
+        .eq("id", editId)
+        .eq("seller_id", user.id)
+        .maybeSingle();
+
+      if (error || !data) {
+        toast.error("Produto não encontrado");
+        navigate("/lojista/produtos");
+        return;
+      }
+      setName(data.name ?? "");
+      setPrice(data.price?.toString() ?? "");
+      setDesc(data.description ?? "");
+      setCat(data.category ?? "");
+      setImage(data.image ?? "");
+      setSellerKind((data.seller_kind as "store" | "individual") ?? "store");
+      setLoadingEdit(false);
+    })();
+  }, [editId, user?.id]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const parsePrice = (raw: string) => {
     const clean = raw.replace(",", ".").replace(/[^0-9.]/g, "");
@@ -22,86 +55,108 @@ const NewProduct = () => {
   };
 
   const validate = () => {
-    if (!name.trim()) {
-      toast.error("Informe o nome do produto.");
-      return false;
-    }
-    if (name.trim().length < 2) {
-      toast.error("O nome deve ter pelo menos 2 caracteres.");
-      return false;
-    }
+    if (!name.trim()) { toast.error("Informe o nome do produto."); return false; }
+    if (name.trim().length < 2) { toast.error("O nome deve ter pelo menos 2 caracteres."); return false; }
     const priceNum = parsePrice(price);
-    if (!price.trim()) {
-      toast.error("Informe o preço do produto.");
-      return false;
-    }
-    if (priceNum === null || priceNum <= 0) {
-      toast.error("Informe um preço válido maior que zero.");
-      return false;
-    }
-    if (!cat) {
-      toast.error("Selecione uma categoria para o produto.");
-      return false;
-    }
-    if (!desc.trim()) {
-      toast.error("Adicione uma descrição ao produto.");
-      return false;
-    }
+    if (!price.trim()) { toast.error("Informe o preço do produto."); return false; }
+    if (priceNum === null || priceNum <= 0) { toast.error("Informe um preço válido maior que zero."); return false; }
+    if (!cat) { toast.error("Selecione uma categoria para o produto."); return false; }
+    if (!desc.trim()) { toast.error("Adicione uma descrição ao produto."); return false; }
     return true;
   };
 
   const handleSave = async () => {
-    if (!validate()) return;
+    if (!validate() || !user) return;
     setBusy(true);
-    // Protótipo: simula persistência com delay
-    await new Promise((r) => setTimeout(r, 600));
-    toast.success(sellerKind === "store" ? "Produto cadastrado!" : "Anúncio publicado!");
-    navigate("/lojista/produtos");
+
+    const priceNum = parsePrice(price)!;
+    const payload = {
+      seller_id: user.id,
+      name: name.trim(),
+      description: desc.trim(),
+      price: priceNum,
+      category: cat,
+      image: image || "",
+      seller_kind: sellerKind,
+      active: true,
+    };
+
+    let error;
+    if (isEditing && editId) {
+      ({ error } = await supabase
+        .from("products")
+        .update(payload)
+        .eq("id", editId)
+        .eq("seller_id", user.id));
+    } else {
+      ({ error } = await supabase.from("products").insert(payload));
+    }
+
+    if (error) {
+      toast.error("Erro ao salvar produto. Tente novamente.");
+    } else {
+      toast.success(isEditing ? "Produto atualizado!" : sellerKind === "store" ? "Produto cadastrado!" : "Anúncio publicado!");
+      navigate("/lojista/produtos");
+    }
     setBusy(false);
   };
 
+  if (loadingEdit) {
+    return (
+      <div className="flex justify-center py-20">
+        <div className="w-8 h-8 rounded-full border-2 border-primary border-t-transparent animate-spin" />
+      </div>
+    );
+  }
+
   return (
     <div className="px-4 lg:px-8 py-6 lg:py-8 max-w-3xl mx-auto">
-      <h1 className="text-2xl lg:text-3xl font-extrabold mb-6">
-        {sellerKind === "store" ? "Novo produto" : "Novo anúncio"}
-      </h1>
+      <div className="flex items-center gap-3 mb-6">
+        <button
+          onClick={() => navigate("/lojista/produtos")}
+          className="size-10 rounded-full bg-muted flex items-center justify-center hover:bg-muted/70"
+        >
+          <ArrowLeft className="w-5 h-5" />
+        </button>
+        <h1 className="text-2xl lg:text-3xl font-extrabold">
+          {isEditing ? "Editar produto" : sellerKind === "store" ? "Novo produto" : "Novo anúncio"}
+        </h1>
+      </div>
 
       <div className="bg-card rounded-2xl p-6 shadow-card space-y-6">
 
         {/* Tipo de anúncio */}
-        <div>
-          <label className="text-xs font-bold text-muted-foreground uppercase tracking-wider">
-            Tipo de anúncio
-          </label>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mt-2">
-            <button
-              type="button"
-              onClick={() => setSellerKind("store")}
-              className={`rounded-xl border p-4 text-left transition-all ${
-                sellerKind === "store"
-                  ? "border-primary bg-primary/10"
-                  : "border-border bg-background hover:bg-muted"
-              }`}
-            >
-              <Store className="w-5 h-5 text-primary mb-2" />
-              <p className="text-sm font-extrabold">Loja oficial</p>
-              <p className="text-xs text-muted-foreground mt-1">Produto vendido por comércio com selo.</p>
-            </button>
-            <button
-              type="button"
-              onClick={() => setSellerKind("individual")}
-              className={`rounded-xl border p-4 text-left transition-all ${
-                sellerKind === "individual"
-                  ? "border-primary bg-primary/10"
-                  : "border-border bg-background hover:bg-muted"
-              }`}
-            >
-              <UserRound className="w-5 h-5 text-primary mb-2" />
-              <p className="text-sm font-extrabold">Pessoa física</p>
-              <p className="text-xs text-muted-foreground mt-1">Item usado ou ocasional, sem selo.</p>
-            </button>
+        {!isEditing && (
+          <div>
+            <label className="text-xs font-bold text-muted-foreground uppercase tracking-wider">
+              Tipo de anúncio
+            </label>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mt-2">
+              <button
+                type="button"
+                onClick={() => setSellerKind("store")}
+                className={`rounded-xl border p-4 text-left transition-all ${
+                  sellerKind === "store" ? "border-primary bg-primary/10" : "border-border bg-background hover:bg-muted"
+                }`}
+              >
+                <Store className="w-5 h-5 text-primary mb-2" />
+                <p className="text-sm font-extrabold">Loja oficial</p>
+                <p className="text-xs text-muted-foreground mt-1">Produto vendido por comércio com selo.</p>
+              </button>
+              <button
+                type="button"
+                onClick={() => setSellerKind("individual")}
+                className={`rounded-xl border p-4 text-left transition-all ${
+                  sellerKind === "individual" ? "border-primary bg-primary/10" : "border-border bg-background hover:bg-muted"
+                }`}
+              >
+                <UserRound className="w-5 h-5 text-primary mb-2" />
+                <p className="text-sm font-extrabold">Pessoa física</p>
+                <p className="text-xs text-muted-foreground mt-1">Item usado ou ocasional, sem selo.</p>
+              </button>
+            </div>
           </div>
-        </div>
+        )}
 
         {/* Foto do produto */}
         <div>
@@ -139,10 +194,7 @@ const NewProduct = () => {
               <span className="text-sm font-bold text-muted-foreground">R$</span>
               <input
                 value={price}
-                onChange={(e) => {
-                  const raw = e.target.value.replace(/[^0-9,.]/g, "");
-                  setPrice(raw);
-                }}
+                onChange={(e) => setPrice(e.target.value.replace(/[^0-9,.]/g, ""))}
                 placeholder="0,00"
                 inputMode="decimal"
                 maxLength={12}
@@ -207,11 +259,7 @@ const NewProduct = () => {
           disabled={busy}
           className="w-full gradient-brand text-primary-foreground rounded-xl py-3.5 font-bold shadow-card hover:shadow-elevated transition-shadow disabled:opacity-60 flex items-center justify-center gap-2"
         >
-          {busy
-            ? "Salvando..."
-            : sellerKind === "store"
-              ? "Salvar produto"
-              : "Publicar anúncio"}
+          {busy ? "Salvando..." : isEditing ? "Salvar alterações" : sellerKind === "store" ? "Salvar produto" : "Publicar anúncio"}
           {!busy && <CheckCircle2 className="w-4 h-4" />}
         </button>
       </div>

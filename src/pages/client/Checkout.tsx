@@ -2,8 +2,9 @@ import { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import {
   MapPin, CreditCard, Banknote, QrCode, Check,
-  Store as StoreIcon, Truck, Wallet, ArrowLeft, Copy, Lock,
+  Store as StoreIcon, Truck, Wallet, ArrowLeft, Copy, Lock, AlertCircle,
 } from "lucide-react";
+import { QRCodeSVG } from "qrcode.react";
 import { FulfillmentType, useCart } from "@/context/CartContext";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
@@ -28,7 +29,7 @@ export interface FakeOrder {
   estimatedMax: number;
 }
 
-/* ── localStorage helpers ───────────────────────────── */
+/* ── localStorage helpers (mantidos para compatibilidade com OrderTracking) ── */
 export const ORDERS_KEY = "vendy_fake_orders";
 
 export const saveOrder = (o: FakeOrder) => {
@@ -71,40 +72,32 @@ const formatExpiry = (v: string) => {
   return d.length >= 2 ? d.slice(0, 2) + "/" + d.slice(2) : d;
 };
 
-/* ── QR Code SVG falso ──────────────────────────────── */
-const FakeQR = () => (
-  <svg viewBox="0 0 210 210" className="w-44 h-44" xmlns="http://www.w3.org/2000/svg">
-    {/* Detectores de posição */}
-    {[{x:8,y:8},{x:148,y:8},{x:8,y:148}].map((p,i)=>(
-      <g key={i}>
-        <rect x={p.x} y={p.y} width="54" height="54" rx="5" fill="none" stroke="currentColor" strokeWidth="6"/>
-        <rect x={p.x+14} y={p.y+14} width="26" height="26" rx="2" fill="currentColor"/>
-      </g>
-    ))}
-    {/* Módulos de dados */}
-    {[
-      [78,8],[88,8],[98,8],[108,8],[118,8],[128,8],[138,8],
-      [78,18],[98,18],[118,18],[138,18],
-      [88,28],[98,28],[108,28],[128,28],
-      [78,38],[108,38],[118,38],[128,38],[138,38],
-      [78,48],[88,48],[98,48],[118,48],
-      [8,78],[18,78],[28,78],[38,78],[48,78],[58,78],[78,78],[88,78],[108,78],[128,78],[148,78],[158,78],[178,78],[198,78],
-      [8,88],[38,88],[58,88],[88,88],[108,88],[138,88],[158,88],[188,88],
-      [8,98],[18,98],[28,98],[48,98],[78,98],[108,98],[118,98],[148,98],[168,98],[198,98],
-      [8,108],[28,108],[48,108],[58,108],[88,108],[108,108],[138,108],[148,108],[178,108],[198,108],
-      [8,118],[18,118],[28,118],[48,118],[78,118],[98,118],[118,118],[148,118],[168,118],[188,118],
-      [8,128],[38,128],[58,128],[88,128],[118,128],[148,128],[178,128],
-      [68,138],[78,138],[98,138],[128,138],[148,138],[168,138],[188,138],[198,138],
-      [68,148],[88,148],[118,148],[138,148],[168,148],
-      [78,158],[88,158],[108,158],[128,158],[148,158],[178,158],[188,158],[198,158],
-      [68,168],[98,168],[118,168],[138,168],[158,168],[188,168],
-      [78,178],[88,178],[128,178],[148,178],[168,178],[198,178],
-      [68,198],[88,198],[108,198],[138,198],[158,198],[178,198],[198,198],
-    ].map(([x,y],i)=>(
-      <rect key={i} x={x} y={y} width="8" height="8" fill="currentColor"/>
-    ))}
-  </svg>
-);
+/* ── Validação Luhn (cartão de crédito) ──────────────── */
+const luhnCheck = (num: string): boolean => {
+  const digits = num.replace(/\D/g, "");
+  if (digits.length < 13) return false;
+  let sum = 0;
+  let alt = false;
+  for (let i = digits.length - 1; i >= 0; i--) {
+    let n = parseInt(digits[i], 10);
+    if (alt) { n *= 2; if (n > 9) n -= 9; }
+    sum += n;
+    alt = !alt;
+  }
+  return sum % 10 === 0;
+};
+
+/* ── Validação de data de validade ───────────────────── */
+const isExpiryValid = (exp: string): boolean => {
+  const parts = exp.split("/");
+  if (parts.length !== 2) return false;
+  const month = parseInt(parts[0], 10);
+  const year = parseInt("20" + parts[1], 10);
+  if (month < 1 || month > 12) return false;
+  const now = new Date();
+  const expDate = new Date(year, month, 0);
+  return expDate >= now;
+};
 
 /* ════════════════════════════════════════════════════ */
 const Checkout = () => {
@@ -115,12 +108,14 @@ const Checkout = () => {
   const [step, setStep] = useState<Step>("summary");
   const [address, setAddress] = useState("");
   const [payment, setPayment] = useState<PayMethod>("pix");
+  const [addressError, setAddressError] = useState(false);
 
   // Cartão
   const [cardNum, setCardNum]       = useState("");
   const [cardName, setCardName]     = useState("");
   const [cardExp, setCardExp]       = useState("");
   const [cardCvv, setCardCvv]       = useState("");
+  const [cardErrors, setCardErrors] = useState<Record<string,string>>({});
 
   // PIX
   const [pixCopied, setPixCopied]   = useState(false);
@@ -166,6 +161,7 @@ const Checkout = () => {
       });
     }, 1000);
     return () => clearInterval(t);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [step]);
 
   /* ── animação de processamento ─────────────────────── */
@@ -173,7 +169,7 @@ const Checkout = () => {
     if (step !== "processing" || procDone.current) return;
     const delays = [900, 1200, 1000, 900];
     let i = 0;
-    const run = () => {
+    const run = async () => {
       if (i >= PROCESSING_MSGS.length) {
         procDone.current = true;
         const order: FakeOrder = {
@@ -189,6 +185,23 @@ const Checkout = () => {
           estimatedMin: fulfillmentType === "delivery" ? 25 : 10,
           estimatedMax: fulfillmentType === "delivery" ? 40 : 20,
         };
+        // Salva no Supabase (pedido real)
+        if (user) {
+          await supabase.from("orders").insert({
+            buyer_id: user.id,
+            store_id: storeId,
+            store_name: storeName,
+            items: items.map((it) => ({ name: it.name, quantity: it.quantity, price: it.price })),
+            total,
+            address: address || null,
+            payment: PAY_OPTS.find((p) => p.id === payment)?.label ?? payment,
+            fulfillment: FULFILLMENT_LABELS[fulfillmentType],
+            status: "aprovado",
+            estimated_min: order.estimatedMin,
+            estimated_max: order.estimatedMax,
+          });
+        }
+        // Salva também no localStorage para o rastreamento funcionar offline
         saveOrder(order);
         clear();
         navigate("/cliente/confirmacao", { state: { order }, replace: true });
@@ -205,14 +218,41 @@ const Checkout = () => {
 
   const handleConfirm = () => {
     if (!items.length) { toast.error("Seu carrinho está vazio"); return; }
+
+    // Valida endereço obrigatório em modo delivery
+    if (fulfillmentType === "delivery" && !address.trim()) {
+      setAddressError(true);
+      toast.error("Informe o endereço de entrega antes de continuar");
+      return;
+    }
+    setAddressError(false);
+
     if (payment === "pix") { setPixCount(120); setStep("pix"); }
     else if (payment === "credit" || payment === "debit") setStep("card");
     else startProcessing();
   };
 
+  const validateCard = (): boolean => {
+    const errors: Record<string, string> = {};
+    const rawNum = cardNum.replace(/\D/g, "");
+
+    if (rawNum.length < 13) errors.num = "Número inválido";
+    else if (!luhnCheck(rawNum)) errors.num = "Número de cartão inválido";
+
+    if (!cardName.trim()) errors.name = "Informe o nome do titular";
+
+    if (!cardExp || cardExp.length < 5) errors.exp = "Informe a validade";
+    else if (!isExpiryValid(cardExp)) errors.exp = "Cartão vencido ou data inválida";
+
+    if (!cardCvv || cardCvv.length < 3) errors.cvv = "CVV inválido";
+
+    setCardErrors(errors);
+    return Object.keys(errors).length === 0;
+  };
+
   const handleCardPay = () => {
-    if (!cardNum || !cardName || !cardExp || !cardCvv) {
-      toast.error("Preencha todos os dados do cartão");
+    if (!validateCard()) {
+      toast.error("Corrija os dados do cartão antes de continuar");
       return;
     }
     startProcessing();
@@ -222,7 +262,6 @@ const Checkout = () => {
   if (step === "processing") {
     return (
       <div className="fixed inset-0 z-50 bg-background flex flex-col items-center justify-center gap-8 px-6">
-        {/* Spinner central */}
         <div className="relative size-24">
           <div className="absolute inset-0 rounded-full gradient-brand opacity-20 animate-ping" />
           <div className="size-24 rounded-full gradient-brand flex items-center justify-center shadow-glow">
@@ -235,7 +274,6 @@ const Checkout = () => {
           <p className="text-sm text-muted-foreground">Por favor, não feche esta página</p>
         </div>
 
-        {/* Barra de progresso */}
         <div className="flex gap-2">
           {PROCESSING_MSGS.map((_, i) => (
             <div
@@ -278,9 +316,16 @@ const Checkout = () => {
             </p>
           </div>
 
-          {/* QR */}
-          <div className="flex justify-center text-foreground/90 bg-muted rounded-2xl p-4">
-            <FakeQR />
+          {/* QR Code real */}
+          <div className="flex justify-center bg-white rounded-2xl p-4">
+            <QRCodeSVG
+              value={FAKE_PIX}
+              size={176}
+              bgColor="#ffffff"
+              fgColor="#000000"
+              level="M"
+              includeMargin={false}
+            />
           </div>
 
           {/* Código copia-cola */}
@@ -360,7 +405,7 @@ const Checkout = () => {
               </div>
               <div className="text-right">
                 <p className="text-white/50 text-[9px] uppercase tracking-wider">Validade</p>
-                <p className="text-white font-bold text-sm">{dispExp}</p>
+                <p className={`font-bold text-sm ${cardErrors.exp ? "text-red-300" : "text-white"}`}>{dispExp}</p>
               </div>
             </div>
           </div>
@@ -373,23 +418,25 @@ const Checkout = () => {
             <label className="text-xs font-bold text-muted-foreground">Número do cartão</label>
             <input
               value={cardNum}
-              onChange={(e) => setCardNum(formatCard(e.target.value))}
+              onChange={(e) => { setCardNum(formatCard(e.target.value)); setCardErrors((p) => ({ ...p, num: "" })); }}
               placeholder="0000 0000 0000 0000"
               inputMode="numeric"
               maxLength={19}
-              className="mt-1 w-full bg-muted rounded-xl px-4 py-3 text-sm font-mono font-semibold focus:outline-none focus:ring-2 focus:ring-primary/30"
+              className={`mt-1 w-full bg-muted rounded-xl px-4 py-3 text-sm font-mono font-semibold focus:outline-none focus:ring-2 ${cardErrors.num ? "ring-2 ring-destructive/60" : "focus:ring-primary/30"}`}
             />
+            {cardErrors.num && <p className="text-xs text-destructive mt-1 flex items-center gap-1"><AlertCircle className="w-3 h-3" />{cardErrors.num}</p>}
           </div>
 
           <div>
             <label className="text-xs font-bold text-muted-foreground">Nome do titular</label>
             <input
               value={cardName}
-              onChange={(e) => setCardName(e.target.value.toUpperCase())}
+              onChange={(e) => { setCardName(e.target.value.toUpperCase()); setCardErrors((p) => ({ ...p, name: "" })); }}
               placeholder="COMO APARECE NO CARTÃO"
               maxLength={26}
-              className="mt-1 w-full bg-muted rounded-xl px-4 py-3 text-sm font-semibold uppercase focus:outline-none focus:ring-2 focus:ring-primary/30"
+              className={`mt-1 w-full bg-muted rounded-xl px-4 py-3 text-sm font-semibold uppercase focus:outline-none focus:ring-2 ${cardErrors.name ? "ring-2 ring-destructive/60" : "focus:ring-primary/30"}`}
             />
+            {cardErrors.name && <p className="text-xs text-destructive mt-1 flex items-center gap-1"><AlertCircle className="w-3 h-3" />{cardErrors.name}</p>}
           </div>
 
           <div className="flex gap-3">
@@ -397,24 +444,26 @@ const Checkout = () => {
               <label className="text-xs font-bold text-muted-foreground">Validade</label>
               <input
                 value={cardExp}
-                onChange={(e) => setCardExp(formatExpiry(e.target.value))}
+                onChange={(e) => { setCardExp(formatExpiry(e.target.value)); setCardErrors((p) => ({ ...p, exp: "" })); }}
                 placeholder="MM/AA"
                 inputMode="numeric"
                 maxLength={5}
-                className="mt-1 w-full bg-muted rounded-xl px-4 py-3 text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-primary/30"
+                className={`mt-1 w-full bg-muted rounded-xl px-4 py-3 text-sm font-semibold focus:outline-none focus:ring-2 ${cardErrors.exp ? "ring-2 ring-destructive/60" : "focus:ring-primary/30"}`}
               />
+              {cardErrors.exp && <p className="text-xs text-destructive mt-1 flex items-center gap-1"><AlertCircle className="w-3 h-3" />{cardErrors.exp}</p>}
             </div>
             <div className="w-28">
               <label className="text-xs font-bold text-muted-foreground">CVV</label>
               <input
                 value={cardCvv}
-                onChange={(e) => setCardCvv(e.target.value.replace(/\D/g, "").slice(0, 4))}
+                onChange={(e) => { setCardCvv(e.target.value.replace(/\D/g, "").slice(0, 4)); setCardErrors((p) => ({ ...p, cvv: "" })); }}
                 placeholder="•••"
                 inputMode="numeric"
                 type="password"
                 maxLength={4}
-                className="mt-1 w-full bg-muted rounded-xl px-4 py-3 text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-primary/30"
+                className={`mt-1 w-full bg-muted rounded-xl px-4 py-3 text-sm font-semibold focus:outline-none focus:ring-2 ${cardErrors.cvv ? "ring-2 ring-destructive/60" : "focus:ring-primary/30"}`}
               />
+              {cardErrors.cvv && <p className="text-xs text-destructive mt-1 flex items-center gap-1"><AlertCircle className="w-3 h-3" />{cardErrors.cvv}</p>}
             </div>
           </div>
 
@@ -455,7 +504,7 @@ const Checkout = () => {
                 return (
                   <button
                     key={type}
-                    onClick={() => setFulfillmentType(type)}
+                    onClick={() => { setFulfillmentType(type); setAddressError(false); }}
                     className={`rounded-2xl border-2 p-3 text-left transition-all ${
                       fulfillmentType === type
                         ? "border-primary bg-primary/10"
@@ -480,21 +529,26 @@ const Checkout = () => {
           </section>
 
           {/* Endereço */}
-          <section className="bg-card rounded-2xl p-5 shadow-card">
+          <section className={`bg-card rounded-2xl p-5 shadow-card border-2 transition-colors ${addressError ? "border-destructive/60" : "border-transparent"}`}>
             <h2 className="text-xs font-bold text-muted-foreground uppercase tracking-wider mb-3">
               {fulfillmentType === "delivery" ? "Entregar em" : "Referência de contato"}
             </h2>
             <div className="flex items-center gap-3">
-              <div className="size-10 rounded-xl bg-accent flex items-center justify-center text-primary shrink-0">
+              <div className={`size-10 rounded-xl bg-accent flex items-center justify-center shrink-0 ${addressError ? "text-destructive" : "text-primary"}`}>
                 <MapPin className="w-5 h-5" />
               </div>
               <input
                 value={address}
-                onChange={(e) => setAddress(e.target.value)}
-                placeholder="Informe o endereço de entrega"
+                onChange={(e) => { setAddress(e.target.value); if (e.target.value) setAddressError(false); }}
+                placeholder={fulfillmentType === "delivery" ? "Informe o endereço de entrega *" : "Referência (opcional)"}
                 className="flex-1 bg-transparent text-sm font-semibold focus:outline-none"
               />
             </div>
+            {addressError && (
+              <p className="text-xs text-destructive mt-2 flex items-center gap-1">
+                <AlertCircle className="w-3 h-3" /> Endereço obrigatório para entrega
+              </p>
+            )}
           </section>
 
           {/* Forma de pagamento */}

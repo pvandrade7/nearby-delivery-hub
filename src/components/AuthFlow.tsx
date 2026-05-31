@@ -385,8 +385,20 @@ export const AuthFlow = ({
         navigate(finalPath, { replace: true });
       }
     } catch (err) {
-      const msg = err instanceof Error ? err.message : "Credenciais inválidas";
-      setLoginError(msg);
+      const raw = err instanceof Error ? err.message.toLowerCase() : "";
+      if (raw.includes("invalid login") || raw.includes("invalid credentials") || raw.includes("invalid email or password")) {
+        setLoginError("E-mail ou senha incorretos. Verifique e tente novamente.");
+      } else if (raw.includes("email not confirmed")) {
+        setLoginError("E-mail ainda não confirmado. Verifique sua caixa de entrada.");
+      } else if (raw.includes("too many requests") || raw.includes("rate limit")) {
+        setLoginError("Muitas tentativas. Aguarde alguns minutos e tente novamente.");
+      } else if (raw.includes("network") || raw.includes("fetch")) {
+        setLoginError("Sem conexão com a internet. Verifique sua rede.");
+      } else if (raw.includes("conta não encontrada") || raw.includes("not found")) {
+        setLoginError("Conta não encontrada. Verifique o e-mail ou crie uma conta.");
+      } else {
+        setLoginError("Não foi possível entrar. Verifique suas credenciais e tente novamente.");
+      }
     } finally {
       setBusy(false);
     }

@@ -215,20 +215,26 @@ const CourierHome = () => {
   }, []);
 
   /* ── notificação de nova corrida próxima ─────────── */
+  const notifiedIds = useRef<Set<string>>(new Set());
+
   useEffect(() => {
     if (!online) return;
+    // Notifica apenas propostas ainda não mostradas
+    const unnotified = filtered.filter((d) => !notifiedIds.current.has(d.id));
+    if (unnotified.length === 0) return;
     const t = setTimeout(() => {
-      const closest = filtered[0];
-      if (closest) {
-        setNewProposalId(closest.id);
-        toast("🛵 Nova corrida disponível!", {
-          description: `${closest.storeName} — R$ ${closest.earnings.toFixed(2)} · ${closest.distanceKm.toFixed(1)} km`,
-          duration: 4000,
-        });
-        setTimeout(() => setNewProposalId(null), 5000);
-      }
+      const next = unnotified[0];
+      if (!next) return;
+      notifiedIds.current.add(next.id);
+      setNewProposalId(next.id);
+      toast("🛵 Nova corrida disponível!", {
+        description: `${next.storeName} — R$ ${next.earnings.toFixed(2)} · ${next.distanceKm.toFixed(1)} km`,
+        duration: 4000,
+      });
+      setTimeout(() => setNewProposalId(null), 5000);
     }, 6000);
     return () => clearTimeout(t);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [online, filtered.length]);
 
   /* ── carrega região do perfil se não tiver ──────── */
