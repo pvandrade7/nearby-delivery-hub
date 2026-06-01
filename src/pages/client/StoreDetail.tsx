@@ -1,10 +1,21 @@
 import { Link, useNavigate, useParams } from "react-router-dom";
 import { Star, Clock, MapPin, Plus, ArrowLeft, Heart } from "lucide-react";
 import { products, stores, categories } from "@/data/mockData";
+import type { Logistica } from "@/data/mockData";
 import { useCart } from "@/context/CartContext";
 import { VerifiedBadge } from "@/components/VerifiedBadge";
 import { StoreLogo } from "@/components/StoreLogo";
 import { useFavorite } from "@/hooks/useFavorite";
+import { ENTREGA_ICON, ENTREGA_LABEL, ENTREGA_COLOR } from "@/lib/logistica";
+
+const EntregaBadge = ({ log }: { log: Logistica | undefined }) => {
+  if (!log) return null;
+  return (
+    <span className={`inline-flex items-center gap-0.5 text-[10px] font-bold px-1.5 py-0.5 rounded-full mt-1.5 ${ENTREGA_COLOR[log.entrega]}`}>
+      {ENTREGA_ICON[log.entrega]} {ENTREGA_LABEL[log.entrega]}
+    </span>
+  );
+};
 
 const StoreDetail = () => {
   const { id } = useParams();
@@ -41,8 +52,8 @@ const StoreDetail = () => {
       </button>
 
       {/* Hero — banner de capa */}
-      <div className="bg-card rounded-2xl shadow-card overflow-hidden mb-6">
-        <div className="h-36 lg:h-48 relative">
+      <div className="bg-card rounded-2xl shadow-card mb-6">
+        <div className="h-36 lg:h-48 relative overflow-hidden rounded-t-2xl">
           <img src={store.image} alt={store.name} className="w-full h-full object-cover" />
           {/* Gradiente inferior para legibilidade */}
           <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent" />
@@ -63,7 +74,7 @@ const StoreDetail = () => {
         {/* Identidade visual: logo + nome + badges */}
         <div className="px-5 lg:px-6 pt-0 pb-5 lg:pb-6">
           {/* Logo sobreposto ao banner */}
-          <div className="flex items-end justify-between gap-4 -mt-8 mb-3">
+          <div className="flex items-end justify-between gap-4 -mt-8 mb-3 relative z-10">
             <div className="ring-4 ring-card rounded-xl shadow-elevated">
               <StoreLogo store={store} size="xl" whiteBg />
             </div>
@@ -132,6 +143,7 @@ const StoreDetail = () => {
                 <p className="text-xs text-muted-foreground line-through mt-1">R$ {p.originalPrice.toFixed(2)}</p>
               )}
               <p className="text-base font-extrabold text-primary">R$ {p.price.toFixed(2)}</p>
+              <EntregaBadge log={p.logistica} />
               <button
                 onClick={() => add(p)}
                 className="mt-3 gradient-brand text-primary-foreground rounded-lg py-2 text-xs font-bold flex items-center justify-center gap-1 hover:shadow-card transition-shadow"

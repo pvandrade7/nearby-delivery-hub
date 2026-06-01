@@ -4,10 +4,21 @@ import {
   TrendingUp, Sparkles, BadgeCheck, Store as StoreIcon,
 } from "lucide-react";
 import { categories, stores, products, getProductSeller } from "@/data/mockData";
+import type { Logistica } from "@/data/mockData";
 import { VerifiedCheckIcon } from "@/components/VerifiedBadge";
 import { StoreLogo } from "@/components/StoreLogo";
 import { useFavorite } from "@/hooks/useFavorite";
 import { useUserCity, normalizeCity } from "@/hooks/useUserCity";
+import { ENTREGA_ICON, ENTREGA_LABEL, ENTREGA_COLOR } from "@/lib/logistica";
+
+const EntregaBadge = ({ log }: { log: Logistica | undefined }) => {
+  if (!log) return null;
+  return (
+    <span className={`inline-flex items-center gap-0.5 text-[10px] font-bold px-1.5 py-0.5 rounded-full mt-1.5 ${ENTREGA_COLOR[log.entrega]}`}>
+      {ENTREGA_ICON[log.entrega]} {ENTREGA_LABEL[log.entrega]}
+    </span>
+  );
+};
 
 /* ── Card de loja local — destaque maior ────────────── */
 const LocalStoreCard = ({ store }: { store: typeof stores[0] }) => {
@@ -267,6 +278,7 @@ const ClientHome = () => {
                         🏪 {seller.name}
                       </p>
                     )}
+                    <EntregaBadge log={p.logistica} />
                   </div>
                 </Link>
               );
@@ -305,6 +317,7 @@ const ClientHome = () => {
                         {seller.verified && <VerifiedCheckIcon />}
                       </p>
                     )}
+                    <EntregaBadge log={p.logistica} />
                   </div>
                 </Link>
               );
@@ -342,6 +355,7 @@ const ClientHome = () => {
                         <UserRound className="w-3 h-3" /> {seller.name}
                       </p>
                     )}
+                    <EntregaBadge log={p.logistica} />
                   </div>
                 </Link>
               );

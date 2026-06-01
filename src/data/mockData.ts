@@ -38,6 +38,24 @@ const P_GUARDAROUPA = "https://images.unsplash.com/photo-1558997519-83ea9252edf8
 const P_IMPRESSORA = "https://images.unsplash.com/photo-1612815154858-60aa4c59eaa6?w=400&h=400&fit=crop&auto=format&q=80";
 const P_ORGANIZADOR = "https://images.unsplash.com/photo-1586880244406-556ebe35f282?w=400&h=400&fit=crop&auto=format&q=80";
 const P_VESTIDO    = "https://images.unsplash.com/photo-1515372039744-b8f02a3ae446?w=400&h=400&fit=crop&auto=format&q=80";
+const P_BLUSA      = "https://images.unsplash.com/photo-1594938298603-c8148c4b4e44?w=400&h=400&fit=crop&auto=format&q=80";
+const P_GELADEIRA  = "https://images.unsplash.com/photo-1571175443880-49e1d25b2bc5?w=400&h=400&fit=crop&auto=format&q=80";
+const P_SMARTPHONE = "https://images.unsplash.com/photo-1610945415295-d9bbf067e59c?w=400&h=400&fit=crop&auto=format&q=80";
+const P_EARBUDS    = "https://images.unsplash.com/photo-1590658268037-6bf12165a8df?w=400&h=400&fit=crop&auto=format&q=80";
+const P_CAMA_PET   = "https://images.unsplash.com/photo-1534361960057-19f4434a4297?w=400&h=400&fit=crop&auto=format&q=80";
+const P_RACAO_CAO  = "https://images.unsplash.com/photo-1587300003388-59208cc962cb?w=400&h=400&fit=crop&auto=format&q=80";
+const P_CURATIVO   = "https://images.unsplash.com/photo-1583947582744-8e71e6f2c3a6?w=400&h=400&fit=crop&auto=format&q=80";
+const P_PARAFUSOS  = "https://images.unsplash.com/photo-1581147036324-c17ac65adf3b?w=400&h=400&fit=crop&auto=format&q=80";
+const P_VERGALHAO  = "https://images.unsplash.com/photo-1504307651254-35680f356dfd?w=400&h=400&fit=crop&auto=format&q=80";
+const P_CANETAS    = "https://images.unsplash.com/photo-1583485088034-697b5bc54ccd?w=400&h=400&fit=crop&auto=format&q=80";
+const P_JOGO_CAMA  = "https://images.unsplash.com/photo-1540518614846-7eded433c457?w=400&h=400&fit=crop&auto=format&q=80";
+const P_TELA_CEL   = "https://images.unsplash.com/photo-1512941937669-90a1b58e7e9c?w=400&h=400&fit=crop&auto=format&q=80";
+const P_SHAMPOO    = "https://images.unsplash.com/photo-1535585209827-a15fcdbc4c2d?w=400&h=400&fit=crop&auto=format&q=80";
+const P_UTENSILIOS = "https://images.unsplash.com/photo-1556909114-f6e7ad7d3136?w=400&h=400&fit=crop&auto=format&q=80";
+const P_MESA_JANTAR= "https://images.unsplash.com/photo-1505843513577-22bb7d21e455?w=400&h=400&fit=crop&auto=format&q=80";
+const P_MOCHILA    = "https://images.unsplash.com/photo-1553062407-98eeb64c6a62?w=400&h=400&fit=crop&auto=format&q=80";
+const P_TAPETE     = "https://images.unsplash.com/photo-1588286840104-8957b019727f?w=400&h=400&fit=crop&auto=format&q=80";
+const P_COLCHAO    = "https://images.unsplash.com/photo-1555041469-a586c61ea9bc?w=400&h=400&fit=crop&auto=format&q=80";
 
 /* ── Imagens de loja (Unsplash) ─────────────────────── */
 const S_MAGAZINE   = "https://images.unsplash.com/photo-1441986300917-64674bd600d8?w=600&h=400&fit=crop&auto=format&q=80";
@@ -80,6 +98,36 @@ const P_RACK_TV      = "https://images.unsplash.com/photo-1615873968403-89e06862
    TIPOS
 ═══════════════════════════════════════════════════════ */
 export type Category = { id: string; name: string; emoji: string };
+
+/**
+ * Porte do produto — determina o modal de entrega possível.
+ * P  = Pequeno   (≤ 2 kg, cabe em sacola/envelope)
+ * M  = Médio     (2–15 kg, cabe no banco traseiro/porta-malas)
+ * G  = Grande    (15–50 kg, precisa de carro grande ou van)
+ * GG = Muito Grande (> 50 kg ou dimensão > 100 cm — caminhonete/caminhão)
+ */
+export type PorteProduto = "P" | "M" | "G" | "GG";
+
+/**
+ * Como o produto pode ser entregue:
+ * motoboy   → moto ou carro parceiro (P com embalagem)
+ * carro     → apenas carro parceiro (M com embalagem)
+ * loja      → entrega especializada da própria loja (G/GG)
+ * retirada  → apenas retirada no local (produto grande ou vendedor sem veículo)
+ * combinado → acordar com o vendedor (itens de segunda mão)
+ * servico   → o cliente leva o item ao prestador (assistência técnica)
+ */
+export type TipoEntrega = "motoboy" | "carro" | "loja" | "retirada" | "combinado" | "servico";
+
+export type Logistica = {
+  peso: number;                     // kg aproximado (0 = serviço)
+  dims: [number, number, number];   // [altura, largura, comprimento] em cm
+  porte: PorteProduto;
+  temEmbalagem: boolean;
+  entrega: TipoEntrega;
+  prazo?: string;                   // ex: "Mesmo dia", "3-7 dias úteis"
+  taxa?: number;                    // R$ (0 = frete grátis; undefined = a definir)
+};
 
 export type Store = {
   id: string;
@@ -132,6 +180,7 @@ export type Product = {
   image: string;
   popular?: boolean;
   onSale?: boolean;
+  logistica?: Logistica;
 };
 
 export type OrderStatus = "confirmado" | "preparando" | "saiu" | "entregue";
@@ -191,7 +240,7 @@ export const stores: Store[] = [
     verificationType: "cnpj",
     cnpj: "47.960.950/0001-21",
     address: "Av. Santos Dumont, 6480 — Aldeota, Fortaleza-CE",
-    logo: "https://logo.clearbit.com/magazineluiza.com.br",
+    logo: "https://upload.wikimedia.org/wikipedia/commons/1/1b/Magalu_-_novo_logo.png",
     brandColor: "#E30613",
   },
 
@@ -212,7 +261,7 @@ export const stores: Store[] = [
     verificationType: "cnpj",
     cnpj: "33.041.260/0652-90",
     address: "Shopping RioMar Fortaleza, Papicu — Fortaleza-CE",
-    logo: "https://logo.clearbit.com/casasbahia.com.br",
+    logo: "https://upload.wikimedia.org/wikipedia/commons/9/97/Casas_Bahia_logo_2020.svg",
     brandColor: "#0066CC",
   },
 
@@ -234,7 +283,7 @@ export const stores: Store[] = [
     verificationType: "cnpj",
     cnpj: "92.754.738/0001-62",
     address: "Shopping Iguatemi Fortaleza, Água Fria — Fortaleza-CE",
-    logo: "https://logo.clearbit.com/lojasrenner.com.br",
+    logo: "https://upload.wikimedia.org/wikipedia/commons/d/d4/Logotipo_das_Lojas_Renner.svg",
     brandColor: "#E4002B",
   },
 
@@ -255,7 +304,7 @@ export const stores: Store[] = [
     verificationType: "cnpj",
     cnpj: "33.200.056/0001-23",
     address: "Shopping Parangaba — Fortaleza-CE",
-    logo: "https://logo.clearbit.com/riachuelo.com.br",
+    logo: "https://logospng.org/download/lojas-riachuelo/riachuelo-512.png",
     brandColor: "#222222",
   },
 
@@ -277,7 +326,7 @@ export const stores: Store[] = [
     verificationType: "cnpj",
     cnpj: "06.626.253/0001-51",
     address: "Av. Dom Luís, 500 — Meireles, Fortaleza-CE",
-    logo: "https://logo.clearbit.com/paguemenos.com.br",
+    logo: "https://upload.wikimedia.org/wikipedia/commons/b/bd/Logotipo_da_Pague_Menos.svg",
     brandColor: "#00A651",
   },
 
@@ -299,7 +348,7 @@ export const stores: Store[] = [
     verificationType: "cnpj",
     cnpj: "07.571.541/0001-48",
     address: "Av. Washington Soares, 4335 — Edson Queiroz, Fortaleza-CE",
-    logo: "https://logo.clearbit.com/leroymerlin.com.br",
+    logo: "https://upload.wikimedia.org/wikipedia/commons/a/a4/Leroy_Merlin_-_logo_%28France%2C_1995-%29.svg",
     brandColor: "#008A00",
   },
 
@@ -320,6 +369,7 @@ export const stores: Store[] = [
     verificationType: "manual",
     address: "Rua Senador Pompeu, 1120 — Centro, Fortaleza-CE",
     isLocal: true,
+    logo: "/logos/ferragem-fortaleza.png",
     brandColor: "#FF6600",
   },
 
@@ -341,7 +391,7 @@ export const stores: Store[] = [
     verificationType: "cnpj",
     cnpj: "75.064.835/0001-28",
     address: "Shopping Norte — Fortaleza-CE",
-    logo: "https://logo.clearbit.com/boticario.com.br",
+    logo: "https://upload.wikimedia.org/wikipedia/commons/2/2d/Oboticario-logo.png",
     brandColor: "#6B2D8C",
   },
 
@@ -363,7 +413,7 @@ export const stores: Store[] = [
     verificationType: "cnpj",
     cnpj: "62.829.276/0001-05",
     address: "Av. Engenheiro Santana Júnior, 4500 — Varjota, Fortaleza-CE",
-    logo: "https://logo.clearbit.com/cobasi.com.br",
+    logo: "https://logospng.org/download/cobasi/logo-cobasi-512.png",
     brandColor: "#FF6600",
   },
 
@@ -385,7 +435,7 @@ export const stores: Store[] = [
     verificationType: "cnpj",
     cnpj: "22.791.244/0001-04",
     address: "Av. Bezerra de Menezes, 3340 — São Gerardo, Fortaleza-CE",
-    logo: "https://logo.clearbit.com/autozone.com",
+    logo: "https://upload.wikimedia.org/wikipedia/en/f/fc/AutoZone_logo.svg",
     brandColor: "#ED1C24",
   },
 
@@ -407,7 +457,7 @@ export const stores: Store[] = [
     verificationType: "cnpj",
     cnpj: "66.948.212/0001-08",
     address: "Shopping Riomar — Fortaleza-CE",
-    logo: "https://logo.clearbit.com/kalunga.com.br",
+    logo: "https://upload.wikimedia.org/wikipedia/commons/b/b1/Kalunga_logo.svg",
     brandColor: "#E30613",
   },
 
@@ -429,7 +479,7 @@ export const stores: Store[] = [
     verificationType: "cnpj",
     cnpj: "79.379.491/0001-83",
     address: "Rodovia CE-060 — Maracanaú (Grande Fortaleza)",
-    logo: "https://logo.clearbit.com/havan.com.br",
+    logo: "https://upload.wikimedia.org/wikipedia/commons/f/fb/Havan_logo.svg",
     brandColor: "#009C3B",
   },
 
@@ -455,6 +505,7 @@ export const stores: Store[] = [
     verificationType: "manual",
     address: "Instagram: @sampaio_cell — Fortaleza-CE",
     isLocal: true,
+    logo: "/logos/sampaio-cell.jpg",
     brandColor: "#FF6B00",
   },
 
@@ -476,7 +527,7 @@ export const stores: Store[] = [
     cnpj: "07.223.460/0001-00",
     address: "Av. Santos Dumont, 3000 — Shopping Casa Blanca, Loja 23 — Aldeota, Fortaleza-CE",
     isLocal: true,
-    logo: "https://logo.clearbit.com/cromainformatica.com.br",
+    logo: "/logos/croma-tecnologia.jpg",
     brandColor: "#0055A5",
   },
 
@@ -499,7 +550,7 @@ export const stores: Store[] = [
     cnpj: "02.361.398/0001-21",
     address: "Av. Dom Luís, 1200 — Pátio Dom Luís, Aldeota, Fortaleza-CE",
     isLocal: true,
-    logo: "https://logo.clearbit.com/farmaciasantabranca.com.br",
+    logo: "https://patiodomluis.com.br/wp-content/uploads/2023/01/santa_branca_farmacia_logotipo.jpg",
     brandColor: "#006B3F",
   },
 
@@ -521,7 +572,7 @@ export const stores: Store[] = [
     cnpj: "04.516.222/0001-56",
     address: "Rua Gustavo Sampaio, 2121 — Parquelândia, Fortaleza-CE",
     isLocal: true,
-    logo: "https://logo.clearbit.com/farmaciasconviva.com.br",
+    logo: "https://www.farmaciasconviva.com.br/wp-content/uploads/2023/04/logo.png",
     brandColor: "#005FAE",
   },
 
@@ -544,7 +595,7 @@ export const stores: Store[] = [
     cnpj: "10.398.551/0001-88",
     address: "Av. Maria Gomes de Sá, 2000 — Planalto Ayrton Senna, Fortaleza-CE",
     isLocal: true,
-    logo: "https://logo.clearbit.com/premolferro.com.br",
+    logo: "/logos/premolferro.jpg",
     brandColor: "#CC4400",
   },
 
@@ -566,6 +617,7 @@ export const stores: Store[] = [
     verificationType: "manual",
     address: "Rua Carlos Vasconcelos, 1136-A — Aldeota, Fortaleza-CE",
     isLocal: true,
+    logo: "/logos/legal-patas.png",
     brandColor: "#4CAF50",
   },
 
@@ -587,7 +639,7 @@ export const stores: Store[] = [
     cnpj: "08.720.612/0001-73",
     address: "Av. Washington Soares, 2000 — Luciano Cavalcante, Fortaleza-CE",
     isLocal: true,
-    logo: "https://logo.clearbit.com/animalepetshop.com.br",
+    logo: "https://riomarfortaleza.com.br/storage/stores/marca_291.jpg",
     brandColor: "#FF6600",
   },
 
@@ -610,7 +662,7 @@ export const stores: Store[] = [
     cnpj: "04.028.394/0001-61",
     address: "Rua Monsenhor Salazar, 1322 — São João do Tauape, Fortaleza-CE",
     isLocal: true,
-    logo: "https://logo.clearbit.com/evaldoautopecas.com.br",
+    logo: "https://www.evaldoautopecas.com.br/images/logo.png",
     brandColor: "#1A1A2E",
   },
 
@@ -633,7 +685,7 @@ export const stores: Store[] = [
     cnpj: "07.440.113/0001-09",
     address: "Rua Visconde de Mauá, 2085 — Aldeota, Fortaleza-CE",
     isLocal: true,
-    logo: "https://logo.clearbit.com/lojascarrossel.com.br",
+    logo: "/logos/carrossel.png",
     brandColor: "#C0392B",
   },
 
@@ -655,7 +707,7 @@ export const stores: Store[] = [
     cnpj: "05.891.442/0001-30",
     address: "Av. Barão de Studart — Meireles, Fortaleza-CE",
     isLocal: true,
-    logo: "https://logo.clearbit.com/companhiadosmoveis.com",
+    logo: "https://graph.facebook.com/CiadosMoveisFortaleza/picture?type=large",
     brandColor: "#7B5E3A",
   },
 
@@ -678,6 +730,7 @@ export const stores: Store[] = [
     cnpj: "08.119.344/0001-42",
     address: "Rua Floriano Peixoto, 738 — Centro, Fortaleza-CE",
     isLocal: true,
+    logo: "/logos/lojao-utilidades.png",
     brandColor: "#E67E22",
   },
 
@@ -700,6 +753,7 @@ export const stores: Store[] = [
     cnpj: "09.241.753/0001-88",
     address: "Rua Liberato Barroso, 364 — Centro, Fortaleza-CE",
     isLocal: true,
+    logo: "/logos/dm-perfumaria.png",
     brandColor: "#C2185B",
   },
 
@@ -722,7 +776,7 @@ export const stores: Store[] = [
     cnpj: "04.630.789/0001-55",
     address: "Rua Major Facundo, 874 — Centro, Fortaleza-CE",
     isLocal: true,
-    logo: "https://logo.clearbit.com/livrariainterativa.com.br",
+    logo: "/logos/livraria-interativa.jpg",
     brandColor: "#1565C0",
   },
 ];
@@ -777,125 +831,189 @@ export const verificationRequests = stores
 ═══════════════════════════════════════════════════════ */
 export const products: Product[] = [
 
-  /* Magazine Luiza (s1) — Eletrônicos */
-  { id: "p1",  storeId: "s1", name: "Smartphone Samsung Galaxy A55 5G 256GB",  price: 1899.0, originalPrice: 2199.0, description: "Tela AMOLED 6.6\", câmera tripla 50MP, bateria 5000mAh e proteção IP67. Desbloqueado, todas as operadoras.", category: "eletronicos", image: pSmartphoneSeminovo, onSale: true, popular: true },
-  { id: "p2",  storeId: "s1", name: "Smart TV Samsung 55\" 4K QLED",            price: 2799.0, originalPrice: 3499.0, description: "Painel QLED com Quantum Dot, 4K UHD, HDR10+ e sistema Tizen. Wi-Fi, Bluetooth e assistente de voz integrado.", category: "eletronicos", image: P_TV, onSale: true },
-  { id: "p3",  storeId: "s1", name: "Notebook Dell Inspiron 15 i5 16GB 512GB",  price: 3199.0, originalPrice: 3799.0, description: "Processador Intel Core i5-12a geração, 16GB RAM DDR4, SSD 512GB NVMe, tela Full HD 15.6\". Windows 11 Home.", category: "eletronicos", image: P_NOTEBOOK, onSale: true, popular: true },
-  { id: "p4",  storeId: "s1", name: "Fone Bluetooth JBL Tune 710BT",            price: 349.0,  originalPrice: 449.0,  description: "Headphone over-ear com até 45h de bateria, conexão multipoint e microfone integrado para chamadas.", category: "eletronicos", image: P_FONE, onSale: true },
+  /* ── Magazine Luiza (s1) — Eletrônicos | catálogo profissional ── */
+  { id: "p1",  storeId: "s1", name: "Smartphone Samsung Galaxy A55 5G 256GB",     price: 1899.0, originalPrice: 2199.0, description: "Tela Super AMOLED+ 6.6\", câmera tripla 50MP+12MP+5MP, bateria 5000mAh e proteção IP67. Desbloqueado para todas as operadoras. Inclui carregador 25W.", category: "eletronicos", image: P_SMARTPHONE, onSale: true, popular: true,
+    logistica: { peso: 0.2, dims: [15,7,1], porte: "P", temEmbalagem: true, entrega: "motoboy", prazo: "Mesmo dia", taxa: 0 } },
+  { id: "p2",  storeId: "s1", name: "Smart TV Samsung 55\" Crystal 4K UHD",        price: 2299.0, originalPrice: 2899.0, description: "Processador Crystal 4K, PurColor, HDR10+, 3 HDMI, 2 USB. Sistema Tizen com Netflix, Prime e YouTube. Modo Ambient. Wi-Fi 5GHz.", category: "eletronicos", image: P_TV, onSale: true,
+    logistica: { peso: 18, dims: [87,12,76], porte: "G", temEmbalagem: true, entrega: "loja", prazo: "1-3 dias úteis", taxa: 0 } },
+  { id: "p3",  storeId: "s1", name: "Notebook Dell Inspiron 15 i5 16GB 512GB SSD", price: 3199.0, originalPrice: 3799.0, description: "Intel Core i5-1235U, 16GB DDR4, SSD NVMe 512GB, tela IPS Full HD 15.6\" antirreflexo. Windows 11 Home + Office Básico incluídos.", category: "eletronicos", image: P_NOTEBOOK, onSale: true, popular: true,
+    logistica: { peso: 2.2, dims: [35,25,5], porte: "M", temEmbalagem: true, entrega: "carro", prazo: "Mesmo dia", taxa: 0 } },
+  { id: "p4",  storeId: "s1", name: "Fone Bluetooth JBL Tune 710BT Over-Ear",      price: 349.0,  originalPrice: 449.0,  description: "Headphone over-ear Pure Bass JBL. Até 45h de bateria, multipoint (2 dispositivos), dobrável para viagem. Microfone integrado.", category: "eletronicos", image: P_FONE, onSale: true,
+    logistica: { peso: 0.35, dims: [25,20,10], porte: "M", temEmbalagem: true, entrega: "carro", prazo: "Mesmo dia", taxa: 0 } },
 
-  /* Casas Bahia (s2) — Eletrônicos & Móveis */
-  { id: "p5",  storeId: "s2", name: "Geladeira Brastemp Frost Free 375L",       price: 2499.0, originalPrice: 2999.0, description: "Frost Free com tecnologia BioFresh, prateleiras reguláveis e freezer com capacidade extra. Classe A de eficiência.", category: "eletronicos", image: P_GUARDAROUPA, onSale: true, popular: true },
-  { id: "p6",  storeId: "s2", name: "Sofá Retrátil e Reclinável 3 Lugares",     price: 1799.0, originalPrice: 2199.0, description: "Tecido suede premium, sistema retrátil de 30cm e reclinação por alavanca. Disponível em cinza e bege.", category: "moveis", image: P_SOFA, onSale: true },
+  /* ── Casas Bahia (s2) — Eletro & Móveis | catálogo profissional ── */
+  { id: "p5",  storeId: "s2", name: "Geladeira Brastemp Frost Free BRM44HB 375L",  price: 2499.0, originalPrice: 2999.0, description: "Frost Free com painel eletrônico externo, compartimento BioFresh, gavetão extra frio e 3 prateleiras reguláveis. Eficiência energética A. Bivolt.", category: "eletronicos", image: P_GELADEIRA, onSale: true, popular: true,
+    logistica: { peso: 62, dims: [175,67,75], porte: "GG", temEmbalagem: false, entrega: "loja", prazo: "3-7 dias úteis", taxa: 0 } },
+  { id: "p6",  storeId: "s2", name: "Sofá Retrátil Reclinável 3 Lug. Suede Cinza", price: 1799.0, originalPrice: 2199.0, description: "Estrutura em madeira pinus, espuma D33 confort, tecido suede importado. Retração 30cm, reclinação por alavanca. Cor cinza ou bege. Entrega montado.", category: "moveis", image: P_SOFA, onSale: true,
+    logistica: { peso: 75, dims: [95,185,92], porte: "GG", temEmbalagem: false, entrega: "loja", prazo: "3-7 dias úteis", taxa: 0 } },
 
-  /* Renner (s3) — Moda */
-  { id: "p7",  storeId: "s3", name: "Camiseta Premium 100% Algodão Renner",     price: 59.9,  originalPrice: 79.9,  description: "Fio 30/1 penteado, gramatura 160g/m². Caimento impecável, disponível nos tamanhos PP ao GGG em 12 cores.", category: "moda", image: pCamiseta, onSale: true, popular: true },
-  { id: "p8",  storeId: "s3", name: "Calça Jeans Slim Fit Masculina",           price: 119.9, originalPrice: 159.9, description: "Denim 98% algodão 2% elastano, modelagem slim, lavagem estonada. Disponível em P, M, G, GG.", category: "moda", image: P_CALCAJEANS, onSale: true },
+  /* ── Renner (s3) — Moda | fotos de catálogo com modelo ── */
+  { id: "p7",  storeId: "s3", name: "Blusa Feminina Cropped Canelada Manga Longa",  price: 59.9,  originalPrice: 79.9,  description: "Tecido canelado 92% viscose 8% elastano. Modelagem cropped moderna, caimento suave, decote redondo. Disponível em 10 cores do PP ao GGG.", category: "moda", image: P_BLUSA, onSale: true, popular: true,
+    logistica: { peso: 0.15, dims: [20,15,3], porte: "P", temEmbalagem: true, entrega: "motoboy", prazo: "Mesmo dia", taxa: 0 } },
+  { id: "p8",  storeId: "s3", name: "Calça Jeans Slim Fit Masculina Estonada",       price: 119.9, originalPrice: 159.9, description: "98% algodão 2% elastano, lavagem estonada, modelagem slim com boa mobilidade. Do 36 ao 56. Passagem dupla de cinto.", category: "moda", image: P_CALCAJEANS, onSale: true,
+    logistica: { peso: 0.5, dims: [30,25,4], porte: "P", temEmbalagem: true, entrega: "motoboy", prazo: "Mesmo dia", taxa: 0 } },
 
-  /* Riachuelo (s4) — Moda */
-  { id: "p9",  storeId: "s4", name: "Vestido Floral Midi Feminino",              price: 89.9,  originalPrice: 129.9, description: "Tecido crepe leve com estampa floral exclusiva, ideal para o verão nordestino. Tamanhos PP ao GGG.", category: "moda", image: P_VESTIDO, onSale: true, popular: true },
-  { id: "p10", storeId: "s4", name: "Tênis Esportivo Running Feminino",          price: 159.9, originalPrice: 199.9, description: "Solado EVA com amortecimento, malha respirável e palmilha anatômica. Ideal para caminhadas e academia.", category: "moda", image: P_TENIS, onSale: true },
+  /* ── Riachuelo (s4) — Moda | fotos de catálogo ── */
+  { id: "p9",  storeId: "s4", name: "Vestido Midi Floral Crepe Feminino",            price: 89.9,  originalPrice: 129.9, description: "Crepe leve 100% poliéster, estampa floral exclusiva com cinto de amarrar. Ideal para o calor nordestino. Tamanhos PP ao GGG.", category: "moda", image: P_VESTIDO, onSale: true, popular: true,
+    logistica: { peso: 0.25, dims: [28,20,3], porte: "P", temEmbalagem: true, entrega: "motoboy", prazo: "Mesmo dia", taxa: 0 } },
+  { id: "p10", storeId: "s4", name: "Tênis Running Feminino Levidade — Riachuelo",   price: 129.9, originalPrice: 169.9, description: "Palmilha EVA anatômica, cabedal malha stretch respirável, solado antiderrapante. Para corridas leves e academia. Tamanhos 33–40.", category: "moda", image: P_TENIS, onSale: true,
+    logistica: { peso: 0.65, dims: [32,20,13], porte: "M", temEmbalagem: true, entrega: "carro", prazo: "Mesmo dia", taxa: 0 } },
 
-  /* Farmácias Pague Menos (s5) — Farmácia */
-  { id: "p11", storeId: "s5", name: "Paracetamol 500mg c/ 20 Comprimidos",      price: 8.9,   description: "Analgésico e antitérmico de referência. Alívio de dor de cabeça, febre e dores musculares. Sem receita.", category: "farmacia", image: pRemedio, popular: true },
-  { id: "p12", storeId: "s5", name: "Protetor Solar Episol FPS 70 200ml",       price: 54.9,  originalPrice: 69.9,  description: "Proteção UVA/UVB de amplo espectro para pele oleosa. Textura oil-free, toque seco e base para maquiagem.", category: "farmacia", image: P_PROTETOR, onSale: true, popular: true },
-  { id: "p13", storeId: "s5", name: "Vitamina D3 2000UI c/ 60 Cápsulas",        price: 34.9,  originalPrice: 45.9,  description: "Suplemento vitamínico para ossos, imunidade e bem-estar. Cápsulas de fácil deglutição, sem glúten.", category: "farmacia", image: P_VITAMINA, onSale: true },
+  /* ── Farmácias Pague Menos (s5) — Farmácia | fundo neutro profissional ── */
+  { id: "p11", storeId: "s5", name: "Paracetamol 500mg Medley c/ 20 comprimidos",    price: 7.9,   description: "Analgésico e antitérmico genérico referência. Alívio de dor de cabeça, febre, dores musculares e odontológicas. Venda sem receita.", category: "farmacia", image: pRemedio, popular: true,
+    logistica: { peso: 0.08, dims: [10,4,3], porte: "P", temEmbalagem: true, entrega: "motoboy", prazo: "Em até 1h", taxa: 0 } },
+  { id: "p12", storeId: "s5", name: "Protetor Solar Episol Oil-Free FPS 70 200ml",   price: 54.9,  originalPrice: 69.9,  description: "Proteção UVA/UVB de amplo espectro para pele oleosa. Oil-free, base para maquiagem, toque seco. Resistente a suor leve.", category: "farmacia", image: P_PROTETOR, onSale: true, popular: true,
+    logistica: { peso: 0.25, dims: [18,5,5], porte: "P", temEmbalagem: true, entrega: "motoboy", prazo: "Em até 1h", taxa: 0 } },
+  { id: "p13", storeId: "s5", name: "Vitamina D3 2000UI Lavitan c/ 60 cápsulas",     price: 34.9,  originalPrice: 45.9,  description: "Suplemento vitamínico D3 de lanolina para saúde óssea, imunidade e disposição. Cápsulas gelatinosas, sem glúten, sem lactose.", category: "farmacia", image: P_VITAMINA, onSale: true,
+    logistica: { peso: 0.1, dims: [10,4,4], porte: "P", temEmbalagem: true, entrega: "motoboy", prazo: "Em até 1h", taxa: 0 } },
 
-  /* Leroy Merlin (s6) — Construção */
-  { id: "p14", storeId: "s6", name: "Cimento CP-II Votoran 50kg",                price: 39.9,  originalPrice: 49.9,  description: "Cimento Portland composto CP-II-E-32, ideal para alvenaria, reboco e argamassas. Entrega em obra disponível.", category: "construcao", image: pCimento, onSale: true, popular: true },
-  { id: "p15", storeId: "s6", name: "Tinta Coral Rende Muito 3.6L Branco Neve", price: 89.9,  originalPrice: 119.9, description: "Tinta acrílica lavável para paredes internas. Rendimento de até 40m² por demão, secagem rápida e fácil aplicação.", category: "construcao", image: P_TINTA, onSale: true },
-  { id: "p16", storeId: "s6", name: "Tomada 2P+T 10A Pial Legrand",             price: 18.9,  description: "Tomada de embutir padrão NBR 14136, com aterramento, 10A/250V. Placa slim compatível com linha Pial Plus.", category: "construcao", image: pTomada },
+  /* ── Leroy Merlin (s6) — Construção | mix profissional/realista ── */
+  { id: "p14", storeId: "s6", name: "Cimento CP-II Votoran 50kg",                    price: 39.9,  originalPrice: 49.9,  description: "Cimento Portland CP-II-E-32 para alvenaria, reboco, contrapiso e argamassas. Saco 50kg. Entrega em obra disponível na Grande Fortaleza.", category: "construcao", image: pCimento, onSale: true, popular: true,
+    logistica: { peso: 50, dims: [80,50,15], porte: "G", temEmbalagem: true, entrega: "loja", prazo: "Agendado", taxa: 0 } },
+  { id: "p15", storeId: "s6", name: "Tinta Coral Rende Muito Branco Neve 3,6L",      price: 89.9,  originalPrice: 119.9, description: "Tinta acrílica lavável para paredes internas. Rendimento 40m²/demão, cobertura em 2 demãos, secagem 1h. Base água, odor reduzido.", category: "construcao", image: P_TINTA, onSale: true,
+    logistica: { peso: 5, dims: [30,20,20], porte: "M", temEmbalagem: true, entrega: "carro", prazo: "1-2 dias", taxa: 0 } },
+  { id: "p16", storeId: "s6", name: "Tomada USB-A+C 10A Pial Legrand",               price: 32.9,  description: "Tomada com 1 saída ABNT + 1 USB-A + 1 USB-C para carregamento rápido. Padrão NBR 14136, 10A/250V. Placa branca compatível Pial Plus.", category: "construcao", image: pTomada,
+    logistica: { peso: 0.08, dims: [9,9,5], porte: "P", temEmbalagem: true, entrega: "motoboy", prazo: "Mesmo dia", taxa: 0 } },
+  { id: "p36", storeId: "s6", name: "Guarda-Roupa Casal 6 Portas 2 Espelhos",        price: 1299.0, originalPrice: 1699.0, description: "MDF 15mm, 6 portas, 2 espelhos bisotados, 4 gavetas internas e 2 cabideiros extensíveis. Cor branco fosco. Frete e montagem inclusa na Grande Fortaleza.", category: "moveis", image: P_GUARDAROUPA, onSale: true,
+    logistica: { peso: 85, dims: [195,165,58], porte: "GG", temEmbalagem: false, entrega: "loja", prazo: "5-10 dias úteis", taxa: 0 } },
 
-  /* Ferragem Fortaleza (s7) — Ferramentas */
-  { id: "p17", storeId: "s7", name: "Martelo de Borracha com Cabo de Madeira",  price: 34.5,  description: "Martelo anti-impacto 500g para pisos, carpintaria e acabamentos. Cabo ergonômico antiderrapante.", category: "ferramentas", image: pMartelo, popular: true },
-  { id: "p18", storeId: "s7", name: "Furadeira de Impacto Bosch 600W",          price: 289.0, originalPrice: 349.0, description: "Furadeira GSB 600 com mandril 13mm, 2 velocidades e maleta de acessórios. Ideal para alvenaria e concreto.", category: "ferramentas", image: pFuradeira, onSale: true },
-  { id: "p19", storeId: "s7", name: "Chave de Boca Ajustável 8\" Gedore",        price: 52.9,  description: "Chave inglesa de aço forjado, abertura de 0 a 26mm. Revestimento cromado anti-ferrugem.", category: "ferramentas", image: pChave },
+  /* ── Ferragem Fortaleza (s7) — Ferramentas | fotos de produto real ── */
+  { id: "p17", storeId: "s7", name: "Martelo de Borracha 500g Tramontina",            price: 34.5,  description: "Cabeça bicolor borracha preta/branca 500g anti-impacto para pisos cerâmicos e carpintaria. Cabo fibra de vidro antiderrapante.", category: "ferramentas", image: pMartelo, popular: true,
+    logistica: { peso: 0.7, dims: [40,15,5], porte: "P", temEmbalagem: true, entrega: "motoboy", prazo: "Mesmo dia", taxa: 0 } },
+  { id: "p18", storeId: "s7", name: "Furadeira de Impacto Bosch GSB 600 13mm",        price: 289.0, originalPrice: 349.0, description: "600W, mandril 1/2\" com chave, 2 velocidades e função impacto. Maleta com 15 acessórios inclusa. Ideal para concreto, alvenaria e madeira.", category: "ferramentas", image: pFuradeira, onSale: true,
+    logistica: { peso: 2.5, dims: [35,30,15], porte: "M", temEmbalagem: true, entrega: "carro", prazo: "Mesmo dia", taxa: 0 } },
+  { id: "p19", storeId: "s7", name: "Chave de Boca Ajustável 8\" Gedore",             price: 52.9,  description: "Aço forjado cromo-vanádio, abertura 0–26mm, cabo emborrachado ergonômico. Norma DIN 3117A. Resistência superior em torque.", category: "ferramentas", image: pChave,
+    logistica: { peso: 0.3, dims: [25,8,3], porte: "P", temEmbalagem: true, entrega: "motoboy", prazo: "Mesmo dia", taxa: 0 } },
+  { id: "p37", storeId: "s7", name: "Kit Parafusos Sextavados Zincados M8 50pçs",    price: 18.9,  description: "50 parafusos sextavados M8×25mm zincados + porcas e arruelas correspondentes. Caixa plástica organizadora inclusa. Ideal para estruturas e cercas.", category: "ferramentas", image: P_PARAFUSOS,
+    logistica: { peso: 0.4, dims: [15,10,8], porte: "P", temEmbalagem: true, entrega: "motoboy", prazo: "Mesmo dia", taxa: 0 } },
 
-  /* O Boticário (s8) — Cosméticos */
-  { id: "p20", storeId: "s8", name: "Perfume Malbec Original Masculino 100ml",  price: 219.9, originalPrice: 269.9, description: "Fragrância amadeirada com notas de ameixa, couro e sândalo. Sofisticado e duradouro, ideal para o dia a dia.", category: "cosmeticos", image: P_PERFUME, onSale: true, popular: true },
-  { id: "p21", storeId: "s8", name: "Hidratante Nativa Spa Manteiga Karité 400ml", price: 64.9, originalPrice: 84.9, description: "Hidratação profunda para pele seca. Enriquecido com manteiga de karité e óleo de argan. Absorção rápida.", category: "cosmeticos", image: P_HIDRATANTE, onSale: true },
+  /* ── O Boticário (s8) — Cosméticos | embalagens elegantes ── */
+  { id: "p20", storeId: "s8", name: "Perfume Malbec Original EDP Masculino 100ml",   price: 219.9, originalPrice: 269.9, description: "Fragrância amadeirada intensa. Notas de ameixa negra, couro, sândalo e âmbar. Alta fixação para o dia todo. Exclusivo O Boticário.", category: "cosmeticos", image: P_PERFUME, onSale: true, popular: true,
+    logistica: { peso: 0.4, dims: [15,8,8], porte: "P", temEmbalagem: true, entrega: "motoboy", prazo: "Em até 2h", taxa: 0 } },
+  { id: "p21", storeId: "s8", name: "Loção Nativa SPA Karité + Argan 400ml",         price: 64.9,  originalPrice: 84.9,  description: "Loção corporal com manteiga de karité orgânica e óleo de argan. Hidratação 48h, absorção rápida, pele macia e perfumada.", category: "cosmeticos", image: P_HIDRATANTE, onSale: true,
+    logistica: { peso: 0.45, dims: [20,8,8], porte: "P", temEmbalagem: true, entrega: "motoboy", prazo: "Em até 2h", taxa: 0 } },
 
-  /* Cobasi (s9) — Pet Shop */
-  { id: "p22", storeId: "s9", name: "Ração Royal Canin Gatos Adultos 1,5kg",   price: 89.9,  originalPrice: 109.9, description: "Nutrição completa para gatos adultos (1-7 anos). Croquetes com formato e sabor palatável, suporte renal e urinário.", category: "petshop", image: P_RACAO, onSale: true, popular: true },
-  { id: "p23", storeId: "s9", name: "Areia Higiênica Pipicat Extra 4kg",        price: 27.9,  originalPrice: 34.9,  description: "Areia de bentonita com granulação fina, alta absorção e controle de odores com bicarbonato de sódio.", category: "petshop", image: P_AREIA, onSale: true },
+  /* ── Cobasi (s9) — Pet Shop | fotos de produto real ── */
+  { id: "p22", storeId: "s9", name: "Ração Royal Canin Gatos Adultos Indoor 1,5kg",  price: 89.9,  originalPrice: 109.9, description: "Nutrição completa para gatos adultos de 1 a 7 anos. Croquetes palatáveis com suporte à saúde renal e urinária. Sem corantes artificiais.", category: "petshop", image: P_RACAO, onSale: true, popular: true,
+    logistica: { peso: 1.7, dims: [25,15,10], porte: "P", temEmbalagem: true, entrega: "motoboy", prazo: "Mesmo dia", taxa: 0 } },
+  { id: "p23", storeId: "s9", name: "Areia Higiênica Pipicat Extra Perfumada 4kg",   price: 27.9,  originalPrice: 34.9,  description: "Bentonita granulação fina, aglomerante instantâneo, perfume suave. Alta absorção e controle de odores com bicarbonato de sódio.", category: "petshop", image: P_AREIA, onSale: true,
+    logistica: { peso: 4.5, dims: [35,25,12], porte: "M", temEmbalagem: true, entrega: "carro", prazo: "Mesmo dia", taxa: 0 } },
 
-  /* AutoZone (s10) — Autopeças */
-  { id: "p24", storeId: "s10", name: "Óleo Castrol GTX 5W-30 Semissintético 1L", price: 34.9, description: "Óleo para motor com tecnologia Basestock, proteção superior contra desgaste e alto desempenho em temperaturas extremas.", category: "autopecas", image: P_OLEO, popular: true },
-  { id: "p25", storeId: "s10", name: "Palheta Dianteira Bosch Aerotwin",          price: 89.9, originalPrice: 119.9, description: "Palheta sem moldura de alta performance, silêncio absoluto e contato uniforme. Par completo para veículos populares.", category: "autopecas", image: P_PALHETA, onSale: true },
+  /* ── AutoZone (s10) — Autopeças | fundo neutro profissional ── */
+  { id: "p24", storeId: "s10", name: "Óleo Castrol GTX 5W-30 Semissintético 1L",     price: 34.9,  description: "API SN/SM, viscosidade 5W-30. Proteção superior contra desgaste, depósitos e corrosão. Para motores de gasolina e flex modernos.", category: "autopecas", image: P_OLEO, popular: true,
+    logistica: { peso: 1.0, dims: [25,10,10], porte: "P", temEmbalagem: true, entrega: "motoboy", prazo: "Mesmo dia", taxa: 0 } },
+  { id: "p25", storeId: "s10", name: "Par Palheta Bosch Aerotwin A316S — dianteiro",  price: 89.9,  originalPrice: 119.9, description: "Palhetas sem moldura para Fiat Strada, Uno, Palio e Siena. Contato uniforme, eliminação de borrifos e silêncio total na chuva.", category: "autopecas", image: P_PALHETA, onSale: true,
+    logistica: { peso: 0.3, dims: [60,10,4], porte: "P", temEmbalagem: true, entrega: "motoboy", prazo: "Mesmo dia", taxa: 0 } },
 
-  /* Kalunga (s11) — Papelaria */
-  { id: "p26", storeId: "s11", name: "Caderno Universitário Espiral 200fls",    price: 24.9, originalPrice: 32.0,  description: "10 matérias, capa dura, papel 90g/m² de alta brancura. Formato A4. Disponível em diversas cores.", category: "papelaria", image: pCaderno, onSale: true },
-  { id: "p27", storeId: "s11", name: "Impressora HP DeskJet Advantage 2776",    price: 399.0, originalPrice: 499.0, description: "Impressora multifuncional Wi-Fi para casa e escritório. Imprime, copia e digitaliza. Compatível com HP+ e cartuchos originais.", category: "papelaria", image: P_IMPRESSORA, onSale: true, popular: true },
+  /* ── Kalunga (s11) — Papelaria | fotos de catálogo ── */
+  { id: "p26", storeId: "s11", name: "Caderno Universitário 200fls 10 Matérias A4",  price: 24.9,  originalPrice: 32.0,  description: "Espiral duplo, capa dura plastificada, papel 90g/m² alta brancura com pautas. Divisórias plásticas com abas. 8 cores disponíveis.", category: "papelaria", image: pCaderno, onSale: true,
+    logistica: { peso: 1.2, dims: [30,22,3], porte: "P", temEmbalagem: true, entrega: "motoboy", prazo: "Mesmo dia", taxa: 0 } },
+  { id: "p27", storeId: "s11", name: "Impressora HP Ink Advantage 2776 Multifuncional", price: 399.0, originalPrice: 499.0, description: "Imprime, copia e digitaliza com Wi-Fi. Compatível com HP+, cartuchos GT53/GT52. Até 7,5ppm preto. Para casa e escritório.", category: "papelaria", image: P_IMPRESSORA, onSale: true, popular: true,
+    logistica: { peso: 3.5, dims: [20,38,47], porte: "M", temEmbalagem: true, entrega: "carro", prazo: "1-2 dias", taxa: 0 } },
 
-  /* Havan (s12) — Utilidades */
-  { id: "p28", storeId: "s12", name: "Lâmpada LED 9W E27 Philips",             price: 14.9, description: "Lâmpada LED 9W com soquete E27, luz branca 6500K. Substitui lâmpada incandescente de 60W. Vida útil de 15.000 horas.", category: "eletronicos", image: pLampada, popular: true },
-  { id: "p29", storeId: "s12", name: "Kit Organizador de Armário 6 Peças",      price: 59.9, originalPrice: 79.9, description: "Conjunto plástico para organizar prateleiras, gavetas e armários. Inclui 3 caixas, 2 divisórias e 1 suporte.", category: "utilidades", image: P_ORGANIZADOR, onSale: true },
-  { id: "p30", storeId: "s12", name: "Vassoura Mágica Giratória 360°",          price: 49.9, description: "Vassoura com cabo telescópico de 1.2m, cabeça giratória e refil lavável. Ideal para pisos lisos e carpetes.", category: "utilidades", image: pEscova },
+  /* ── Havan (s12) — Utilidades | fotos variadas ── */
+  { id: "p28", storeId: "s12", name: "Lâmpada LED 9W E27 Luz Branca Philips Bivolt",  price: 14.9,  description: "6500K branco frio, 810 lúmens, equivale a incandescente de 60W. Vida útil 15.000h, sem cintilação (no-flicker). Bivolt 127/220V.", category: "utilidades", image: pLampada, popular: true,
+    logistica: { peso: 0.1, dims: [12,6,6], porte: "P", temEmbalagem: true, entrega: "motoboy", prazo: "Mesmo dia", taxa: 0 } },
+  { id: "p29", storeId: "s12", name: "Jogo de Cama Queen 4 Peças 200 Fios Algodão",   price: 89.9,  originalPrice: 119.9, description: "100% algodão 200 fios. Lençol com elástico 40cm, lençol plano e 2 fronhas. Toque macio, lavável na máquina 40°C. Diversas cores.", category: "utilidades", image: P_JOGO_CAMA, onSale: true, popular: true,
+    logistica: { peso: 2.0, dims: [35,25,8], porte: "M", temEmbalagem: true, entrega: "carro", prazo: "Mesmo dia", taxa: 0 } },
+  { id: "p30", storeId: "s12", name: "Kit Organizador de Armário 6 Peças Plástico",   price: 49.9,  originalPrice: 69.9,  description: "3 caixas empilháveis + 2 divisórias de gaveta + 1 suporte multiúso em PP resistente. Organizável por tamanho. Branco ou cinza.", category: "utilidades", image: P_ORGANIZADOR, onSale: true,
+    logistica: { peso: 1.5, dims: [30,25,15], porte: "M", temEmbalagem: true, entrega: "carro", prazo: "Mesmo dia", taxa: 0 } },
 
-  /* ── Sampaio Cell (s13) — Celulares e acessórios ─── */
-  { id: "p38", storeId: "s13", name: "Capinha iPhone 15 Transparente Anti-impacto", price: 39.9, description: "Case acrílica transparente com bordas em TPU, proteção contra quedas e arranhões. Compatível com carregamento sem fio.", category: "eletronicos", image: P_CAPINHA, popular: true },
-  { id: "p39", storeId: "s13", name: "Carregador Turbo 65W USB-C + Cabo 1m",       price: 79.9, originalPrice: 99.9, description: "Carregador compacto com tecnologia PD 65W e cabo USB-C trançado. Carrega smartphone em 30 minutos.", category: "eletronicos", image: P_CARREGADOR, onSale: true, popular: true },
-  { id: "p40", storeId: "s13", name: "Fone In-Ear Samsung Tipo-C Original",         price: 49.9, originalPrice: 69.9, description: "Fone original Samsung com conector USB-C, microfone integrado e qualidade de áudio cristalina.", category: "eletronicos", image: P_FONE, onSale: true },
+  /* ── Sampaio Cell (s13) — empreendedor local | fotos simples, ambiente real ── */
+  { id: "p38", storeId: "s13", name: "Capinha iPhone 15 Transparente Anti-impacto",   price: 39.9,  description: "Case acrílica clear com borda TPU reforçada, proteção anti-queda 1,5m. Compatível com MagSafe e carregamento sem fio. Temos varios modelos, chama no WhatsApp.", category: "eletronicos", image: P_CAPINHA, popular: true,
+    logistica: { peso: 0.05, dims: [18,10,1], porte: "P", temEmbalagem: true, entrega: "motoboy", prazo: "Mesmo dia", taxa: 0 } },
+  { id: "p39", storeId: "s13", name: "Carregador Turbo 65W GaN USB-C Compacto",        price: 79.9,  originalPrice: 99.9,  description: "Tecnologia GaN PD 65W, carrega iPhone, Galaxy, iPad e notebooks finos em até 30min. Cabo USB-C 1m trançado incluso.", category: "eletronicos", image: P_CARREGADOR, onSale: true, popular: true,
+    logistica: { peso: 0.2, dims: [10,8,6], porte: "P", temEmbalagem: true, entrega: "motoboy", prazo: "Mesmo dia", taxa: 0 } },
+  { id: "p40", storeId: "s13", name: "Fone TWS Bluetooth 5.3 com Case de Carga",       price: 69.9,  originalPrice: 99.9,  description: "Fone sem fio TWS in-ear, conectividade BT 5.3, até 6h de uso + 20h com o case. Microfone integrado para chamadas.", category: "eletronicos", image: P_EARBUDS, onSale: true,
+    logistica: { peso: 0.08, dims: [7,5,3], porte: "P", temEmbalagem: true, entrega: "motoboy", prazo: "Mesmo dia", taxa: 0 } },
 
-  /* ── Croma Tecnologia (s14) — Assistência e informática */
-  { id: "p41", storeId: "s14", name: "Troca de Tela iPhone 14 (serviço)",          price: 399.0, description: "Substituição de display Original OEM com garantia de 90 dias. Diagnóstico gratuito antes do serviço. Retirada no mesmo dia.", category: "eletronicos", image: pSmartphoneSeminovo, popular: true },
-  { id: "p42", storeId: "s14", name: "Notebook Recondicionado Dell i5 8GB 256GB",  price: 1499.0, originalPrice: 1899.0, description: "Notebook recondicionado certificado com garantia de 6 meses. SSD 256GB, 8GB RAM, tela 15.6\". Excelente custo-benefício.", category: "eletronicos", image: P_NOTEBOOK, onSale: true },
+  /* ── Croma Tecnologia (s14) — verificado | fotos técnicas ── */
+  { id: "p41", storeId: "s14", name: "Troca de Tela iPhone 14 — Display Original OEM", price: 399.0, description: "Substituição completa do display iPhone 14 com peça original OEM. Garantia 90 dias. Diagnóstico gratuito, retirada no mesmo dia. 39 anos de mercado.", category: "eletronicos", image: P_TELA_CEL, popular: true,
+    logistica: { peso: 0, dims: [0,0,0], porte: "P", temEmbalagem: false, entrega: "servico", prazo: "Mesmo dia" } },
+  { id: "p42", storeId: "s14", name: "Notebook Dell i5 8GB 256GB — Recondicionado",   price: 1499.0, originalPrice: 1899.0, description: "Dell Latitude 5490 certificado pela Croma. SSD 256GB, 8GB DDR4, bateria trocada. Garantia 6 meses. Testado por técnicos certificados Apple e Dell.", category: "eletronicos", image: P_NOTEBOOK, onSale: true,
+    logistica: { peso: 2.2, dims: [35,25,5], porte: "M", temEmbalagem: true, entrega: "carro", prazo: "1-2 dias", taxa: 0 } },
 
-  /* ── Farmácias Santa Branca (s15) ───────────────────── */
-  { id: "p43", storeId: "s15", name: "Dipirona Sódica 500mg c/ 20 comprimidos",    price: 7.9, description: "Analgésico e antitérmico de referência nacional. Alívio de dor e febre em até 30 minutos. Sem receita.", category: "farmacia", image: pRemedio, popular: true },
-  { id: "p44", storeId: "s15", name: "Protetor Solar Sundown FPS 60 200ml",        price: 44.9, originalPrice: 59.9, description: "Fórmula resistente à água, textura fluida para pele mista ou oleosa. Proteção UVA/UVB de amplo espectro.", category: "farmacia", image: P_PROTETOR, onSale: true },
+  /* ── Farmácias Santa Branca (s15) — farmácia regional ── */
+  { id: "p43", storeId: "s15", name: "Dipirona Sódica 500mg c/ 20 comprimidos",       price: 7.9,   description: "Genérico de referência. Analgésico e antitérmico de ação rápida. Alívio de dor e febre em até 30 min. Venda sem receita.", category: "farmacia", image: pRemedio, popular: true,
+    logistica: { peso: 0.08, dims: [10,4,3], porte: "P", temEmbalagem: true, entrega: "motoboy", prazo: "Em até 1h", taxa: 0 } },
+  { id: "p44", storeId: "s15", name: "Protetor Solar Sundown Bronze FPS 60 200ml",    price: 44.9,  originalPrice: 59.9,  description: "Loção fluida resistente à água, UVA+UVB amplo espectro. Textura leve para uso diário. Não comedogênica. Fragrância suave.", category: "farmacia", image: P_PROTETOR, onSale: true,
+    logistica: { peso: 0.25, dims: [18,5,5], porte: "P", temEmbalagem: true, entrega: "motoboy", prazo: "Em até 1h", taxa: 0 } },
 
-  /* ── Farmácias Conviva (s16) ─────────────────────────── */
-  { id: "p45", storeId: "s16", name: "Vitamina C 1g Efervescente c/ 10 tubos",    price: 22.9, originalPrice: 29.9, description: "Suplemento de vitamina C sabor laranja. Efervescente de dissolução rápida. Fortalece imunidade e melhora disposição.", category: "farmacia", image: P_VITAMINA, onSale: true },
-  { id: "p46", storeId: "s16", name: "Kit Curativo Band-Aid Sortido 40 unidades",  price: 18.9, description: "Kit com curativos de tamanhos variados (pequeno, médio, grande e articulações). Flexível e hipoalergênico.", category: "farmacia", image: pRemedio },
+  /* ── Farmácias Conviva (s16) — farmácia regional ── */
+  { id: "p45", storeId: "s16", name: "Vitamina C 1g Efervescente Laranja c/ 10un",    price: 22.9,  originalPrice: 29.9,  description: "Vitamina C 1000mg sabor laranja. Dissolução rápida, fortalece imunidade, combate radicais livres. Sem açúcar, sem glúten.", category: "farmacia", image: P_VITAMINA, onSale: true,
+    logistica: { peso: 0.12, dims: [12,4,4], porte: "P", temEmbalagem: true, entrega: "motoboy", prazo: "Em até 1h", taxa: 0 } },
+  { id: "p46", storeId: "s16", name: "Curativo Band-Aid Resistente Sortido 40 un.",    price: 18.9,  description: "40 curativos em 4 tamanhos (pequeno, médio, grande e articulação). Almofada não-aderente, hipoalergênico, adesivo forte e flexível.", category: "farmacia", image: P_CURATIVO,
+    logistica: { peso: 0.1, dims: [15,8,3], porte: "P", temEmbalagem: true, entrega: "motoboy", prazo: "Em até 1h", taxa: 0 } },
 
-  /* ── Premolferro (s17) — Ferragens e construção ───────── */
-  { id: "p47", storeId: "s17", name: "Varão de Aço CA-50 12mm (barra 12m)",        price: 89.9, description: "Aço nervurado CA-50 para estruturas de concreto armado. Barra de 12 metros, resistência garantida conforme norma ABNT.", category: "construcao", image: pCimento, popular: true },
-  { id: "p48", storeId: "s17", name: "Parafuso Sextavado Zincado 5/16\" — cx 100", price: 34.9, originalPrice: 45.9, description: "Caixa com 100 parafusos sextavados 5/16\" × 1\" zincados. Ideal para estruturas metálicas, cercas e fixações gerais.", category: "ferramentas", image: pChave, onSale: true },
+  /* ── Premolferro (s17) — construção/ferragens ── */
+  { id: "p47", storeId: "s17", name: "Varão de Aço CA-50 12mm — barra 12 metros",     price: 89.9,  description: "Aço nervurado CA-50 para concreto armado. Barra 12m. Norma ABNT NBR 7480. Corte sob medida disponível na loja. Vendemos por unidade ou kit.", category: "construcao", image: P_VERGALHAO, popular: true,
+    logistica: { peso: 10.7, dims: [12,12,1200], porte: "GG", temEmbalagem: false, entrega: "retirada", prazo: "Retirada na loja" } },
+  { id: "p48", storeId: "s17", name: "Kit Parafusos Sextavados Zincados 5/16\" 100x",  price: 34.9,  originalPrice: 45.9,  description: "100 parafusos sextavados M8×25mm zincados para estruturas metálicas e cercas. Atendemos construtoras e autônomos com preço de atacado.", category: "construcao", image: P_PARAFUSOS, onSale: true,
+    logistica: { peso: 0.8, dims: [15,10,8], porte: "P", temEmbalagem: true, entrega: "motoboy", prazo: "Mesmo dia", taxa: 0 } },
 
-  /* ── Legal Patas (s18) — Pet shop local ─────────────── */
-  { id: "p49", storeId: "s18", name: "Ração Purina Pro Plan Cães Adultos 3kg",    price: 109.9, originalPrice: 139.9, description: "Ração super premium para cães adultos com frango como primeiro ingrediente. Suporte à imunidade e saúde digestiva.", category: "petshop", image: P_RACAO, onSale: true, popular: true },
-  { id: "p50", storeId: "s18", name: "Coleira Anti-Pulgas Seresto 8 meses — Cão", price: 139.9, originalPrice: 169.9, description: "Coleira de proteção contínua contra pulgas e carrapatos por até 8 meses. Resistente à água e segura para uso diário.", category: "petshop", image: P_COLEIRA, onSale: true },
+  /* ── Legal Patas (s18) — pet shop de bairro | fotos mais simples ── */
+  { id: "p49", storeId: "s18", name: "Ração Purina Pro Plan Cães Adultos 3kg",        price: 109.9, originalPrice: 139.9, description: "Super premium com frango como 1º ingrediente. Probióticos vivos para saúde digestiva, ômega-3 para pelagem brilhante. Raças P e M.", category: "petshop", image: P_RACAO_CAO, onSale: true, popular: true,
+    logistica: { peso: 3.2, dims: [30,20,12], porte: "M", temEmbalagem: true, entrega: "carro", prazo: "Mesmo dia", taxa: 0 } },
+  { id: "p50", storeId: "s18", name: "Coleira Anti-Pulgas Seresto 8 meses — Cão M",   price: 139.9, originalPrice: 169.9, description: "Proteção contínua 8 meses. Elimina pulgas e carrapatos por contato. Resistente à água. Ajustável. Indicada por veterinários.", category: "petshop", image: P_COLEIRA, onSale: true,
+    logistica: { peso: 0.04, dims: [25,15,2], porte: "P", temEmbalagem: true, entrega: "motoboy", prazo: "Mesmo dia", taxa: 0 } },
 
-  /* ── Animale Petshop (s25) ───────────────────────────── */
-  { id: "p51", storeId: "s25", name: "Ração Hill's Science Diet Gatos Adultos 2kg", price: 129.9, originalPrice: 159.9, description: "Nutrição clínica veterinária para gatos adultos. Ingredientes selecionados para saúde renal, urinária e pelagem brilhante.", category: "petshop", image: P_RACAO, onSale: true },
-  { id: "p52", storeId: "s25", name: "Cama Pet Orthopedic Tamanho M",              price: 149.9, description: "Cama ortopédica com espuma viscoelástica, capa removível lavável e antiderrapante. Ideal para cães e gatos de raças médias.", category: "petshop", image: P_AREIA },
+  /* ── Animale Petshop (s25) — pet shop verificado ── */
+  { id: "p51", storeId: "s25", name: "Ração Hill's Science Diet Gatos Adultos 2kg",   price: 129.9, originalPrice: 159.9, description: "Fórmula clínica veterinária. Alta digestibilidade, suporte renal e urinário, pelagem brilhante. Ingredientes selecionados sem corantes.", category: "petshop", image: P_RACAO, onSale: true,
+    logistica: { peso: 2.2, dims: [28,18,10], porte: "M", temEmbalagem: true, entrega: "carro", prazo: "Mesmo dia", taxa: 0 } },
+  { id: "p52", storeId: "s25", name: "Cama Pet Ortopédica Lavável Tamanho M",          price: 149.9, originalPrice: 189.9, description: "Espuma viscoelástica D40, capa de veludo antimicrobiana removível, base antiderrapante. Para cães e gatos até 15kg. Lavável na máquina.", category: "petshop", image: P_CAMA_PET, onSale: true,
+    logistica: { peso: 2.0, dims: [10,60,80], porte: "M", temEmbalagem: true, entrega: "carro", prazo: "1-2 dias", taxa: 0 } },
 
-  /* ── Evaldo Auto Peças (s19) ─────────────────────────── */
-  { id: "p53", storeId: "s19", name: "Bateria Moura Free 60Ah — selada",          price: 379.9, originalPrice: 449.9, description: "Bateria automotiva selada Moura Free 60Ah. Livre de manutenção, alta durabilidade e instalação gratuita na loja.", category: "autopecas", image: P_BATERIA_CAR, onSale: true, popular: true },
-  { id: "p54", storeId: "s19", name: "Kit 4 Velas de Ignição NGK G-Power",        price: 89.9, originalPrice: 119.9, description: "Velas de ignição com ponta de platina G-Power. Maior durabilidade, melhor desempenho e economia de combustível.", category: "autopecas", image: P_PECA_AUTO, onSale: true },
-  { id: "p55", storeId: "s19", name: "Óleo Lubrax Top Turbo 15W-40 5L",           price: 99.9, description: "Óleo mineral para motores diesel e gasolina. Alta proteção contra desgaste, indicado para veículos com carburador.", category: "autopecas", image: P_OLEO },
+  /* ── Evaldo Auto Peças (s19) — verificado ── */
+  { id: "p53", storeId: "s19", name: "Bateria Moura Free 60Ah — livre de manutenção", price: 379.9, originalPrice: 449.9, description: "Tecnologia chumbo-cálcio selada, alta vida útil e resistência ao calor nordestino. Instalação gratuita na loja. Garantia 18 meses Moura.", category: "autopecas", image: P_BATERIA_CAR, onSale: true, popular: true,
+    logistica: { peso: 15, dims: [24,17,18], porte: "G", temEmbalagem: false, entrega: "loja", prazo: "Mesmo dia (instalação na loja)", taxa: 0 } },
+  { id: "p54", storeId: "s19", name: "Kit 4 Velas de Ignição NGK Iridium IX",         price: 89.9,  originalPrice: 119.9, description: "Ponta de iridium 0,6mm para queima perfeita, mais potência e até 10% menos consumo. Para Honda, Toyota, GM, Ford e VW.", category: "autopecas", image: P_PECA_AUTO, onSale: true,
+    logistica: { peso: 0.15, dims: [12,10,8], porte: "P", temEmbalagem: true, entrega: "motoboy", prazo: "Mesmo dia", taxa: 0 } },
+  { id: "p55", storeId: "s19", name: "Óleo Lubrax Top Turbo Diesel 15W-40 5L",        price: 99.9,  description: "Óleo mineral para motores diesel turbo e aspir. API CH-4/CG-4, ACEA E3/E5. Indicado para caminhonetes, utilitários e vans.", category: "autopecas", image: P_OLEO,
+    logistica: { peso: 5, dims: [35,15,15], porte: "M", temEmbalagem: true, entrega: "carro", prazo: "Mesmo dia", taxa: 0 } },
 
-  /* ── Lojas Carrossel (s20) — Móveis ─────────────────── */
-  { id: "p56", storeId: "s20", name: "Cama Box Casal Ortobom Sleep Max",           price: 1299.0, originalPrice: 1699.0, description: "Conjunto cama box casal com colchão molas ensacadas e base bipartida. Regulagem de firmeza e entrega + montagem inclusa.", category: "moveis", image: P_CAMA_BOX, onSale: true, popular: true },
-  { id: "p57", storeId: "s20", name: "Conjunto de Panelas Tramontina Brava 5 pçs", price: 249.9, originalPrice: 329.9, description: "Conjunto de panelas em aço inox com fundo triplo encapsulado, alças baquelite e tampas de vidro. 5 peças sortidas.", category: "utilidades", image: P_PANELAS, onSale: true },
+  /* ── Lojas Carrossel (s20) — móveis | fotos de showroom ── */
+  { id: "p56", storeId: "s20", name: "Cama Box Casal Ortobom Sleep Max 138×188cm",    price: 1299.0, originalPrice: 1699.0, description: "Colchão molas ensacadas + base bipartida em MDF. Regulagem de firmeza, bordas retas, espuma box D26. Entrega + montagem inclusa em Fortaleza.", category: "moveis", image: P_CAMA_BOX, onSale: true, popular: true,
+    logistica: { peso: 65, dims: [55,138,188], porte: "GG", temEmbalagem: true, entrega: "loja", prazo: "3-7 dias úteis", taxa: 0 } },
+  { id: "p57", storeId: "s20", name: "Mesa de Jantar 6 Lugares Tampo Vidro Temperado", price: 849.0,  originalPrice: 1099.0, description: "Tampo vidro 8mm, base MDF laqueado branco. Mesa extensível 1,60m→2,00m. 6 cadeiras estofadas em linho incluídas. Entrega montada em Fortaleza.", category: "moveis", image: P_MESA_JANTAR, onSale: true,
+    logistica: { peso: 80, dims: [78,200,100], porte: "GG", temEmbalagem: false, entrega: "loja", prazo: "5-10 dias úteis", taxa: 0 } },
 
-  /* ── Companhia dos Móveis (s21) ──────────────────────── */
-  { id: "p58", storeId: "s21", name: "Rack para TV Painel Ripado 1.80m",           price: 899.0, originalPrice: 1199.0, description: "Painel ripado em MDF com suporte para TV de até 65\", LED embutido e nichos organizadores. Moderno e elegante.", category: "moveis", image: P_RACK_TV, onSale: true, popular: true },
-  { id: "p59", storeId: "s21", name: "Sofá 3 Lugares Veludo Linho Cinza",          price: 1299.0, originalPrice: 1699.0, description: "Sofá retrátil 3 lugares com tecido linho, pés em madeira e enchimento em espuma D33. Disponível em cinza e bege.", category: "moveis", image: P_SOFA, onSale: true },
+  /* ── Companhia dos Móveis (s21) — outlet 25 anos ── */
+  { id: "p58", storeId: "s21", name: "Rack Painel Ripado TV até 65\" com Fita LED",   price: 899.0,  originalPrice: 1199.0, description: "MDF ripado cinza cimento, suporte universal p/ TVs até 65\", fita LED RGB inclusa e 4 nichos com portas de correr. 1,80m de largura.", category: "moveis", image: P_RACK_TV, onSale: true, popular: true,
+    logistica: { peso: 40, dims: [50,180,40], porte: "GG", temEmbalagem: false, entrega: "loja", prazo: "5-10 dias úteis", taxa: 0 } },
+  { id: "p59", storeId: "s21", name: "Sofá Retrátil 3 Lugares Veludo Premium Cinza",  price: 1299.0, originalPrice: 1699.0, description: "Estrutura madeira eucalipto, espuma D33 confort, veludo importado anti-mofo. Retração 30cm. Pés em madeira natural. Pronta entrega.", category: "moveis", image: P_SOFA, onSale: true,
+    logistica: { peso: 70, dims: [92,215,92], porte: "GG", temEmbalagem: false, entrega: "loja", prazo: "3-7 dias úteis", taxa: 0 } },
 
-  /* ── Lojão das Utilidades (s22) ──────────────────────── */
-  { id: "p60", storeId: "s22", name: "Jogo de Cama Casal Queen 4 Peças 200 fios",  price: 89.9, originalPrice: 119.9, description: "Conjunto com lençol com elástico, lençol plano e 2 fronhas. Tecido 100% algodão, 200 fios, macio e durável.", category: "utilidades", image: P_CAMA_BOX, onSale: true, popular: true },
-  { id: "p61", storeId: "s22", name: "Porta-Temperos Giratório Aço Inox 12 potes", price: 69.9, originalPrice: 89.9, description: "Organizador giratório com 12 potes herméticos em vidro e base em aço inox. Ideal para bancadas de cozinha.", category: "utilidades", image: P_ORGANIZADOR, onSale: true },
+  /* ── Lojão das Utilidades (s22) — variedades ── */
+  { id: "p60", storeId: "s22", name: "Jogo de Cama Queen 4 Peças 200 Fios",           price: 79.9,  originalPrice: 109.9, description: "100% algodão 200 fios. Lençol c/ elástico fundo 40cm + lençol plano + 2 fronhas. Tamanho Queen 1,58×1,98m. Várias cores.", category: "utilidades", image: P_JOGO_CAMA, onSale: true, popular: true,
+    logistica: { peso: 2.0, dims: [35,25,8], porte: "M", temEmbalagem: true, entrega: "carro", prazo: "Mesmo dia", taxa: 0 } },
+  { id: "p61", storeId: "s22", name: "Porta-Temperos Giratório 12 potes Inox e Vidro", price: 69.9,  originalPrice: 89.9,  description: "12 potes herméticos de vidro borosilicato + suporte giratório 360° em aço inox. Etiquetas identificadoras e tampas de rosca incluídas.", category: "utilidades", image: P_UTENSILIOS, onSale: true,
+    logistica: { peso: 1.5, dims: [22,22,22], porte: "M", temEmbalagem: true, entrega: "carro", prazo: "Mesmo dia", taxa: 0 } },
 
-  /* ── DM Perfumaria (s23) — Cosméticos locais ─────────── */
-  { id: "p62", storeId: "s23", name: "Perfume Paris Elysees Vodka Rose 100ml EDP",  price: 69.9, originalPrice: 89.9, description: "Fragrância feminina floral com notas de morango, rosa e sândalo. Fixação prolongada e preço acessível.", category: "cosmeticos", image: P_PERFUME, onSale: true, popular: true },
-  { id: "p63", storeId: "s23", name: "Kit Maquiagem Ruby Rose 10 Peças",             price: 89.9, originalPrice: 129.9, description: "Kit completo com base, blush, contorno, iluminador, sombras, delineador e batom. Embalagem presente inclusa.", category: "cosmeticos", image: P_MAQUIAGEM, onSale: true },
-  { id: "p64", storeId: "s23", name: "Creme Hidratante Nivea Intensivo 400ml",       price: 29.9, description: "Hidratante corporal com manteiga de karité e vitamina E. Absorção rápida para pele seca. Fragrância suave.", category: "cosmeticos", image: P_HIDRATANTE },
+  /* ── DM Perfumaria (s23) — perfumaria regional ── */
+  { id: "p62", storeId: "s23", name: "Perfume Paris Elysees Vodka Rose EDP 100ml",    price: 69.9,  originalPrice: 89.9,  description: "Fragrância feminina floral frutada. Notas de morango, rosa de damasco e sândalo. Alta fixação, frasco exclusivo colecionável.", category: "cosmeticos", image: P_PERFUME, onSale: true, popular: true,
+    logistica: { peso: 0.35, dims: [15,8,8], porte: "P", temEmbalagem: true, entrega: "motoboy", prazo: "Mesmo dia", taxa: 0 } },
+  { id: "p63", storeId: "s23", name: "Kit Maquiagem Ruby Rose Presente 12 Peças",     price: 89.9,  originalPrice: 129.9, description: "Base, blush, iluminador, paleta sombra, delineador, máscara cílios e batom matte. Embalagem caixa presente com laço.", category: "cosmeticos", image: P_MAQUIAGEM, onSale: true,
+    logistica: { peso: 0.5, dims: [22,16,5], porte: "P", temEmbalagem: true, entrega: "motoboy", prazo: "Mesmo dia", taxa: 0 } },
+  { id: "p64", storeId: "s23", name: "Shampoo TRESemmé Cachos Hidrat. 400ml",         price: 24.9,  description: "Fórmula com proteína de seda e manteiga de karité para cachos hidratados e definidos. Sem parabenos. Para cabelos cacheados e crespos.", category: "cosmeticos", image: P_SHAMPOO,
+    logistica: { peso: 0.45, dims: [22,7,7], porte: "P", temEmbalagem: true, entrega: "motoboy", prazo: "Mesmo dia", taxa: 0 } },
 
-  /* ── Livraria Interativa (s24) — Papelaria ────────────── */
-  { id: "p65", storeId: "s24", name: "Kit Canetas Stabilo Boss Neon 10 cores",      price: 59.9, originalPrice: 75.9, description: "Marcadores fluorescentes Stabilo com tinta de secagem rápida e traço preciso. Ideais para estudo e organização.", category: "papelaria", image: pCaderno, onSale: true, popular: true },
-  { id: "p66", storeId: "s24", name: "Calculadora Científica Casio FX-82MS",        price: 89.9, originalPrice: 109.9, description: "240 funções, display natural com 2 linhas, ideal para estudantes do ensino médio e vestibular. Bateria inclusa.", category: "papelaria", image: P_CALCULADORA, onSale: true },
+  /* ── Livraria e Papelaria Interativa (s24) ── */
+  { id: "p65", storeId: "s24", name: "Kit Marcadores Stabilo Boss Neon 10 cores",     price: 59.9,  originalPrice: 75.9,  description: "Stabilo 70/10, traço 2–5mm, tinta fluorescente resistente à luz. Não mancha fotocópia. Ideal para estudo ativo e mapas mentais.", category: "papelaria", image: P_CANETAS, onSale: true, popular: true,
+    logistica: { peso: 0.1, dims: [20,10,3], porte: "P", temEmbalagem: true, entrega: "motoboy", prazo: "Mesmo dia", taxa: 0 } },
+  { id: "p66", storeId: "s24", name: "Calculadora Científica Casio FX-82MS 2ª Ed.",   price: 89.9,  originalPrice: 109.9, description: "240 funções, display de 2 linhas natural, tabelas, estatística e conversão de ângulos. Aprovada para ENEM, FUVEST e OAB.", category: "papelaria", image: P_CALCULADORA, onSale: true,
+    logistica: { peso: 0.25, dims: [14,8,2], porte: "P", temEmbalagem: true, entrega: "motoboy", prazo: "Mesmo dia", taxa: 0 } },
 
-  /* ── Vendedores individuais / Usados ──────────────── */
-  { id: "p31", sellerId: "u1", name: "Cadeira ergonômica de escritório",        price: 280.0, originalPrice: 420.0, description: "Cadeira giratória com regulagem de altura, apoio lombar e braços ajustáveis. Ótimo estado, pequenos arranhões na base.", category: "usados", image: pCadeiraUsada, onSale: true, popular: true },
-  { id: "p32", sellerId: "u2", name: "Smartphone Samsung Galaxy A32 128GB",     price: 590.0, description: "Aparelho pessoal com carregador original, bateria ótima e pequenos riscos na tela (sem afetar o toque). Funcionando 100%.", category: "eletronicos", image: pSmartphoneSeminovo, popular: true },
-  { id: "p33", sellerId: "u3", name: "Bicicleta Aro 29 Caloi Explorer",         price: 650.0, originalPrice: 850.0, description: "Bicicleta de passeio com 21 marchas, revisada. Freios a disco, quadro alumínio. Retirar com vendedor em Fortaleza.", category: "usados", image: pBicicletaUsada, onSale: true },
-  { id: "p34", sellerId: "u1", name: "Lote roupas infantis tamanhos 2 a 6",     price: 120.0, description: "Peças em ótimo estado — Zara, Hering Kids, Malwee. Tamanhos 2, 4 e 6 anos. Lavadas e passadas.", category: "moda", image: pRoupasInfantisUsadas },
-  { id: "p35", sellerId: "u3", name: "Mesa de escritório MDF 120cm",             price: 180.0, description: "Mesa compacta em MDF para home office, 120×60cm, com passagem de cabos. Retirar em Aldeota, Fortaleza.", category: "moveis", image: pMesaMadeiraUsada },
-
-  /* Produtos usados sem loja — para destaque na home */
-  { id: "p36", storeId: "s6", name: "Guarda-Roupa 6 Portas com Espelho",        price: 1299.0, originalPrice: 1699.0, description: "Guarda-roupa em MDF 15mm com 6 portas, 2 espelhos, 4 gavetas e 2 cabideiros. Cor branco. Frete incluso na Grande Fortaleza.", category: "moveis", image: P_GUARDAROUPA, onSale: true },
-  { id: "p37", storeId: "s7", name: "Detergente Multiuso Concentrado 500ml",    price: 9.9, originalPrice: 14.9, description: "Detergente neutro profissional concentrado para superfícies de cozinha, banheiro e piso. Rende até 5L diluído.", category: "utilidades", image: pDetergente, onSale: true },
+  /* ── Vendedores individuais — fotos de celular, ambiente doméstico ── */
+  { id: "p31", sellerId: "u1", name: "Cadeira ergonômica escritório — ótimo estado",  price: 280.0, originalPrice: 420.0, description: "Giratória, regulagem de altura e apoio lombar, braços articulados 3D. Pequenos riscos na base que não aparecem no uso. Retirar em Aldeota, Fortaleza.", category: "usados", image: pCadeiraUsada, onSale: true, popular: true,
+    logistica: { peso: 12, dims: [105,62,62], porte: "G", temEmbalagem: false, entrega: "retirada", prazo: "Combinar" } },
+  { id: "p32", sellerId: "u2", name: "Samsung Galaxy A32 128GB — funcionando 100%",   price: 590.0, description: "Aparelho pessoal, carregador original e capinha. Bateria excelente, pequenos riscos na tela que não afetam o touch. Troco por fone ou acessório de valor.", category: "eletronicos", image: pSmartphoneSeminovo, popular: true,
+    logistica: { peso: 0.18, dims: [15,7,1], porte: "P", temEmbalagem: false, entrega: "combinado", prazo: "Combinar" } },
+  { id: "p33", sellerId: "u3", name: "Bicicleta Aro 29 Caloi Explorer — revisada",    price: 650.0, originalPrice: 850.0, description: "21 marchas Shimano, freios disco mecânico, quadro alumínio. Revisão feita mês passado (corrente, freios e câmbios). Retirar com a vendedora em Fortaleza.", category: "usados", image: pBicicletaUsada, onSale: true,
+    logistica: { peso: 12, dims: [105,50,175], porte: "G", temEmbalagem: false, entrega: "retirada", prazo: "Combinar" } },
+  { id: "p34", sellerId: "u1", name: "Lote roupas infantis Zara/Hering tam. 2 a 6",   price: 120.0, description: "Peças em ótimo estado — Zara Kids, Hering Kids e Malwee. Tam. 2, 4 e 6 anos. Lavadas, passadas e algumas com etiqueta. Não tenho interesse em vender separado.", category: "moda", image: pRoupasInfantisUsadas,
+    logistica: { peso: 1.5, dims: [30,20,15], porte: "M", temEmbalagem: true, entrega: "combinado", prazo: "Combinar" } },
+  { id: "p35", sellerId: "u3", name: "Mesa home office MDF 120×60cm c/ gaveta",        price: 180.0, description: "Mesa compacta com 1 gaveta, 2 prateleiras inferiores e passagem de cabos. Excelente para home office. Retirar em Aldeota (não desmontada). Aceito pix.", category: "moveis", image: pMesaMadeiraUsada,
+    logistica: { peso: 16, dims: [75,120,60], porte: "G", temEmbalagem: false, entrega: "retirada", prazo: "Combinar" } },
 ];
 
 /* ═══════════════════════════════════════════════════════
