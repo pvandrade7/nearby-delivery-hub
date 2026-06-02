@@ -1,14 +1,17 @@
 import { useMemo, useState } from "react";
 import { Link, useSearchParams } from "react-router-dom";
 import { Search, X, Star, UserRound } from "lucide-react";
-import { categories, getProductSeller, products, stores } from "@/data/mockData";
+import { categories, getProductSeller, products, stores as MOCK_STORES } from "@/data/mockData";
 import { VerifiedBadge, VerifiedCheckIcon } from "@/components/VerifiedBadge";
+import { useStores } from "@/hooks/useStores";
 
 const ClientSearch = () => {
   const [params, setParams] = useSearchParams();
   const [query, setQuery] = useState("");
   const cat = params.get("cat") ?? "";
   const type = params.get("tipo") ?? "";
+
+  const { data: allStores = MOCK_STORES } = useStores();
 
   const filteredProducts = useMemo(() => {
     return products.filter((p) => {
@@ -21,12 +24,12 @@ const ClientSearch = () => {
 
   const filteredStores = useMemo(() => {
     if (type === "pessoa") return [];
-    return stores.filter((s) => {
+    return allStores.filter((s) => {
       const matchQ = query ? s.name.toLowerCase().includes(query.toLowerCase()) : true;
       const matchC = cat ? s.category === cat : true;
       return matchQ && matchC;
     });
-  }, [query, cat, type]);
+  }, [query, cat, type, allStores]);
 
   return (
     <div className="px-4 lg:px-8 py-6 lg:py-8 max-w-[1400px] mx-auto">

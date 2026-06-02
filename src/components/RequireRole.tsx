@@ -32,7 +32,7 @@ type Props = {
  * - Perfil encontrado     → renderiza children
  */
 export const RequireRole = ({ children, role, redirectTo = "/auth" }: Props) => {
-  const { session, roles, loading } = useAuth();
+  const { session, roles, loading, isDemo } = useAuth();
   const location = useLocation();
 
   if (loading) {
@@ -43,6 +43,9 @@ export const RequireRole = ({ children, role, redirectTo = "/auth" }: Props) => 
       </div>
     );
   }
+
+  // Modo demonstração: libera acesso sem sessão real
+  if (isDemo) return <>{children}</>;
 
   if (!session) {
     return <Navigate to={redirectTo} state={{ from: location.pathname }} replace />;

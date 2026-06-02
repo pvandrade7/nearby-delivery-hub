@@ -3,8 +3,9 @@ import {
   Star, ChevronRight, Tag, UserRound, MapPin, Heart,
   TrendingUp, Sparkles, BadgeCheck, Store as StoreIcon,
 } from "lucide-react";
-import { categories, stores, products, getProductSeller } from "@/data/mockData";
+import { categories, stores as MOCK_STORES, products, getProductSeller } from "@/data/mockData";
 import type { Logistica } from "@/data/mockData";
+import { useStores } from "@/hooks/useStores";
 import { VerifiedCheckIcon } from "@/components/VerifiedBadge";
 import { StoreLogo } from "@/components/StoreLogo";
 import { useFavorite } from "@/hooks/useFavorite";
@@ -47,8 +48,10 @@ const LocalStoreCard = ({ store }: { store: typeof stores[0] }) => {
           <div className="flex items-start justify-between gap-2">
             <div className="min-w-0">
               <p className="font-bold text-sm leading-tight truncate">{store.name}</p>
-              {cat && (
-                <p className="text-[11px] text-primary font-bold mt-0.5">{cat.emoji} {cat.name}</p>
+              {(cat || store.category) && (
+                <p className="text-[11px] text-primary font-bold mt-0.5">
+                  {cat ? `${cat.emoji} ${cat.name}` : store.category}
+                </p>
               )}
             </div>
             <span className="bg-accent text-accent-foreground px-2 py-0.5 rounded-md font-bold text-xs flex items-center gap-1 shrink-0">
@@ -97,9 +100,10 @@ const ChainStoreCard = ({ store }: { store: typeof stores[0] }) => (
 const ClientHome = () => {
   const navigate = useNavigate();
   const { city } = useUserCity();
+  const { data: allStores = MOCK_STORES } = useStores();
 
   /* Separa lojas por tipo */
-  const filterByCity = (arr: typeof stores) =>
+  const filterByCity = (arr: typeof allStores) =>
     city
       ? arr.filter((s) =>
           normalizeCity(s.city).includes(normalizeCity(city)) ||
@@ -107,7 +111,7 @@ const ClientHome = () => {
         )
       : arr;
 
-  const cityStores  = filterByCity(stores);
+  const cityStores  = filterByCity(allStores);
   const localStores = cityStores.filter((s) => s.isLocal);
   const chainStores = cityStores.filter((s) => !s.isLocal);
 

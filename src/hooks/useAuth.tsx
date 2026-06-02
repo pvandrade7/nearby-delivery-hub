@@ -13,6 +13,12 @@ type AuthCtx = {
   roles: UserRole[];
   /** true enquanto sessão + perfis ainda estão sendo carregados */
   loading: boolean;
+  /** true quando o usuário está navegando em modo demonstração */
+  isDemo: boolean;
+  /** Ativa o modo demonstração (sem login real no Supabase) */
+  enterDemoMode: () => void;
+  /** Desativa o modo demonstração e volta ao estado normal */
+  exitDemoMode: () => void;
   signOut: () => Promise<void>;
   /** Re-busca os roles do banco — usar após adicionar um novo perfil */
   refreshRoles: () => Promise<void>;
@@ -24,6 +30,9 @@ const Ctx = createContext<AuthCtx>({
   role: null,
   roles: [],
   loading: true,
+  isDemo: false,
+  enterDemoMode: () => {},
+  exitDemoMode: () => {},
   signOut: async () => {},
   refreshRoles: async () => {},
 });
@@ -67,6 +76,10 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [role,    setRole]    = useState<UserRole>(null);
   const [roles,   setRoles]   = useState<UserRole[]>([]);
   const [loading, setLoading] = useState(true);
+  const [isDemo,  setIsDemo]  = useState(() => sessionStorage.getItem("__demo_mode") === "1");
+
+  const enterDemoMode = () => { sessionStorage.setItem("__demo_mode", "1"); setIsDemo(true); };
+  const exitDemoMode  = () => { sessionStorage.removeItem("__demo_mode"); setIsDemo(false); };
 
   // ── Inicialização: busca sessão e roles de forma sequencial ──────────
   // loading só vai a false quando AMBOS estiverem prontos, evitando
@@ -124,6 +137,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   };
 
   const signOut = async () => {
+    exitDemoMode();
     setSession(null);
     setRole(null);
     setRoles([]);
@@ -137,6 +151,9 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       role,
       roles,
       loading,
+      isDemo,
+      enterDemoMode,
+      exitDemoMode,
       signOut,
       refreshRoles,
     }}>

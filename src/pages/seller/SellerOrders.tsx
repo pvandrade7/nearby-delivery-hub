@@ -18,6 +18,22 @@ type Order = {
   created_at: string;
 };
 
+// ── Dados demonstrativos ─────────────────────────────────────────────────────
+const _now = new Date();
+const _d = (n: number) => { const d = new Date(_now); d.setDate(d.getDate() - n); return d.toISOString(); };
+
+const DEMO_ORDERS: Order[] = [
+  { id: "a1b2c3d4e5f6a1b2", store_name: "Loja Demonstração", total: 189.90, status: "aprovado",   created_at: _d(0), items: [{ name: "Produto Premium",  quantity: 2, price: 94.95 }], payment: "PIX",      fulfillment: "delivery", address: "Rua das Flores, 123" },
+  { id: "b2c3d4e5f6a7b2c3", store_name: "Loja Demonstração", total: 79.90,  status: "preparando", created_at: _d(0), items: [{ name: "Item Especial",    quantity: 1, price: 79.90 }], payment: "Cartão",   fulfillment: "delivery", address: "Av. Central, 456" },
+  { id: "c3d4e5f6a7b8c3d4", store_name: "Loja Demonstração", total: 249.00, status: "saiu",       created_at: _d(1), items: [{ name: "Kit Completo",     quantity: 3, price: 83.00 }], payment: "PIX",      fulfillment: "delivery", address: "Rua Nova, 789" },
+  { id: "d4e5f6a7b8c9d4e5", store_name: "Loja Demonstração", total: 59.90,  status: "entregue",   created_at: _d(1), items: [{ name: "Produto Básico",   quantity: 1, price: 59.90 }], payment: "Dinheiro", fulfillment: "pickup",   address: null },
+  { id: "e5f6a7b8c9d0e5f6", store_name: "Loja Demonstração", total: 134.50, status: "entregue",   created_at: _d(2), items: [{ name: "Acessório Plus",   quantity: 2, price: 67.25 }], payment: "Cartão",   fulfillment: "delivery", address: "Rua Sul, 321" },
+  { id: "f6a7b8c9d0e1f6a7", store_name: "Loja Demonstração", total: 299.90, status: "entregue",   created_at: _d(3), items: [{ name: "Produto Top",      quantity: 1, price: 299.90 }], payment: "PIX",     fulfillment: "delivery", address: "Av. Norte, 654" },
+  { id: "a7b8c9d0e1f2a7b8", store_name: "Loja Demonstração", total: 44.90,  status: "entregue",   created_at: _d(4), items: [{ name: "Mini Kit",         quantity: 2, price: 22.45 }], payment: "PIX",      fulfillment: "delivery", address: "Rua Leste, 987" },
+  { id: "b8c9d0e1f2a3b8c9", store_name: "Loja Demonstração", total: 159.00, status: "aprovado",   created_at: _d(5), items: [{ name: "Produto Star",     quantity: 2, price: 79.50 }], payment: "Cartão",   fulfillment: "delivery", address: "Av. Oeste, 147" },
+];
+// ─────────────────────────────────────────────────────────────────────────────
+
 const statusFlow: OrderStatus[] = ["aprovado", "preparando", "saiu", "entregue"];
 
 const statusLabels: Record<OrderStatus, string> = {
@@ -49,16 +65,24 @@ const formatDate = (iso: string) => {
 };
 
 const SellerOrders = () => {
-  const { user } = useAuth();
+  const { user, isDemo } = useAuth();
   const [orders, setOrders] = useState<Order[]>([]);
   const [filter, setFilter] = useState<"all" | OrderStatus>("all");
   const [loading, setLoading] = useState(true);
   const [advancing, setAdvancing] = useState<string | null>(null);
   const [storeName, setStoreName] = useState<string | null>(null);
 
+  // Modo demonstração: carrega dados mockados sem tocar no Supabase
+  useEffect(() => {
+    if (!isDemo) return;
+    setOrders(DEMO_ORDERS);
+    setStoreName("Loja Demonstração");
+    setLoading(false);
+  }, [isDemo]);
+
   // Busca o nome da loja do perfil do lojista
   useEffect(() => {
-    if (!user) return;
+    if (isDemo || !user) return;
     supabase
       .from("profiles")
       .select("extras")
@@ -68,10 +92,10 @@ const SellerOrders = () => {
         const ext = data?.extras as Record<string, string> | null;
         setStoreName(ext?.storeName ?? null);
       });
-  }, [user?.id]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [user?.id, isDemo]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const loadOrders = async () => {
-    if (!storeName) return;
+    if (isDemo || !storeName) return;
     setLoading(true);
     const { data, error } = await supabase
       .from("orders")
@@ -87,11 +111,11 @@ const SellerOrders = () => {
     setLoading(false);
   };
 
-  useEffect(() => { if (storeName !== null) loadOrders(); }, [storeName]); // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => { if (!isDemo && storeName !== null) loadOrders(); }, [storeName]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  // Realtime: novos pedidos chegam automaticamente
+  // Realtime: novos pedidos chegam automaticamente (apenas modo real)
   useEffect(() => {
-    if (!storeName) return;
+    if (isDemo || !storeName) return;
     const channel = supabase
       .channel("seller-orders-realtime")
       .on(
@@ -108,7 +132,7 @@ const SellerOrders = () => {
       .subscribe();
 
     return () => { supabase.removeChannel(channel); };
-  }, [storeName]);
+  }, [storeName, isDemo]);
 
   const advance = async (id: string) => {
     const order = orders.find((o) => o.id === id);
@@ -118,6 +142,15 @@ const SellerOrders = () => {
     const next = statusFlow[idx + 1];
 
     setAdvancing(id);
+
+    if (isDemo) {
+      // Modo demo: atualiza apenas o estado local
+      setOrders((prev) => prev.map((o) => o.id === id ? { ...o, status: next } : o));
+      toast.success(`Pedido ${badgeLabels[next].toLowerCase()}!`);
+      setAdvancing(null);
+      return;
+    }
+
     const { error } = await supabase
       .from("orders")
       .update({ status: next })

@@ -99,7 +99,7 @@ export const AuthFlow = ({
   const [busy, setBusy] = useState(false);
   const [addRoleLoading, setAddRoleLoading] = useState(false);
   const navigate = useNavigate();
-  const { session, roles: userRoles, loading, refreshRoles } = useAuth();
+  const { session, roles: userRoles, loading, refreshRoles, enterDemoMode } = useAuth();
 
   // Role esperado para esta tela de login (inferido do finalPath)
   const expectedRole = finalPath.startsWith("/lojista")
@@ -120,8 +120,21 @@ export const AuthFlow = ({
     if (loading || !session) return;
     if (!userRoles.includes(expectedRole as import("@/hooks/useAuth").UserRole)) {
       setView("addRole");
+      return;
+    }
+    // Lojista: verifica se já tem loja configurada para redirecionar corretamente.
+    // Sem essa verificação, o redirect ia sempre para finalPath ("/lojista/criar-loja")
+    // mesmo quando a loja já existia — causando o loop de "atualizar loja" a cada login.
+    if (expectedRole === "lojista") {
+      supabase.from("profiles")
+        .select("extras")
+        .eq("id", session.user.id)
+        .maybeSingle()
+        .then(({ data }) => {
+          const ext = (data?.extras as Record<string, string>) ?? {};
+          window.location.replace(ext.storeName ? "/lojista/painel" : finalPath);
+        });
     } else {
-      // Usuário já logado com o perfil correto → entra direto na aplicação
       window.location.replace(finalPath);
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -257,13 +270,13 @@ export const AuthFlow = ({
             const destination = expectedRole === "lojista" && ext.storeName
               ? "/lojista/painel"
               : finalPath;
-            navigate(destination, { replace: true });
+            window.location.replace(destination);
           } else {
             // Usuário existe mas não tem o perfil esperado → adicionar perfil
             setView("addRole");
           }
         } else {
-          navigate(finalPath, { replace: true });
+          window.location.replace(finalPath);
         }
         return;
       } else {
@@ -312,7 +325,7 @@ export const AuthFlow = ({
         }
 
         toast.success("Conta criada! Entrando...");
-        navigate(finalPath, { replace: true });
+        window.location.replace(finalPath);
         return;
       }
     } catch (err) {
@@ -336,6 +349,17 @@ export const AuthFlow = ({
     e.preventDefault();
     if (busy) return;
     setLoginError("");
+
+    // ── Modo demonstração: interceptar ANTES de qualquer validação ──────────
+    if (
+      loginEmail.trim().toLowerCase() === "prototipo@gmail.com" &&
+      loginPassword === "10"
+    ) {
+      enterDemoMode();
+      toast.success("Modo demonstração ativado! Explore a plataforma.");
+      navigate("/lojista/painel", { replace: true });
+      return;
+    }
 
     // Validação explícita antes de qualquer chamada ao Supabase
     if (!loginEmail.trim()) {
@@ -371,18 +395,21 @@ export const AuthFlow = ({
         // Inclui role primário (contas antigas sem coluna roles populada)
         const allRoles = primaryRole && !rolesArr.includes(primaryRole) ? [primaryRole, ...rolesArr] : rolesArr;
         if (allRoles.includes(expectedRole)) {
-          // Lojista com loja já configurada vai direto ao painel; caso contrário, cria loja
+          // Lojista com loja já configurada vai direto ao painel; caso contrário, cria loja.
+          // Usa window.location.replace (não navigate) para evitar race condition:
+          // navigate() é client-side e RequireRole pode ver roles=[] antes do fetchRoles
+          // terminar, redirecionando de volta ao login e caindo em finalPath incorretamente.
           const ext = (p?.extras as Record<string, string>) ?? {};
           const destination = expectedRole === "lojista" && ext.storeName
             ? "/lojista/painel"
             : finalPath;
-          navigate(destination, { replace: true });
+          window.location.replace(destination);
         } else {
           // Conta encontrada, mas sem o perfil esperado → mostrar adição de perfil
           setView("addRole");
         }
       } else {
-        navigate(finalPath, { replace: true });
+        window.location.replace(finalPath);
       }
     } catch (err) {
       const raw = err instanceof Error ? err.message.toLowerCase() : "";
@@ -860,7 +887,6 @@ export const AuthFlow = ({
               placeholder="Sua senha"
               type="password"
               required
-              minLength={6}
               autoComplete="current-password"
               className="flex-1 bg-transparent text-sm font-semibold focus:outline-none"
             />

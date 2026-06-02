@@ -1,14 +1,15 @@
 import { useState } from "react";
 import { Link } from "react-router-dom";
 import { Star, MapPin, Clock, ChevronRight, Heart, Search, X, Sparkles } from "lucide-react";
-import { stores, categories } from "@/data/mockData";
+import { stores as MOCK_STORES, categories } from "@/data/mockData";
 import { VerifiedBadge } from "@/components/VerifiedBadge";
+import { useStores } from "@/hooks/useStores";
 import { StoreLogo } from "@/components/StoreLogo";
 import { useFavorite } from "@/hooks/useFavorite";
 import { useUserCity, normalizeCity } from "@/hooks/useUserCity";
 
 /* ── Card individual com botão de favoritar ─────── */
-const StoreCard = ({ s }: { s: typeof stores[0] }) => {
+const StoreCard = ({ s }: { s: typeof MOCK_STORES[0] }) => {
   const cat = categories.find((c) => c.id === s.category);
   const { favorited, toggle, loading: favLoading } = useFavorite({
     id: s.id, name: s.name, image: s.image, category: cat?.name ?? s.category,
@@ -36,9 +37,9 @@ const StoreCard = ({ s }: { s: typeof stores[0] }) => {
                 <Star className="w-3 h-3 fill-current" /> {s.rating}
               </span>
             </div>
-            {cat && (
+            {(cat || s.category) && (
               <p className="text-[11px] text-primary font-bold uppercase tracking-wider mt-1">
-                {cat.emoji} {cat.name}
+                {cat ? `${cat.emoji} ${cat.name}` : s.category}
               </p>
             )}
             <p className="text-xs text-muted-foreground mt-1 line-clamp-2">{s.description}</p>
@@ -82,13 +83,15 @@ const StoreList = () => {
   const [showAllCities, setShowAllCities] = useState(false);
   const [tab, setTab] = useState<"local" | "all">("local");
 
+  const { data: allStores = MOCK_STORES } = useStores();
+
   /* Filtra por cidade */
   const cityStores = (!showAllCities && city)
-    ? stores.filter((s) =>
+    ? allStores.filter((s) =>
         normalizeCity(s.city).includes(normalizeCity(city)) ||
         normalizeCity(city).includes(normalizeCity(s.city))
       )
-    : stores;
+    : allStores;
 
   /* Locais/urbanas primeiro, depois grandes redes */
   const sortedCityStores = [

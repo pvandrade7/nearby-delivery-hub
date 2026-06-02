@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
-import { TrendingUp, Clock, CheckCircle2, Plus, DollarSign, Eye, BadgeCheck } from "lucide-react";
+import { TrendingUp, Clock, CheckCircle2, Plus, DollarSign, Eye, BadgeCheck, FlaskConical } from "lucide-react";
 import { VerifiedBadge } from "@/components/VerifiedBadge";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
@@ -26,8 +26,36 @@ type Product = {
 
 const DAYS = ["Dom", "Seg", "Ter", "Qua", "Qui", "Sex", "Sáb"];
 
+// ── Dados demonstrativos — exibidos quando a loja ainda não tem dados reais ──
+const _now = new Date();
+const _d = (n: number) => {
+  const d = new Date(_now);
+  d.setDate(d.getDate() - n);
+  return d.toISOString();
+};
+
+const DEMO_ORDERS: Order[] = [
+  { id: "a1b2c3d4e5f6a1b2", total: 189.90, status: "entregue",   created_at: _d(0), items: [{ name: "Produto Premium",  quantity: 2, price: 94.95 }], payment: "pix",      fulfillment: "delivery", address: "Rua das Flores, 123" },
+  { id: "b2c3d4e5f6a7b2c3", total: 79.90,  status: "preparando", created_at: _d(0), items: [{ name: "Item Especial",    quantity: 1, price: 79.90 }], payment: "cartao",   fulfillment: "delivery", address: "Av. Central, 456" },
+  { id: "c3d4e5f6a7b8c3d4", total: 249.00, status: "saiu",       created_at: _d(1), items: [{ name: "Kit Completo",     quantity: 3, price: 83.00 }], payment: "pix",      fulfillment: "delivery", address: "Rua Nova, 789" },
+  { id: "d4e5f6a7b8c9d4e5", total: 59.90,  status: "entregue",   created_at: _d(1), items: [{ name: "Produto Básico",   quantity: 1, price: 59.90 }], payment: "dinheiro", fulfillment: "pickup",   address: null },
+  { id: "e5f6a7b8c9d0e5f6", total: 134.50, status: "entregue",   created_at: _d(2), items: [{ name: "Acessório Plus",   quantity: 2, price: 67.25 }], payment: "cartao",   fulfillment: "delivery", address: "Rua Sul, 321" },
+  { id: "f6a7b8c9d0e1f6a7", total: 299.90, status: "entregue",   created_at: _d(3), items: [{ name: "Produto Top",      quantity: 1, price: 299.90 }], payment: "pix",     fulfillment: "delivery", address: "Av. Norte, 654" },
+  { id: "a7b8c9d0e1f2a7b8", total: 44.90,  status: "entregue",   created_at: _d(4), items: [{ name: "Mini Kit",         quantity: 2, price: 22.45 }], payment: "pix",      fulfillment: "delivery", address: "Rua Leste, 987" },
+  { id: "b8c9d0e1f2a3b8c9", total: 159.00, status: "aprovado",   created_at: _d(5), items: [{ name: "Produto Star",     quantity: 2, price: 79.50 }], payment: "cartao",   fulfillment: "delivery", address: "Av. Oeste, 147" },
+  { id: "c9d0e1f2a3b4c9d0", total: 89.90,  status: "entregue",   created_at: _d(6), items: [{ name: "Essencial Pack",   quantity: 1, price: 89.90 }], payment: "pix",      fulfillment: "delivery", address: "Rua Central, 258" },
+];
+
+const DEMO_PRODUCTS: Product[] = [
+  { id: "demo-prod-1", name: "Produto Premium",  price: 94.95,  image: "https://images.unsplash.com/photo-1523275335684-37898b6baf30?w=80&q=75", category: "Destaque"   },
+  { id: "demo-prod-2", name: "Kit Completo",      price: 83.00,  image: "https://images.unsplash.com/photo-1585386959984-a4155224a1ad?w=80&q=75", category: "Popular"    },
+  { id: "demo-prod-3", name: "Produto Top",       price: 299.90, image: "https://images.unsplash.com/photo-1491553895911-0055eca6402d?w=80&q=75", category: "Premium"    },
+  { id: "demo-prod-4", name: "Acessório Plus",    price: 67.25,  image: "https://images.unsplash.com/photo-1526170375885-4d8ecf77b99f?w=80&q=75", category: "Acessórios" },
+];
+// ─────────────────────────────────────────────────────────────────────────────
+
 const SellerDashboard = () => {
-  const { user } = useAuth();
+  const { user, isDemo } = useAuth();
   const [displayName, setDisplayName] = useState("");
   const [storeName, setStoreName]     = useState("");
   const [orders, setOrders]           = useState<Order[]>([]);
@@ -35,6 +63,13 @@ const SellerDashboard = () => {
   const [loading, setLoading]         = useState(true);
 
   useEffect(() => {
+    // Modo demonstração: usa dados mockados, pula Supabase
+    if (isDemo) {
+      setDisplayName("Marina Flores · Loja Demonstração");
+      setStoreName("Loja Demonstração");
+      setLoading(false);
+      return;
+    }
     if (!user) return;
     (async () => {
       // Carrega perfil
@@ -57,7 +92,7 @@ const SellerDashboard = () => {
           .select("*")
           .eq("store_name", sName)
           .order("created_at", { ascending: false });
-        setOrders((ordersData as Order[]) ?? []);
+        setOrders((ordersData as unknown as Order[]) ?? []);
       }
 
       // Carrega produtos do lojista
@@ -72,23 +107,27 @@ const SellerDashboard = () => {
 
       setLoading(false);
     })();
-  }, [user?.id]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [user?.id, isDemo]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Em modo demo usa dados mockados; em modo real usa dados do banco (podem ser vazios)
+  const displayOrders   = isDemo ? DEMO_ORDERS   : orders;
+  const displayProducts = isDemo ? DEMO_PRODUCTS : products;
 
   // ── Cálculos de métricas ─────────────────────────────
   const todayStr = new Date().toDateString();
 
-  const ordersToday = orders.filter(
+  const ordersToday = displayOrders.filter(
     (o) => new Date(o.created_at).toDateString() === todayStr
   );
   const totalToday = ordersToday.reduce((s, o) => s + o.total, 0);
-  const inProgress = orders.filter((o) => ["aprovado", "preparando", "saiu"].includes(o.status)).length;
-  const done       = orders.filter((o) => o.status === "entregue").length;
+  const inProgress = displayOrders.filter((o) => ["aprovado", "preparando", "saiu"].includes(o.status)).length;
+  const done       = displayOrders.filter((o) => o.status === "entregue").length;
 
   const stats = [
-    { label: "Vendas hoje",   value: `R$ ${totalToday.toFixed(2)}`, delta: `${ordersToday.length} pedido(s)`,          icon: DollarSign,  accent: "text-primary",   bg: "bg-primary/10" },
-    { label: "Total pedidos", value: String(orders.length),          delta: `${done} concluído(s)`,                    icon: TrendingUp,  accent: "text-secondary", bg: "bg-secondary/10" },
-    { label: "Em andamento",  value: String(inProgress),             delta: "aguardando ação",                          icon: Clock,       accent: "text-warning",   bg: "bg-warning/15" },
-    { label: "Concluídos",    value: String(done),                    delta: orders.length ? `${Math.round((done / orders.length) * 100)}% no prazo` : "–", icon: CheckCircle2, accent: "text-success", bg: "bg-success/15" },
+    { label: "Vendas hoje",   value: `R$ ${totalToday.toFixed(2)}`, delta: `${ordersToday.length} pedido(s)`,                                                                                     icon: DollarSign,  accent: "text-primary",   bg: "bg-primary/10"   },
+    { label: "Total pedidos", value: String(displayOrders.length),   delta: `${done} concluído(s)`,                                                                                               icon: TrendingUp,  accent: "text-secondary", bg: "bg-secondary/10" },
+    { label: "Em andamento",  value: String(inProgress),             delta: "aguardando ação",                                                                                                    icon: Clock,       accent: "text-warning",   bg: "bg-warning/15"   },
+    { label: "Concluídos",    value: String(done),                    delta: displayOrders.length ? `${Math.round((done / displayOrders.length) * 100)}% no prazo` : "–", icon: CheckCircle2, accent: "text-success", bg: "bg-success/15"   },
   ];
 
   // ── Gráfico de vendas — últimos 7 dias ───────────────
@@ -99,7 +138,7 @@ const SellerDashboard = () => {
     d.setDate(d.getDate() - i);
     salesByDay[d.toDateString()] = 0;
   }
-  orders.forEach((o) => {
+  displayOrders.forEach((o) => {
     const key = new Date(o.created_at).toDateString();
     if (key in salesByDay) salesByDay[key] += o.total;
   });
@@ -111,7 +150,7 @@ const SellerDashboard = () => {
   const weekTotal = sales.reduce((s, d) => s + d.v, 0);
   const maxSale = Math.max(...sales.map((s) => s.v), 1);
 
-  const recent = orders.slice(0, 5);
+  const recent = displayOrders.slice(0, 5);
 
   if (loading) {
     return (
@@ -132,6 +171,11 @@ const SellerDashboard = () => {
           <h1 className="text-2xl lg:text-3xl font-extrabold mt-1">Painel da loja</h1>
         </div>
         <div className="flex flex-wrap items-center gap-2">
+          {isDemo && (
+            <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-amber-500/10 text-amber-600 dark:text-amber-400 text-xs font-bold border border-amber-500/20">
+              <FlaskConical className="w-3.5 h-3.5" /> Dados demonstrativos
+            </span>
+          )}
           <VerifiedBadge />
           <Link
             to="/lojista/verificacao"
@@ -199,16 +243,8 @@ const SellerDashboard = () => {
         {/* Top products */}
         <div className="bg-card rounded-2xl p-5 shadow-card">
           <h2 className="font-bold text-base mb-4">Meus produtos</h2>
-          {products.length === 0 ? (
-            <div className="text-center py-6 text-muted-foreground text-sm">
-              <p>Nenhum produto cadastrado ainda.</p>
-              <Link to="/lojista/produtos/novo" className="text-primary font-semibold mt-2 inline-block hover:underline">
-                Cadastrar produto →
-              </Link>
-            </div>
-          ) : (
-            <div className="space-y-3">
-              {products.map((p, i) => (
+          <div className="space-y-3">
+              {displayProducts.map((p, i) => (
                 <div key={p.id} className="flex items-center gap-3">
                   <span className="text-xs font-extrabold text-muted-foreground w-4">{i + 1}</span>
                   {p.image ? (
@@ -225,7 +261,6 @@ const SellerDashboard = () => {
                 </div>
               ))}
             </div>
-          )}
         </div>
       </div>
 

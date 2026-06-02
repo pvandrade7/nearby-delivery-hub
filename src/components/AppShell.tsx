@@ -16,6 +16,9 @@ import {
   Bell,
   BadgeCheck,
   MessageCircle,
+  FlaskConical,
+  LogOut,
+  Brush,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useCart } from "@/context/CartContext";
@@ -48,11 +51,12 @@ const clientNav: NavItem[] = [
 ];
 
 const sellerNav: NavItem[] = [
-  { to: "/lojista/painel", icon: LayoutDashboard, label: "Painel" },
-  { to: "/lojista/produtos", icon: Package, label: "Produtos" },
-  { to: "/lojista/pedidos", icon: ShoppingBag, label: "Pedidos" },
-  { to: "/lojista/verificacao", icon: BadgeCheck, label: "Verificação" },
-  { to: "/lojista/config", icon: Settings, label: "Conta" },
+  { to: "/lojista/painel",     icon: LayoutDashboard, label: "Painel"      },
+  { to: "/lojista/produtos",   icon: Package,         label: "Produtos"    },
+  { to: "/lojista/pedidos",    icon: ShoppingBag,     label: "Pedidos"     },
+  { to: "/lojista/minha-loja", icon: Brush,           label: "Minha Loja"  },
+  { to: "/lojista/verificacao",icon: BadgeCheck,      label: "Verificação" },
+  { to: "/lojista/config",     icon: Settings,        label: "Conta"       },
 ];
 
 const adminNav: NavItem[] = [
@@ -90,7 +94,7 @@ export const AppShell = ({ children }: { children: ReactNode }) => {
   const navigate = useNavigate();
   const profile = useProfile();
   const { count } = useCart();
-  const { user, loading: authLoading } = useAuth();
+  const { user, loading: authLoading, isDemo, signOut } = useAuth();
   const [unread, setUnread] = useState(0);
   const [notificationsOpen, setNotificationsOpen] = useState(false);
   const notificationsRef = useRef<HTMLDivElement>(null);
@@ -295,8 +299,16 @@ export const AppShell = ({ children }: { children: ReactNode }) => {
                 )}
               </Link>
             )}
-            {/* Avatar: skeleton durante loading, perfil real após auth resolver */}
-            {authLoading ? (
+            {/* Avatar */}
+            {isDemo ? (
+              <button
+                onClick={() => { signOut(); navigate("/lojista", { replace: true }); }}
+                className="size-9 sm:size-10 rounded-full bg-amber-500/20 text-amber-600 dark:text-amber-400 flex items-center justify-center font-bold text-sm border border-amber-500/30"
+                title="Sair do modo demonstração"
+              >
+                D
+              </button>
+            ) : authLoading ? (
               <div className="size-9 sm:size-10 rounded-full bg-muted animate-pulse" aria-hidden="true" />
             ) : user ? (
               <Link
@@ -309,6 +321,22 @@ export const AppShell = ({ children }: { children: ReactNode }) => {
             ) : null}
           </div>
         </header>
+
+        {/* Banner modo demonstração */}
+        {isDemo && (
+          <div className="bg-amber-500/10 border-b border-amber-500/20 px-4 py-2 flex items-center justify-between gap-3">
+            <div className="flex items-center gap-2 text-amber-700 dark:text-amber-400">
+              <FlaskConical className="w-4 h-4 shrink-0" />
+              <span className="text-xs font-bold">Modo Demonstração — dados fictícios para apresentação</span>
+            </div>
+            <button
+              onClick={() => { signOut(); navigate("/lojista", { replace: true }); }}
+              className="inline-flex items-center gap-1.5 text-xs font-bold text-amber-700 dark:text-amber-400 hover:underline shrink-0"
+            >
+              <LogOut className="w-3.5 h-3.5" /> Sair do demo
+            </button>
+          </div>
+        )}
 
         {/* Page content */}
         <main className="flex-1 min-w-0">

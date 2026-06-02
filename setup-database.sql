@@ -113,6 +113,16 @@ create trigger trg_on_message_insert
 create policy "users can view own profile"
 on public.profiles for select to authenticated using (auth.uid() = id);
 
+-- Permite que clientes vejam perfis de lojistas com loja configurada.
+-- Combinada com a policy acima via OR (comportamento padrão do Supabase).
+create policy "store profiles are publicly viewable"
+on public.profiles for select to authenticated
+using (
+  extras is not null
+  and (extras->>'storeName') is not null
+  and trim(extras->>'storeName') <> ''
+);
+
 create policy "users can update own profile"
 on public.profiles for update to authenticated using (auth.uid() = id);
 

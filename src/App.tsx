@@ -40,6 +40,7 @@ import NewProduct from "./pages/seller/NewProduct";
 import SellerOrders from "./pages/seller/SellerOrders";
 import SellerVerification from "./pages/seller/SellerVerification";
 import SellerConfig from "./pages/seller/SellerConfig";
+import MyStore from "./pages/seller/MyStore";
 import AdminVerification from "./pages/admin/AdminVerification";
 
 // Entregador
@@ -108,6 +109,7 @@ const App = () => (
               <Route path="/lojista/pedidos" element={<AppShell><Seller><SellerOrders /></Seller></AppShell>} />
               <Route path="/lojista/verificacao" element={<AppShell><Seller><SellerVerification /></Seller></AppShell>} />
               <Route path="/lojista/config" element={<AppShell><Seller><SellerConfig /></Seller></AppShell>} />
+              <Route path="/lojista/minha-loja" element={<AppShell><Seller><MyStore /></Seller></AppShell>} />
 
               {/* Admin */}
               <Route path="/admin/verificacoes" element={<AppShell><Admin><AdminVerification /></Admin></AppShell>} />

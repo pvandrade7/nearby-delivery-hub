@@ -17,14 +17,31 @@ type SellerProduct = {
   created_at: string;
 };
 
+// ── Dados demonstrativos ─────────────────────────────────────────────────────
+const _demoNow = new Date().toISOString();
+const DEMO_PRODUCTS: SellerProduct[] = [
+  { id: "demo-prod-1", name: "Produto Premium",  description: "Produto de alta qualidade com garantia de 1 ano e suporte técnico.",    price: 94.95,  category: "Eletrônicos", image: "https://images.unsplash.com/photo-1523275335684-37898b6baf30?w=200&q=75", seller_kind: "lojista", active: true, created_at: _demoNow },
+  { id: "demo-prod-2", name: "Kit Completo",      description: "Kit com todos os itens essenciais para sua necessidade diária.",          price: 83.00,  category: "Utilidades",  image: "https://images.unsplash.com/photo-1585386959984-a4155224a1ad?w=200&q=75", seller_kind: "lojista", active: true, created_at: _demoNow },
+  { id: "demo-prod-3", name: "Produto Top",       description: "O melhor produto da linha premium, com design exclusivo.",                price: 299.90, category: "Premium",     image: "https://images.unsplash.com/photo-1491553895911-0055eca6402d?w=200&q=75", seller_kind: "lojista", active: true, created_at: _demoNow },
+  { id: "demo-prod-4", name: "Acessório Plus",    description: "Acessório versátil compatível com a maioria dos modelos disponíveis.",    price: 67.25,  category: "Acessórios",  image: "https://images.unsplash.com/photo-1526170375885-4d8ecf77b99f?w=200&q=75", seller_kind: "lojista", active: true, created_at: _demoNow },
+  { id: "demo-prod-5", name: "Item Especial",     description: "Produto especial com acabamento premium e materiais selecionados.",       price: 79.90,  category: "Especial",    image: "https://images.unsplash.com/photo-1505740420928-5e560c06d30e?w=200&q=75", seller_kind: "lojista", active: true, created_at: _demoNow },
+  { id: "demo-prod-6", name: "Mini Kit",          description: "Versão compacta e prática do kit completo para o dia a dia.",             price: 44.90,  category: "Utilidades",  image: "https://images.unsplash.com/photo-1572635196237-14b3f281503f?w=200&q=75", seller_kind: "lojista", active: true, created_at: _demoNow },
+];
+// ─────────────────────────────────────────────────────────────────────────────
+
 const SellerProducts = () => {
-  const { user } = useAuth();
+  const { user, isDemo } = useAuth();
   const navigate = useNavigate();
   const [items, setItems] = useState<SellerProduct[]>([]);
   const [loading, setLoading] = useState(true);
   const [deleting, setDeleting] = useState<string | null>(null);
 
   const load = async () => {
+    if (isDemo) {
+      setItems(DEMO_PRODUCTS);
+      setLoading(false);
+      return;
+    }
     if (!user) return;
     setLoading(true);
     const { data, error } = await supabase
@@ -42,9 +59,13 @@ const SellerProducts = () => {
     setLoading(false);
   };
 
-  useEffect(() => { load(); }, [user?.id]); // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => { load(); }, [user?.id, isDemo]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const handleDelete = async (id: string, name: string) => {
+    if (isDemo) {
+      toast.info("Exclusão desabilitada no modo demonstração.");
+      return;
+    }
     if (!confirm(`Deseja excluir "${name}"? Esta ação não pode ser desfeita.`)) return;
     setDeleting(id);
     const { error } = await supabase
