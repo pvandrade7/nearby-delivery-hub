@@ -60,8 +60,11 @@ const sellerNav: NavItem[] = [
 ];
 
 const adminNav: NavItem[] = [
-  { to: "/admin/verificacoes", icon: BadgeCheck, label: "Verificações" },
-  { to: "/lojista/painel", icon: LayoutDashboard, label: "Lojista" },
+  { to: "/admin/painel",       icon: LayoutDashboard, label: "Painel"        },
+  { to: "/admin/verificacoes", icon: BadgeCheck,      label: "Verificações"  },
+  { to: "/admin/suporte",      icon: MessageCircle,   label: "Suporte"       },
+  { to: "/admin/usuarios",     icon: User,            label: "Usuários"      },
+  { to: "/admin/lojas",        icon: StoreIcon,       label: "Lojas"         },
 ];
 
 const courierNav: NavItem[] = [
@@ -196,6 +199,21 @@ export const AppShell = ({ children }: { children: ReactNode }) => {
           ))}
         </nav>
 
+        {/* Botão Sair — sempre visível na sidebar desktop */}
+        <div className="px-3 pb-4 pt-2 border-t border-border">
+          {user && (
+            <p className="px-3 py-1 text-[11px] text-muted-foreground truncate font-medium mb-1">
+              {user.email}
+            </p>
+          )}
+          <button
+            onClick={() => { signOut(); navigate("/", { replace: true }); }}
+            className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-semibold text-muted-foreground hover:bg-destructive/10 hover:text-destructive transition-colors"
+          >
+            <LogOut className="w-4 h-4" />
+            Sair da conta
+          </button>
+        </div>
       </aside>
 
       {/* Main column */}
@@ -228,7 +246,7 @@ export const AppShell = ({ children }: { children: ReactNode }) => {
             </button>
           ) : (
             <h1 className="flex-1 min-w-0 font-bold text-sm sm:text-base lg:text-lg truncate">
-              {meta.label === "Lojista" ? "Painel da loja" : meta.label === "Admin" ? "Painel administrativo" : "Central do entregador"}
+              {meta.label === "Lojista" ? "Painel da loja" : meta.label === "Admin" ? "Administração Vendy+" : "Central do entregador"}
             </h1>
           )}
 
@@ -299,10 +317,10 @@ export const AppShell = ({ children }: { children: ReactNode }) => {
                 )}
               </Link>
             )}
-            {/* Avatar */}
+            {/* Avatar / Sair */}
             {isDemo ? (
               <button
-                onClick={() => { signOut(); navigate("/lojista", { replace: true }); }}
+                onClick={() => { signOut(); navigate("/", { replace: true }); }}
                 className="size-9 sm:size-10 rounded-full bg-amber-500/20 text-amber-600 dark:text-amber-400 flex items-center justify-center font-bold text-sm border border-amber-500/30"
                 title="Sair do modo demonstração"
               >
@@ -311,14 +329,24 @@ export const AppShell = ({ children }: { children: ReactNode }) => {
             ) : authLoading ? (
               <div className="size-9 sm:size-10 rounded-full bg-muted animate-pulse" aria-hidden="true" />
             ) : user ? (
+              <button
+                onClick={() => { signOut(); navigate("/", { replace: true }); }}
+                className="size-9 sm:size-10 rounded-full gradient-brand text-primary-foreground flex items-center justify-center font-bold text-sm shadow-card lg:hidden"
+                title={`Sair — ${user.email}`}
+              >
+                {(user.email?.[0] ?? meta.initial).toUpperCase()}
+              </button>
+            ) : null}
+            {/* Avatar desktop (link para perfil) */}
+            {!isDemo && !authLoading && user && (
               <Link
                 to={meta.profilePath}
-                className="size-9 sm:size-10 rounded-full gradient-brand text-primary-foreground flex items-center justify-center font-bold text-sm shadow-card"
+                className="hidden lg:flex size-9 sm:size-10 rounded-full gradient-brand text-primary-foreground items-center justify-center font-bold text-sm shadow-card"
                 title={user.email ?? meta.user}
               >
                 {(user.email?.[0] ?? meta.initial).toUpperCase()}
               </Link>
-            ) : null}
+            )}
           </div>
         </header>
 

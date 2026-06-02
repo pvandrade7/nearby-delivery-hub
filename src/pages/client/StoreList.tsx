@@ -33,9 +33,16 @@ const StoreCard = ({ s }: { s: typeof MOCK_STORES[0] }) => {
                   )}
                 </div>
               </div>
-              <span className="bg-accent text-accent-foreground px-2 py-0.5 rounded-md font-bold text-xs flex items-center gap-1 shrink-0">
-                <Star className="w-3 h-3 fill-current" /> {s.rating}
-              </span>
+              <div className="flex flex-col items-end gap-0.5 shrink-0">
+                <span className="bg-accent text-accent-foreground px-2 py-0.5 rounded-md font-bold text-xs flex items-center gap-1">
+                  <Star className="w-3 h-3 fill-current" /> {s.rating}
+                </span>
+                {s.reviews > 0 && (
+                  <span className="text-[10px] text-muted-foreground">
+                    ({s.reviews.toLocaleString("pt-BR")})
+                  </span>
+                )}
+              </div>
             </div>
             {(cat || s.category) && (
               <p className="text-[11px] text-primary font-bold uppercase tracking-wider mt-1">

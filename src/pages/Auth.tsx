@@ -37,7 +37,8 @@ const Auth = () => {
     // Validação explícita
     if (!email.trim()) { setError("Informe seu e-mail."); return; }
     if (!password)     { setError("Informe sua senha."); return; }
-    if (password.length < 6) { setError("Senha deve ter pelo menos 6 caracteres."); return; }
+    // Comprimento mínimo só se aplica ao cadastro — no login o Supabase valida
+    if (mode === "signup" && password.length < 6) { setError("Senha deve ter pelo menos 6 caracteres."); return; }
     if (mode === "signup" && !name.trim()) { setError("Informe seu nome."); return; }
 
     setBusy(true);

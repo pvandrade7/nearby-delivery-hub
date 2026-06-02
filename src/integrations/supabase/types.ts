@@ -343,6 +343,147 @@ export type Database = {
         }
         Relationships: []
       }
+      reviews: {
+        Row: {
+          id: string
+          store_id: string
+          buyer_id: string
+          buyer_name: string
+          rating: number
+          comment: string | null
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          store_id: string
+          buyer_id: string
+          buyer_name: string
+          rating: number
+          comment?: string | null
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          store_id?: string
+          buyer_id?: string
+          buyer_name?: string
+          rating?: number
+          comment?: string | null
+          created_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "reviews_store_id_fkey"
+            columns: ["store_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "reviews_buyer_id_fkey"
+            columns: ["buyer_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      /*
+       * SQL para criar as tabelas abaixo no Supabase:
+       *
+       * CREATE TABLE support_tickets (
+       *   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+       *   user_id UUID REFERENCES profiles(id),
+       *   user_email TEXT,
+       *   user_name TEXT,
+       *   subject TEXT NOT NULL,
+       *   category TEXT NOT NULL,
+       *   status TEXT DEFAULT 'aberto',
+       *   created_at TIMESTAMPTZ DEFAULT now(),
+       *   updated_at TIMESTAMPTZ DEFAULT now()
+       * );
+       *
+       * CREATE TABLE ticket_messages (
+       *   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+       *   ticket_id UUID REFERENCES support_tickets(id) ON DELETE CASCADE,
+       *   sender_id UUID REFERENCES profiles(id),
+       *   sender_name TEXT,
+       *   message TEXT NOT NULL,
+       *   is_admin BOOLEAN DEFAULT false,
+       *   created_at TIMESTAMPTZ DEFAULT now()
+       * );
+       *
+       * -- Login do administrador (criar no Supabase Auth + definir role):
+       * -- Email: adm@gmail.com  |  Senha: 2020
+       * -- UPDATE profiles SET role = 'admin' WHERE id = '<uuid do usuário criado>';
+       */
+      support_tickets: {
+        Row: {
+          id:          string
+          user_id:     string | null
+          user_email:  string | null
+          user_name:   string | null
+          subject:     string
+          category:    string
+          status:      string
+          created_at:  string
+          updated_at:  string
+        }
+        Insert: {
+          id?:         string
+          user_id?:    string | null
+          user_email?: string | null
+          user_name?:  string | null
+          subject:     string
+          category:    string
+          status?:     string
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          status?:     string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "support_tickets_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      ticket_messages: {
+        Row: {
+          id:           string
+          ticket_id:    string
+          sender_id:    string | null
+          sender_name:  string | null
+          message:      string
+          is_admin:     boolean
+          created_at:   string
+        }
+        Insert: {
+          id?:          string
+          ticket_id:    string
+          sender_id?:   string | null
+          sender_name?: string | null
+          message:      string
+          is_admin?:    boolean
+          created_at?:  string
+        }
+        Update: Record<string, never>
+        Relationships: [
+          {
+            foreignKeyName: "ticket_messages_ticket_id_fkey"
+            columns: ["ticket_id"]
+            isOneToOne: false
+            referencedRelation: "support_tickets"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never

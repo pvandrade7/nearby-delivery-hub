@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { CheckCircle2 } from "lucide-react";
+import { useQueryClient } from "@tanstack/react-query";
 import { ImagePicker } from "@/components/ImagePicker";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
@@ -18,6 +19,7 @@ const CreateStore = () => {
 
   const { user } = useAuth();
   const navigate = useNavigate();
+  const qc = useQueryClient();
 
   // Carrega dados existentes da loja — suporta tanto a chave nova (storeCategory)
   // quanto a antiga (category) para retrocompatibilidade.
@@ -83,6 +85,9 @@ const CreateStore = () => {
         .eq("id", user.id);
 
       if (error) throw error;
+
+      // Invalida o cache de lojas para que a loja apareça imediatamente no lado cliente
+      void qc.invalidateQueries({ queryKey: ["client-stores"] });
 
       toast.success(isEdit ? "Loja atualizada com sucesso!" : "Loja criada com sucesso!");
       navigate("/lojista/painel");

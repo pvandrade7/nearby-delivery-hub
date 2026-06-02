@@ -4,6 +4,7 @@ import {
   Clock, Palette, MessageSquare, Share2, RefreshCw, Eye,
   Package, ShieldCheck, Star, Link2,
 } from "lucide-react";
+import { useQueryClient } from "@tanstack/react-query";
 import { ImagePicker } from "@/components/ImagePicker";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
@@ -146,6 +147,7 @@ const Field = ({ label, children }: { label: string; children: React.ReactNode }
 
 const MyStore = () => {
   const { user, isDemo } = useAuth();
+  const qc = useQueryClient();
   const [tab, setTab]         = useState<Tab>("identidade");
   const [form, setForm]       = useState<StoreForm>(EMPTY_FORM);
   const [saving, setSaving]   = useState(false);
@@ -245,6 +247,8 @@ const MyStore = () => {
       const { error } = await supabase
         .from("profiles").update({ extras }).eq("id", user.id);
       if (error) throw error;
+      // Invalida o cache de lojas para que alterações apareçam imediatamente no lado cliente
+      void qc.invalidateQueries({ queryKey: ["client-stores"] });
       toast.success("Loja atualizada com sucesso!");
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Falha ao salvar.");

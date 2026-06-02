@@ -99,7 +99,7 @@ export const AuthFlow = ({
   const [busy, setBusy] = useState(false);
   const [addRoleLoading, setAddRoleLoading] = useState(false);
   const navigate = useNavigate();
-  const { session, roles: userRoles, loading, refreshRoles, enterDemoMode } = useAuth();
+  const { session, roles: userRoles, loading, refreshRoles } = useAuth();
 
   // Role esperado para esta tela de login (inferido do finalPath)
   const expectedRole = finalPath.startsWith("/lojista")
@@ -245,7 +245,12 @@ export const AuthFlow = ({
       return;
     }
 
-    if (!values.password || values.password.length < 6) {
+    if (!values.password) {
+      toast.error("Informe sua senha");
+      return;
+    }
+    // Comprimento mínimo só no cadastro — no login o Supabase valida
+    if (signupMode !== "login" && values.password.length < 6) {
       toast.error("Senha precisa de pelo menos 6 caracteres");
       return;
     }
@@ -349,17 +354,6 @@ export const AuthFlow = ({
     e.preventDefault();
     if (busy) return;
     setLoginError("");
-
-    // ── Modo demonstração: interceptar ANTES de qualquer validação ──────────
-    if (
-      loginEmail.trim().toLowerCase() === "prototipo@gmail.com" &&
-      loginPassword === "10"
-    ) {
-      enterDemoMode();
-      toast.success("Modo demonstração ativado! Explore a plataforma.");
-      navigate("/lojista/painel", { replace: true });
-      return;
-    }
 
     // Validação explícita antes de qualquer chamada ao Supabase
     if (!loginEmail.trim()) {

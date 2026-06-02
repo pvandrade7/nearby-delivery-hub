@@ -11,12 +11,10 @@ const ClientLogin = () => {
       profileTitle="Dados do cliente"
       detailsTitle="Endereço de entrega"
       detailsSubtitle="Informe onde deseja receber seus pedidos."
-      allowSkip
-      skipPath="/cliente/home"
       fields={[
-        { name: "address", label: "Endereço", placeholder: "Rua, número e bairro" },
-        { name: "city", label: "Cidade", placeholder: "Ex: São Paulo" },
-        { name: "reference", label: "Complemento ou referência", placeholder: "Apto, bloco, ponto de referência" },
+        { name: "address",   label: "Endereço",                     placeholder: "Rua, número e bairro"              },
+        { name: "city",      label: "Cidade",                        placeholder: "Ex: São Paulo"                     },
+        { name: "reference", label: "Complemento ou referência",     placeholder: "Apto, bloco, ponto de referência"  },
       ]}
     />
   );

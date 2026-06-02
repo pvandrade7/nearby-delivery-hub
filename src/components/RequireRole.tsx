@@ -6,7 +6,7 @@ export const HOME_BY_ROLE: Record<string, string> = {
   cliente:    "/cliente/home",
   lojista:    "/lojista/painel",
   entregador: "/entregador/painel",
-  admin:      "/admin/verificacoes",
+  admin:      "/admin/painel",
 };
 
 /** Página de login/onboarding de cada perfil (para redirecionar ao adicionar role) */

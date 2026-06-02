@@ -42,6 +42,9 @@ import SellerVerification from "./pages/seller/SellerVerification";
 import SellerConfig from "./pages/seller/SellerConfig";
 import MyStore from "./pages/seller/MyStore";
 import AdminVerification from "./pages/admin/AdminVerification";
+import AdminDashboard    from "./pages/admin/AdminDashboard";
+import AdminSupport      from "./pages/admin/AdminSupport";
+import AdminTicket       from "./pages/admin/AdminTicket";
 
 // Entregador
 import CourierHome from "./pages/courier/CourierHome";
@@ -49,6 +52,11 @@ import CourierLogin from "./pages/courier/CourierLogin";
 import CourierRoute from "./pages/courier/CourierRoute";
 import CourierComplete from "./pages/courier/CourierComplete";
 import CourierProfile from "./pages/courier/CourierProfile";
+
+// Apresentação
+import Apresentacao from "./pages/Apresentacao";
+import Celular from "./pages/Celular";
+import { NavSync } from "./components/NavSync";
 
 const queryClient = new QueryClient();
 
@@ -75,7 +83,11 @@ const App = () => (
       <AuthProvider>
         <CartProvider>
           <BrowserRouter>
+            <NavSync />
             <Routes>
+              {/* Páginas de apresentação — sem AppShell, sem auth, layout próprio */}
+              <Route path="/apresentacao" element={<Apresentacao />} />
+              <Route path="/celular"      element={<Celular />} />
               <Route path="/auth" element={<AppShell><Auth /></AppShell>} />
               <Route path="/" element={<AppShell><RoleSelect /></AppShell>} />
 
@@ -112,7 +124,13 @@ const App = () => (
               <Route path="/lojista/minha-loja" element={<AppShell><Seller><MyStore /></Seller></AppShell>} />
 
               {/* Admin */}
-              <Route path="/admin/verificacoes" element={<AppShell><Admin><AdminVerification /></Admin></AppShell>} />
+              <Route path="/admin/painel"        element={<AppShell><Admin><AdminDashboard    /></Admin></AppShell>} />
+              <Route path="/admin/verificacoes"  element={<AppShell><Admin><AdminVerification /></Admin></AppShell>} />
+              <Route path="/admin/suporte"       element={<AppShell><Admin><AdminSupport      /></Admin></AppShell>} />
+              <Route path="/admin/ticket/:id"    element={<AppShell><Admin><AdminTicket       /></Admin></AppShell>} />
+              {/* Rotas admin stub (para nav funcionar sem página 404) */}
+              <Route path="/admin/usuarios"      element={<AppShell><Admin><AdminDashboard    /></Admin></AppShell>} />
+              <Route path="/admin/lojas"         element={<AppShell><Admin><AdminVerification /></Admin></AppShell>} />
 
               {/* Entregador — tudo protegido por role=entregador exceto login */}
               <Route path="/entregador" element={<AppShell><CourierLogin /></AppShell>} />

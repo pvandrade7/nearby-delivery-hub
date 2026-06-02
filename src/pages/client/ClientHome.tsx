@@ -54,9 +54,16 @@ const LocalStoreCard = ({ store }: { store: typeof stores[0] }) => {
                 </p>
               )}
             </div>
-            <span className="bg-accent text-accent-foreground px-2 py-0.5 rounded-md font-bold text-xs flex items-center gap-1 shrink-0">
-              <Star className="w-2.5 h-2.5 fill-current" /> {store.rating}
-            </span>
+            <div className="flex flex-col items-end gap-0.5 shrink-0">
+              <span className="bg-accent text-accent-foreground px-2 py-0.5 rounded-md font-bold text-xs flex items-center gap-1">
+                <Star className="w-2.5 h-2.5 fill-current" /> {store.rating}
+              </span>
+              {store.reviews > 0 && (
+                <span className="text-[10px] text-muted-foreground">
+                  ({store.reviews.toLocaleString("pt-BR")})
+                </span>
+              )}
+            </div>
           </div>
           <p className="text-xs text-muted-foreground mt-1.5 line-clamp-2">{store.description}</p>
           <div className="flex items-center gap-2 text-[11px] text-muted-foreground mt-2">
@@ -170,15 +177,15 @@ const ClientHome = () => {
           </div>
 
           {/* Stats */}
-          <div className="grid grid-cols-3 lg:grid-cols-1 gap-3 lg:min-w-[160px]">
+          <div className="grid grid-cols-3 lg:grid-cols-1 gap-2 sm:gap-3 lg:min-w-[160px]">
             {[
-              { value: `${localCount}`, label: "negócios locais" },
-              { value: city ?? "FOR", label: "sua cidade" },
-              { value: "100%", label: "empreendedores" },
+              { value: `${localCount}+`, label: "negócios locais"                          },
+              { value: city ?? "Local",  label: city ? "sua cidade" : "comércio local"     },
+              { value: "100%",           label: "empreendedores"                           },
             ].map((s) => (
-              <div key={s.label} className="bg-white/15 backdrop-blur rounded-xl px-3 py-3 text-center">
-                <p className="text-xl sm:text-2xl font-extrabold">{s.value}</p>
-                <p className="text-[11px] text-white/75 font-semibold">{s.label}</p>
+              <div key={s.label} className="bg-white/15 backdrop-blur rounded-xl px-2 sm:px-3 py-3 text-center overflow-hidden">
+                <p className="text-sm sm:text-2xl font-extrabold leading-tight break-words">{s.value}</p>
+                <p className="text-[10px] sm:text-[11px] text-white/75 font-semibold mt-0.5 leading-tight break-words">{s.label}</p>
               </div>
             ))}
           </div>
