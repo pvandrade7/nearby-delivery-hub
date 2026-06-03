@@ -93,19 +93,21 @@ const EMPTY_FORM: StoreForm = {
   storeInstagram: "", storeFacebook: "", storeSite: "",
 };
 
+import { DEMO_STORE } from "@/data/demoData";
+
 const DEMO_FORM: StoreForm = {
-  storeName: "Loja Demonstração",
-  storeLogo: "https://images.unsplash.com/photo-1472851294608-062f824d29cc?w=200&q=75",
-  storeBanner: "https://images.unsplash.com/photo-1556742049-0cfed4f6a45d?w=800&q=75",
-  brandColor: "#6366f1",
-  storeDescription: "Uma loja completa com os melhores produtos para seu dia a dia. Qualidade garantida e entrega rápida em toda a cidade.",
-  storeSlogan: "Qualidade que você pode confiar!",
-  storeCategory: "Eletrônicos",
-  storeSecondaryCategories: "Acessórios,Utilidades Domésticas",
-  storePhone: "(85) 9 9999-0000",
-  storeWhatsapp: "85999990000",
-  storeEmail: "contato@lojademo.com",
-  storeAddress: "Rua das Flores, 123 - Centro, Fortaleza - CE",
+  storeName:                DEMO_STORE.storeName,
+  storeLogo:                "https://images.unsplash.com/photo-1472851294608-062f824d29cc?w=200&q=75",
+  storeBanner:              "https://images.unsplash.com/photo-1556742049-0cfed4f6a45d?w=800&q=75",
+  brandColor:               "#f97316",
+  storeDescription:         DEMO_STORE.description,
+  storeSlogan:              "Tecnologia que cabe no seu bolso!",
+  storeCategory:            DEMO_STORE.category,
+  storeSecondaryCategories: "Cabos e Carregadores,Capinhas e Proteção",
+  storePhone:               DEMO_STORE.phone,
+  storeWhatsapp:            DEMO_STORE.whatsapp,
+  storeEmail:               DEMO_STORE.email,
+  storeAddress:             DEMO_STORE.address,
   storeHours: JSON.stringify({
     seg: { active: true,  open: "08:00", close: "18:00" },
     ter: { active: true,  open: "08:00", close: "18:00" },
@@ -115,13 +117,13 @@ const DEMO_FORM: StoreForm = {
     sab: { active: true,  open: "09:00", close: "14:00" },
     dom: { active: false, open: "09:00", close: "13:00" },
   }),
-  storeDeliveryMethods: "motoboy,retirada",
-  storeReturnPolicy: "Aceitamos trocas em até 7 dias após a compra. O produto deve estar na embalagem original.",
-  storeWelcomeMessage: "Bem-vindo! Oferecemos os melhores produtos com qualidade garantida.",
-  storeDeliveryInfo: "Entregamos em toda a cidade. Prazo médio de 1–2 dias úteis. Frete grátis acima de R$ 100,00.",
-  storeInstagram: "@loja_demo",
-  storeFacebook: "lojademo",
-  storeSite: "www.lojademo.com.br",
+  storeDeliveryMethods:  "motoboy,retirada",
+  storeReturnPolicy:     "Aceitamos trocas em até 7 dias após a compra. O produto deve estar na embalagem original e sem sinais de uso.",
+  storeWelcomeMessage:   "Bem-vindo à TechZone! Encontre os melhores acessórios de tecnologia com garantia e entrega rápida.",
+  storeDeliveryInfo:     "Entregamos em toda Fortaleza e região. Prazo médio 1–2 dias úteis. Frete grátis acima de R$ 150,00.",
+  storeInstagram:        DEMO_STORE.instagram,
+  storeFacebook:         DEMO_STORE.facebook,
+  storeSite:             DEMO_STORE.website,
 };
 
 // ── Shared styles ─────────────────────────────────────────────────────────────

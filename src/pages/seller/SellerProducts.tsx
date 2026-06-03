@@ -17,17 +17,21 @@ type SellerProduct = {
   created_at: string;
 };
 
-// ── Dados demonstrativos ─────────────────────────────────────────────────────
-const _demoNow = new Date().toISOString();
-const DEMO_PRODUCTS: SellerProduct[] = [
-  { id: "demo-prod-1", name: "Produto Premium",  description: "Produto de alta qualidade com garantia de 1 ano e suporte técnico.",    price: 94.95,  category: "Eletrônicos", image: "https://images.unsplash.com/photo-1523275335684-37898b6baf30?w=200&q=75", seller_kind: "lojista", active: true, created_at: _demoNow },
-  { id: "demo-prod-2", name: "Kit Completo",      description: "Kit com todos os itens essenciais para sua necessidade diária.",          price: 83.00,  category: "Utilidades",  image: "https://images.unsplash.com/photo-1585386959984-a4155224a1ad?w=200&q=75", seller_kind: "lojista", active: true, created_at: _demoNow },
-  { id: "demo-prod-3", name: "Produto Top",       description: "O melhor produto da linha premium, com design exclusivo.",                price: 299.90, category: "Premium",     image: "https://images.unsplash.com/photo-1491553895911-0055eca6402d?w=200&q=75", seller_kind: "lojista", active: true, created_at: _demoNow },
-  { id: "demo-prod-4", name: "Acessório Plus",    description: "Acessório versátil compatível com a maioria dos modelos disponíveis.",    price: 67.25,  category: "Acessórios",  image: "https://images.unsplash.com/photo-1526170375885-4d8ecf77b99f?w=200&q=75", seller_kind: "lojista", active: true, created_at: _demoNow },
-  { id: "demo-prod-5", name: "Item Especial",     description: "Produto especial com acabamento premium e materiais selecionados.",       price: 79.90,  category: "Especial",    image: "https://images.unsplash.com/photo-1505740420928-5e560c06d30e?w=200&q=75", seller_kind: "lojista", active: true, created_at: _demoNow },
-  { id: "demo-prod-6", name: "Mini Kit",          description: "Versão compacta e prática do kit completo para o dia a dia.",             price: 44.90,  category: "Utilidades",  image: "https://images.unsplash.com/photo-1572635196237-14b3f281503f?w=200&q=75", seller_kind: "lojista", active: true, created_at: _demoNow },
-];
-// ─────────────────────────────────────────────────────────────────────────────
+import { DEMO_PRODUCTS as _DEMO_PRODUCTS } from "@/data/demoData";
+
+// Adapta DemoProduct para o tipo SellerProduct desta página
+const _now = new Date().toISOString();
+const DEMO_PRODUCTS: SellerProduct[] = _DEMO_PRODUCTS.map((p) => ({
+  id:          p.id,
+  name:        p.name,
+  description: p.description,
+  price:       p.price,
+  category:    p.category,
+  image:       p.image,
+  seller_kind: "lojista",
+  active:      p.active,
+  created_at:  _now,
+}));
 
 const SellerProducts = () => {
   const { user, isDemo } = useAuth();
@@ -124,6 +128,9 @@ const SellerProducts = () => {
                 <tr>
                   <th className="text-left font-bold px-5 lg:px-6 py-3">Produto</th>
                   <th className="text-left font-bold px-3 py-3 hidden md:table-cell">Categoria</th>
+                  {isDemo && <th className="text-right font-bold px-3 py-3 hidden lg:table-cell">Vendas</th>}
+                  {isDemo && <th className="text-right font-bold px-3 py-3 hidden lg:table-cell">Estoque</th>}
+                  {isDemo && <th className="text-right font-bold px-3 py-3 hidden lg:table-cell">Avaliação</th>}
                   <th className="text-right font-bold px-3 py-3">Preço</th>
                   <th className="text-right font-bold px-5 lg:px-6 py-3">Ações</th>
                 </tr>
@@ -147,6 +154,7 @@ const SellerProducts = () => {
                       </div>
                     </td>
                     <td className="px-3 py-3 text-muted-foreground capitalize hidden md:table-cell">{p.category || "—"}</td>
+                    {isDemo && (() => { const dp = _DEMO_PRODUCTS.find((d) => d.id === p.id); return (<><td className="px-3 py-3 text-right font-semibold hidden lg:table-cell">{dp?.sold ?? "—"}</td><td className="px-3 py-3 text-right font-semibold hidden lg:table-cell">{dp?.stock ?? "—"}</td><td className="px-3 py-3 text-right font-bold text-amber-500 hidden lg:table-cell">{dp ? `★ ${dp.rating}` : "—"}</td></>); })()}
                     <td className="px-3 py-3 font-extrabold text-primary text-right">R$ {p.price.toFixed(2)}</td>
                     <td className="px-5 lg:px-6 py-3">
                       <div className="flex justify-end gap-2">

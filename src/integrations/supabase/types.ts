@@ -417,6 +417,152 @@ export type Database = {
        * -- Email: adm@gmail.com  |  Senha: 2020
        * -- UPDATE profiles SET role = 'admin' WHERE id = '<uuid do usuário criado>';
        */
+      /*
+       * SQL para criar as tabelas de verificação manual de lojistas:
+       *
+       * CREATE TABLE seller_verifications (
+       *   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+       *   seller_id UUID REFERENCES profiles(id) ON DELETE CASCADE NOT NULL,
+       *   store_name TEXT,
+       *   store_description TEXT,
+       *   store_category TEXT,
+       *   business_duration TEXT,
+       *   city TEXT,
+       *   neighborhood TEXT,
+       *   instagram TEXT,
+       *   facebook TEXT,
+       *   tiktok TEXT,
+       *   whatsapp TEXT,
+       *   website TEXT,
+       *   observations TEXT,
+       *   no_cnpj_reason TEXT,
+       *   status TEXT NOT NULL DEFAULT 'pending',
+       *   submitted_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+       *   reviewed_at TIMESTAMPTZ,
+       *   reviewed_by UUID REFERENCES profiles(id),
+       *   rejection_reason TEXT
+       * );
+       *
+       * CREATE TABLE seller_verification_files (
+       *   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+       *   verification_id UUID REFERENCES seller_verifications(id) ON DELETE CASCADE NOT NULL,
+       *   file_url TEXT NOT NULL,
+       *   file_type TEXT NOT NULL,
+       *   uploaded_at TIMESTAMPTZ NOT NULL DEFAULT now()
+       * );
+       *
+       * -- RLS
+       * ALTER TABLE seller_verifications ENABLE ROW LEVEL SECURITY;
+       * ALTER TABLE seller_verification_files ENABLE ROW LEVEL SECURITY;
+       *
+       * CREATE POLICY "lojista_own_verifications" ON seller_verifications
+       *   FOR ALL USING (seller_id = auth.uid());
+       *
+       * CREATE POLICY "admin_all_verifications" ON seller_verifications
+       *   FOR ALL USING (
+       *     EXISTS (SELECT 1 FROM profiles WHERE id = auth.uid() AND role = 'admin')
+       *   );
+       *
+       * CREATE POLICY "lojista_own_files" ON seller_verification_files
+       *   FOR ALL USING (
+       *     EXISTS (SELECT 1 FROM seller_verifications WHERE id = verification_id AND seller_id = auth.uid())
+       *   );
+       *
+       * CREATE POLICY "admin_all_files" ON seller_verification_files
+       *   FOR ALL USING (
+       *     EXISTS (SELECT 1 FROM profiles WHERE id = auth.uid() AND role = 'admin')
+       *   );
+       *
+       * -- Bucket para evidências de verificação (criar no Supabase Storage):
+       * -- Nome: "verification-files" | Tipo: public
+       */
+      seller_verifications: {
+        Row: {
+          id:                string
+          seller_id:         string
+          store_name:        string | null
+          store_description: string | null
+          store_category:    string | null
+          business_duration: string | null
+          city:              string | null
+          neighborhood:      string | null
+          instagram:         string | null
+          facebook:          string | null
+          tiktok:            string | null
+          whatsapp:          string | null
+          website:           string | null
+          observations:      string | null
+          no_cnpj_reason:    string | null
+          status:            string
+          submitted_at:      string
+          reviewed_at:       string | null
+          reviewed_by:       string | null
+          rejection_reason:  string | null
+        }
+        Insert: {
+          id?:               string
+          seller_id:         string
+          store_name?:       string | null
+          store_description?:string | null
+          store_category?:   string | null
+          business_duration?:string | null
+          city?:             string | null
+          neighborhood?:     string | null
+          instagram?:        string | null
+          facebook?:         string | null
+          tiktok?:           string | null
+          whatsapp?:         string | null
+          website?:          string | null
+          observations?:     string | null
+          no_cnpj_reason?:   string | null
+          status?:           string
+          submitted_at?:     string
+          reviewed_at?:      string | null
+          reviewed_by?:      string | null
+          rejection_reason?: string | null
+        }
+        Update: {
+          status?:           string
+          reviewed_at?:      string | null
+          reviewed_by?:      string | null
+          rejection_reason?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "seller_verifications_seller_id_fkey"
+            columns: ["seller_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      seller_verification_files: {
+        Row: {
+          id:              string
+          verification_id: string
+          file_url:        string
+          file_type:       string
+          uploaded_at:     string
+        }
+        Insert: {
+          id?:             string
+          verification_id: string
+          file_url:        string
+          file_type:       string
+          uploaded_at?:    string
+        }
+        Update: Record<string, never>
+        Relationships: [
+          {
+            foreignKeyName: "seller_verification_files_verification_id_fkey"
+            columns: ["verification_id"]
+            isOneToOne: false
+            referencedRelation: "seller_verifications"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       support_tickets: {
         Row: {
           id:          string

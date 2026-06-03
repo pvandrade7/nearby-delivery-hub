@@ -1,7 +1,6 @@
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { ShoppingBag, Store, Bike, ArrowRight, Heart, Users, Zap, FlaskConical } from "lucide-react";
-import { useAuth } from "@/hooks/useAuth";
+import { ShoppingBag, Store, Bike, ArrowRight, Heart, FlaskConical } from "lucide-react";
 
 const stats = [
   { value: "14+",    label: "negócios locais"     },
@@ -37,14 +36,8 @@ const roles = [
 ];
 
 const RoleSelect = () => {
-  const { enterDemoMode } = useAuth();
-  const navigate          = useNavigate();
+  const navigate = useNavigate();
   const [showDemoTip, setShowDemoTip] = useState(false);
-
-  const handleDemo = () => {
-    enterDemoMode();
-    navigate("/lojista/painel", { replace: true });
-  };
 
   return (
     <main className="min-h-dvh w-full gradient-warm flex items-center justify-center p-4 sm:p-6">
@@ -146,16 +139,19 @@ const RoleSelect = () => {
                   <p className="text-xs font-bold text-amber-800 dark:text-amber-300 mb-1">
                     Modo Demonstração
                   </p>
-                  <p className="text-xs text-amber-700 dark:text-amber-400 leading-relaxed mb-3">
-                    Carrega dados fictícios sem necessidade de cadastro. Use apenas para
-                    apresentações e demonstrações. Não salva dados reais.
+                  <p className="text-xs text-amber-700 dark:text-amber-400 leading-relaxed mb-2">
+                    Acesse como lojista com dados fictícios para explorar todas as funcionalidades.
                   </p>
+                  <div className="text-xs text-amber-700 dark:text-amber-400 mb-3 space-y-0.5">
+                    <p>E-mail: <span className="font-bold">demo@gmail.com</span></p>
+                    <p>Senha: <span className="font-bold">202020</span></p>
+                  </div>
                   <button
-                    onClick={handleDemo}
+                    onClick={() => navigate("/lojista", { replace: false })}
                     className="inline-flex items-center gap-2 bg-amber-500 text-white text-xs font-bold px-4 py-2 rounded-xl shadow hover:bg-amber-600 transition-colors"
                   >
                     <FlaskConical className="w-3.5 h-3.5" />
-                    Entrar em Modo Demonstração
+                    Ir para login do Lojista
                   </button>
                 </div>
               </div>

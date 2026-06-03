@@ -15,14 +15,16 @@ const CreateStore = () => {
   const [image, setImage] = useState("");
   const [busy,  setBusy]  = useState(false);
   const [loadingProfile, setLoadingProfile] = useState(true);
+
+  // isEdit: verdadeiro somente quando o lojista JÁ completou o CreateStore antes.
+  // Dados pré-preenchidos vindo do signup (storeName/storeCategory via extras)
+  // NÃO ativam isEdit — apenas a flag storeConfigured (salva no save()) ativa.
   const [isEdit, setIsEdit] = useState(false);
 
   const { user } = useAuth();
   const navigate = useNavigate();
   const qc = useQueryClient();
 
-  // Carrega dados existentes da loja — suporta tanto a chave nova (storeCategory)
-  // quanto a antiga (category) para retrocompatibilidade.
   useEffect(() => {
     if (!user) return;
     supabase
@@ -32,14 +34,17 @@ const CreateStore = () => {
       .maybeSingle()
       .then(({ data }) => {
         const ext = (data?.extras as Record<string, string>) ?? {};
-        if (ext.storeName)    setName(ext.storeName);
+
+        // Pré-preenche com dados já conhecidos (vindos do signup ou de sessão anterior)
+        if (ext.storeName)        setName(ext.storeName);
         if (ext.storeDescription) setDesc(ext.storeDescription);
-        if (ext.storeImage)   setImage(ext.storeImage);
-        // Suporta tanto "storeCategory" (atual) quanto "category" (legado)
+        if (ext.storeImage)       setImage(ext.storeImage);
         const category = ext.storeCategory || ext.category || "";
         if (category) setCat(category);
-        // Modo edição: loja já existe com nome e categoria
-        if (ext.storeName && (ext.storeCategory || ext.category)) setIsEdit(true);
+
+        // isEdit só é verdadeiro se o lojista já concluiu esta etapa anteriormente
+        if (ext.storeConfigured === "true") setIsEdit(true);
+
         setLoadingProfile(false);
       });
   }, [user]);
@@ -73,10 +78,11 @@ const CreateStore = () => {
 
       const extras = {
         ...((data?.extras as Record<string, string>) ?? {}),
-        storeName: name.trim(),
+        storeName:        name.trim(),
         storeDescription: desc.trim(),
-        storeCategory: cat,
-        storeImage: image,
+        storeCategory:    cat,
+        storeImage:       image,
+        storeConfigured:  "true", // marca que o lojista completou esta etapa
       };
 
       const { error } = await supabase
@@ -86,11 +92,13 @@ const CreateStore = () => {
 
       if (error) throw error;
 
-      // Invalida o cache de lojas para que a loja apareça imediatamente no lado cliente
       void qc.invalidateQueries({ queryKey: ["client-stores"] });
 
-      toast.success(isEdit ? "Loja atualizada com sucesso!" : "Loja criada com sucesso!");
-      navigate("/lojista/painel");
+      toast.success(isEdit ? "Loja atualizada com sucesso!" : "Loja configurada! Avançando para verificação...");
+
+      // No onboarding (primeira vez): sempre vai para verificação.
+      // Após edição de uma loja já configurada: vai para o painel.
+      navigate(isEdit ? "/lojista/painel" : "/lojista/verificacao");
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Falha ao salvar a loja. Tente novamente.");
     } finally {
@@ -120,12 +128,12 @@ const CreateStore = () => {
       <div className="flex items-center justify-between mb-6">
         <div>
           <h1 className="text-2xl lg:text-3xl font-extrabold">
-            {isEdit ? "Editar minha loja" : "Criar minha loja"}
+            {isEdit ? "Editar minha loja" : "Configurar minha loja"}
           </h1>
           <p className="text-sm text-muted-foreground mt-1">
             {isEdit
               ? "Atualize os dados da sua loja."
-              : "Configure sua vitrine para começar a vender."}
+              : "Revise e complete as informações da sua loja."}
           </p>
         </div>
         {isEdit && (
@@ -218,8 +226,8 @@ const CreateStore = () => {
           className="w-full gradient-brand text-primary-foreground rounded-xl py-3.5 font-bold shadow-card hover:shadow-elevated transition-shadow disabled:opacity-60 flex items-center justify-center gap-2"
         >
           {busy
-            ? (isEdit ? "Atualizando..." : "Criando...")
-            : (isEdit ? "Atualizar loja" : "Criar loja e continuar")}
+            ? (isEdit ? "Atualizando..." : "Salvando...")
+            : (isEdit ? "Atualizar loja" : "Salvar e continuar")}
           {!busy && <CheckCircle2 className="w-4 h-4" />}
         </button>
       </div>

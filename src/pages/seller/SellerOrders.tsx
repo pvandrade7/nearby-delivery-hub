@@ -18,21 +18,20 @@ type Order = {
   created_at: string;
 };
 
-// ── Dados demonstrativos ─────────────────────────────────────────────────────
-const _now = new Date();
-const _d = (n: number) => { const d = new Date(_now); d.setDate(d.getDate() - n); return d.toISOString(); };
+import { DEMO_ORDERS as _DEMO_ORDERS, DEMO_STORE } from "@/data/demoData";
 
-const DEMO_ORDERS: Order[] = [
-  { id: "a1b2c3d4e5f6a1b2", store_name: "Loja Demonstração", total: 189.90, status: "aprovado",   created_at: _d(0), items: [{ name: "Produto Premium",  quantity: 2, price: 94.95 }], payment: "PIX",      fulfillment: "delivery", address: "Rua das Flores, 123" },
-  { id: "b2c3d4e5f6a7b2c3", store_name: "Loja Demonstração", total: 79.90,  status: "preparando", created_at: _d(0), items: [{ name: "Item Especial",    quantity: 1, price: 79.90 }], payment: "Cartão",   fulfillment: "delivery", address: "Av. Central, 456" },
-  { id: "c3d4e5f6a7b8c3d4", store_name: "Loja Demonstração", total: 249.00, status: "saiu",       created_at: _d(1), items: [{ name: "Kit Completo",     quantity: 3, price: 83.00 }], payment: "PIX",      fulfillment: "delivery", address: "Rua Nova, 789" },
-  { id: "d4e5f6a7b8c9d4e5", store_name: "Loja Demonstração", total: 59.90,  status: "entregue",   created_at: _d(1), items: [{ name: "Produto Básico",   quantity: 1, price: 59.90 }], payment: "Dinheiro", fulfillment: "pickup",   address: null },
-  { id: "e5f6a7b8c9d0e5f6", store_name: "Loja Demonstração", total: 134.50, status: "entregue",   created_at: _d(2), items: [{ name: "Acessório Plus",   quantity: 2, price: 67.25 }], payment: "Cartão",   fulfillment: "delivery", address: "Rua Sul, 321" },
-  { id: "f6a7b8c9d0e1f6a7", store_name: "Loja Demonstração", total: 299.90, status: "entregue",   created_at: _d(3), items: [{ name: "Produto Top",      quantity: 1, price: 299.90 }], payment: "PIX",     fulfillment: "delivery", address: "Av. Norte, 654" },
-  { id: "a7b8c9d0e1f2a7b8", store_name: "Loja Demonstração", total: 44.90,  status: "entregue",   created_at: _d(4), items: [{ name: "Mini Kit",         quantity: 2, price: 22.45 }], payment: "PIX",      fulfillment: "delivery", address: "Rua Leste, 987" },
-  { id: "b8c9d0e1f2a3b8c9", store_name: "Loja Demonstração", total: 159.00, status: "aprovado",   created_at: _d(5), items: [{ name: "Produto Star",     quantity: 2, price: 79.50 }], payment: "Cartão",   fulfillment: "delivery", address: "Av. Oeste, 147" },
-];
-// ─────────────────────────────────────────────────────────────────────────────
+// Adapta DemoOrder para o tipo Order desta página
+const DEMO_ORDERS: Order[] = _DEMO_ORDERS.map((o) => ({
+  id:           o.id,
+  store_name:   DEMO_STORE.storeName,
+  items:        o.items,
+  total:        o.total,
+  address:      o.address,
+  payment:      o.payment === "pix" ? "PIX" : o.payment === "cartao" ? "Cartão" : "Dinheiro",
+  fulfillment:  o.fulfillment,
+  status:       (o.status === "cancelado" ? "aprovado" : o.status) as OrderStatus,
+  created_at:   o.created_at,
+}));
 
 const statusFlow: OrderStatus[] = ["aprovado", "preparando", "saiu", "entregue"];
 

@@ -22,17 +22,15 @@ const AdminDashboard = () => {
   useEffect(() => {
     (async () => {
       try {
-        const [usersRes, profilesRes, ticketsRes] = await Promise.all([
+        const [usersRes, profilesRes, ticketsRes, verifRes] = await Promise.all([
           supabase.from("profiles").select("id", { count: "exact", head: true }),
           supabase.from("profiles").select("id, extras").not("extras", "is", null),
           supabase.from("support_tickets").select("id, status"),
+          supabase.from("seller_verifications" as never).select("id, status").in("status" as never, ["pending", "in_review"] as never),
         ]);
 
         const profiles = profilesRes.data ?? [];
-        const pendingCount = profiles.filter((p) => {
-          const ext = p.extras as Record<string, string> | null;
-          return ext?.verificationStatus === "pendente";
-        }).length;
+        const pendingCount = ((verifRes as { data: { status: string }[] | null }).data ?? []).length;
         const storeCount = profiles.filter((p) => {
           const ext = p.extras as Record<string, string> | null;
           return Boolean(ext?.storeName);
@@ -146,28 +144,6 @@ const AdminDashboard = () => {
               <span className="text-2xl font-extrabold">{row.value}</span>
             </div>
           ))}
-        </div>
-      </div>
-
-      {/* Aviso de configuração */}
-      <div className="bg-blue-50 dark:bg-blue-950/20 border border-blue-200 dark:border-blue-800 rounded-2xl p-5">
-        <div className="flex items-start gap-3">
-          <ShieldCheck className="w-5 h-5 text-blue-600 shrink-0 mt-0.5" />
-          <div>
-            <p className="font-bold text-sm text-blue-800 dark:text-blue-300">Configuração do administrador</p>
-            <p className="text-xs text-blue-700 dark:text-blue-400 mt-1 leading-relaxed">
-              Para o login de administrador funcionar com <strong>adm@gmail.com / 202020</strong>, crie o usuário no
-              Supabase Auth (mínimo 6 caracteres na senha) e execute no SQL Editor:
-            </p>
-            <code className="block mt-2 bg-blue-100 dark:bg-blue-900/40 text-blue-800 dark:text-blue-300 text-[11px] font-mono rounded-lg px-3 py-2 leading-relaxed">
-              UPDATE profiles SET role = 'admin'<br />
-              WHERE id = '&lt;uuid do usuário adm@gmail.com&gt;';
-            </code>
-            <p className="text-xs text-blue-600 dark:text-blue-500 mt-2">
-              Também execute o SQL das tabelas <code>support_tickets</code> e <code>ticket_messages</code> disponível em{" "}
-              <code>src/integrations/supabase/types.ts</code>.
-            </p>
-          </div>
         </div>
       </div>
 

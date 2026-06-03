@@ -8,6 +8,9 @@ import { AuthLayout } from "@/components/AuthLayout";
 import { HOME_BY_ROLE } from "@/components/RequireRole";
 import { toast } from "sonner";
 
+const DEMO_EMAIL    = "demo@gmail.com";
+const DEMO_PASSWORD = "202020";
+
 type Field = {
   name: string;
   label: string;
@@ -99,7 +102,7 @@ export const AuthFlow = ({
   const [busy, setBusy] = useState(false);
   const [addRoleLoading, setAddRoleLoading] = useState(false);
   const navigate = useNavigate();
-  const { session, roles: userRoles, loading, refreshRoles } = useAuth();
+  const { session, roles: userRoles, loading, refreshRoles, enterDemoMode } = useAuth();
 
   // Role esperado para esta tela de login (inferido do finalPath)
   const expectedRole = finalPath.startsWith("/lojista")
@@ -118,6 +121,10 @@ export const AuthFlow = ({
   // → Não tem o perfil esperado → mostra formulário de adição de perfil
   useEffect(() => {
     if (loading || !session) return;
+    if (userRoles.includes("admin" as import("@/hooks/useAuth").UserRole)) {
+      window.location.replace("/admin/painel");
+      return;
+    }
     if (!userRoles.includes(expectedRole as import("@/hooks/useAuth").UserRole)) {
       setView("addRole");
       return;
@@ -127,12 +134,17 @@ export const AuthFlow = ({
     // mesmo quando a loja já existia — causando o loop de "atualizar loja" a cada login.
     if (expectedRole === "lojista") {
       supabase.from("profiles")
-        .select("extras")
+        .select("extras, verified")
         .eq("id", session.user.id)
         .maybeSingle()
         .then(({ data }) => {
-          const ext = (data?.extras as Record<string, string>) ?? {};
-          window.location.replace(ext.storeName ? "/lojista/painel" : finalPath);
+          const ext      = (data?.extras as Record<string, string>) ?? {};
+          const isVerif  = (data?.verified as boolean) ?? false;
+          if (!isVerif) {
+            window.location.replace("/lojista/verificacao");
+          } else {
+            window.location.replace(ext.storeName ? "/lojista/painel" : finalPath);
+          }
         });
     } else {
       window.location.replace(finalPath);
@@ -266,16 +278,22 @@ export const AuthFlow = ({
         toast.success("Bem-vindo!");
         const userId = authData?.user?.id;
         if (userId) {
-          const { data: p } = await supabase.from("profiles").select("role, roles, extras").eq("id", userId).maybeSingle();
+          const { data: p } = await supabase.from("profiles").select("role, roles, extras, verified").eq("id", userId).maybeSingle();
           const primaryRole = (p?.role as string | null) ?? null;
           const rolesArr = ((p?.roles as string[]) ?? []).filter(Boolean);
           const allRoles = primaryRole && !rolesArr.includes(primaryRole) ? [primaryRole, ...rolesArr] : rolesArr;
-          if (allRoles.includes(expectedRole)) {
-            const ext = (p?.extras as Record<string, string>) ?? {};
-            const destination = expectedRole === "lojista" && ext.storeName
-              ? "/lojista/painel"
-              : finalPath;
-            window.location.replace(destination);
+          if (allRoles.includes("admin")) {
+            window.location.replace("/admin/painel");
+          } else if (allRoles.includes(expectedRole)) {
+            const ext     = (p?.extras as Record<string, string>) ?? {};
+            const isVerif = (p?.verified as boolean) ?? false;
+            if (expectedRole === "lojista" && !isVerif) {
+              window.location.replace("/lojista/verificacao");
+            } else if (expectedRole === "lojista") {
+              window.location.replace(ext.storeName ? "/lojista/painel" : finalPath);
+            } else {
+              window.location.replace(finalPath);
+            }
           } else {
             // Usuário existe mas não tem o perfil esperado → adicionar perfil
             setView("addRole");
@@ -290,7 +308,7 @@ export const AuthFlow = ({
         fields.forEach((f) => { if (values[f.name]) extras[f.name] = values[f.name]; });
         if (values.avatar) extras.avatar_url = values.avatar;
         const cnpjDigits = onlyDigits(values.cnpj);
-        const signUpCall = supabase.auth.signUp({
+        const { data: signUpResult, error: signErr } = await supabase.auth.signUp({
           email: values.email.trim().toLowerCase(),
           password: values.password,
           options: {
@@ -298,10 +316,6 @@ export const AuthFlow = ({
             data: { display_name: values.name, phone, role, avatar_url: values.avatar || undefined, extras },
           },
         });
-        const signUpTimeout = new Promise<never>((_, reject) =>
-          setTimeout(() => reject(new Error("Tempo esgotado. Verifique sua conexão e tente novamente.")), 12000)
-        );
-        const { data: signUpResult, error: signErr } = await Promise.race([signUpCall, signUpTimeout]);
         if (signErr) throw signErr;
 
         if (!signUpResult?.session) {
@@ -309,8 +323,18 @@ export const AuthFlow = ({
           return;
         }
 
-        if (role === "lojista" && cnpjDigits && cnpjVerified) {
-          await supabase.from("profiles").update({ cnpj: cnpjDigits, verified: true }).eq("id", signUpResult.session.user.id);
+        // Salva extras no perfil do lojista — o trigger de criação do perfil geralmente
+        // não copia o campo extras de raw_user_meta_data, então fazemos explicitamente.
+        // Isso garante que CreateStore possa pré-preencher nome, categoria, etc.
+        if (role === "lojista") {
+          const profileUpdate: Record<string, unknown> = { extras };
+          if (cnpjDigits && cnpjVerified) {
+            profileUpdate.cnpj     = cnpjDigits;
+            profileUpdate.verified = true;
+          }
+          await supabase.from("profiles")
+            .update(profileUpdate)
+            .eq("id", signUpResult.session.user.id);
         }
 
         // Para clientes: salva o endereço preenchido no cadastro na tabela addresses
@@ -330,17 +354,29 @@ export const AuthFlow = ({
         }
 
         toast.success("Conta criada! Entrando...");
+        // Marca no sessionStorage que o usuário acabou de criar a conta
+        // (lido por SellerVerification para exibir boas-vindas)
+        if (role === "lojista" && signUpResult.session?.user?.id) {
+          sessionStorage.setItem(`new_signup_${signUpResult.session.user.id}`, "1");
+        }
+        // Todos os lojistas passam pela etapa 2 (criar-loja) antes da verificação.
+        // Lojistas com CNPJ já estão verified=true e verão "Conta Verificada" na etapa 3.
         window.location.replace(finalPath);
         return;
       }
     } catch (err) {
       const msg = err instanceof Error ? err.message : "";
-      if (msg.toLowerCase().includes("already registered") || msg.toLowerCase().includes("already been registered")) {
-        toast.error("Este email já está cadastrado. Faça login.");
-      } else if (msg.toLowerCase().includes("email")) {
+      const raw = msg.toLowerCase();
+      if (raw.includes("already registered") || raw.includes("already been registered") || raw.includes("user already registered")) {
+        toast.error("Este email já está cadastrado. Use a opção de Entrar abaixo.");
+      } else if (raw.includes("invalid email") || (raw.includes("email") && raw.includes("invalid"))) {
         toast.error("Email inválido. Verifique o endereço e tente novamente.");
-      } else if (msg.toLowerCase().includes("password") || msg.toLowerCase().includes("weak")) {
-        toast.error("Senha fraca. Use letras, números e símbolos.");
+      } else if (raw.includes("password") || raw.includes("weak") || raw.includes("senha")) {
+        toast.error("Senha fraca. Use pelo menos 6 caracteres com letras e números.");
+      } else if (raw.includes("network") || raw.includes("fetch") || raw.includes("failed to fetch")) {
+        toast.error("Sem conexão com o servidor. Verifique sua internet e tente novamente.");
+      } else if (raw.includes("rate limit") || raw.includes("too many")) {
+        toast.error("Muitas tentativas. Aguarde alguns minutos antes de tentar novamente.");
       } else {
         toast.error(msg || "Falha ao criar conta. Tente novamente.");
       }
@@ -369,6 +405,16 @@ export const AuthFlow = ({
       return;
     }
 
+    // Credenciais de demonstração — intercepta antes de chamar o Supabase
+    if (
+      loginEmail.trim().toLowerCase() === DEMO_EMAIL &&
+      loginPassword.trim() === DEMO_PASSWORD
+    ) {
+      enterDemoMode();
+      window.location.replace("/lojista/painel");
+      return;
+    }
+
     setBusy(true);
     try {
       let email = loginEmail.trim();
@@ -383,21 +429,24 @@ export const AuthFlow = ({
       toast.success("Bem-vindo de volta!");
       const userId = authData.user?.id;
       if (userId) {
-        const { data: p } = await supabase.from("profiles").select("role, roles, extras").eq("id", userId).maybeSingle();
+        const { data: p } = await supabase.from("profiles").select("role, roles, extras, verified").eq("id", userId).maybeSingle();
         const primaryRole = (p?.role as string | null) ?? null;
         const rolesArr = ((p?.roles as string[]) ?? []).filter(Boolean);
         // Inclui role primário (contas antigas sem coluna roles populada)
         const allRoles = primaryRole && !rolesArr.includes(primaryRole) ? [primaryRole, ...rolesArr] : rolesArr;
-        if (allRoles.includes(expectedRole)) {
-          // Lojista com loja já configurada vai direto ao painel; caso contrário, cria loja.
-          // Usa window.location.replace (não navigate) para evitar race condition:
-          // navigate() é client-side e RequireRole pode ver roles=[] antes do fetchRoles
-          // terminar, redirecionando de volta ao login e caindo em finalPath incorretamente.
-          const ext = (p?.extras as Record<string, string>) ?? {};
-          const destination = expectedRole === "lojista" && ext.storeName
-            ? "/lojista/painel"
-            : finalPath;
-          window.location.replace(destination);
+        if (allRoles.includes("admin")) {
+          window.location.replace("/admin/painel");
+        } else if (allRoles.includes(expectedRole)) {
+          const ext      = (p?.extras as Record<string, string>) ?? {};
+          const isVerif  = (p?.verified as boolean) ?? false;
+          if (expectedRole === "lojista" && !isVerif) {
+            // Lojista não verificado → etapa de verificação
+            window.location.replace("/lojista/verificacao");
+          } else if (expectedRole === "lojista") {
+            window.location.replace(ext.storeName ? "/lojista/painel" : finalPath);
+          } else {
+            window.location.replace(finalPath);
+          }
         } else {
           // Conta encontrada, mas sem o perfil esperado → mostrar adição de perfil
           setView("addRole");
@@ -1043,9 +1092,23 @@ export const AuthFlow = ({
             {signupMode === "signup" &&
               fields.map((field) => renderField(field, false))}
 
+            {/* Senha vem ANTES do CNPJ para que o botão "Não tenho CNPJ" encontre a senha preenchida */}
+            <label className="bg-card border border-border rounded-xl px-4 py-3 flex items-center gap-3 shadow-card">
+              <Lock className="w-5 h-5 text-primary" />
+              <input
+                value={values.password}
+                onChange={(e) => updateValue("password", e.target.value)}
+                placeholder="Crie uma senha (mín. 6 caracteres)"
+                type="password"
+                minLength={6}
+                maxLength={120}
+                className="flex-1 bg-transparent text-sm font-semibold focus:outline-none"
+              />
+            </label>
+
             {isSellerSignupFinal && (
               <div className="bg-card border border-border rounded-xl px-4 py-3 shadow-card space-y-2">
-                <span className="text-xs font-bold text-muted-foreground">CNPJ (selo verificado)</span>
+                <span className="text-xs font-bold text-muted-foreground">CNPJ (opcional — ativa selo verificado)</span>
                 <div className="flex gap-2">
                   <input
                     value={values.cnpj}
@@ -1066,27 +1129,19 @@ export const AuthFlow = ({
                 </div>
                 {cnpjVerified && (
                   <p className="text-xs text-primary flex items-center gap-1">
-                    <ShieldCheck className="w-3 h-3" /> CNPJ validado — sua loja terá selo verificado.
+                    <ShieldCheck className="w-3 h-3" /> CNPJ validado — sua loja terá selo verificado imediatamente.
                   </p>
                 )}
-                <Link to="/cliente/chat/suporte-verificacao" className="block text-xs text-muted-foreground underline pt-1">
+                {/* Senha já preenchida acima — goNext() terá password disponível */}
+                <button
+                  type="button"
+                  onClick={() => { updateValue("cnpj", ""); setCnpjVerified(false); void goNext(); }}
+                  className="block text-xs text-muted-foreground underline pt-1 text-left hover:text-foreground transition-colors"
+                >
                   Não tenho CNPJ — falar com administrador
-                </Link>
+                </button>
               </div>
             )}
-
-            <label className="bg-card border border-border rounded-xl px-4 py-3 flex items-center gap-3 shadow-card">
-              <Lock className="w-5 h-5 text-primary" />
-              <input
-                value={values.password}
-                onChange={(e) => updateValue("password", e.target.value)}
-                placeholder="Crie uma senha"
-                type="password"
-                minLength={6}
-                maxLength={120}
-                className="flex-1 bg-transparent text-sm font-semibold focus:outline-none"
-              />
-            </label>
           </div>
         )}
 

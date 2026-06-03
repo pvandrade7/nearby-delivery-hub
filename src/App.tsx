@@ -1,5 +1,5 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Route, Routes } from "react-router-dom";
+import { BrowserRouter, Navigate, Route, Routes } from "react-router-dom";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -7,6 +7,9 @@ import { CartProvider } from "@/context/CartContext";
 import { AppShell } from "@/components/AppShell";
 import { AuthProvider } from "@/hooks/useAuth";
 import { RequireRole } from "@/components/RequireRole";
+import { OnboardingLayout } from "@/components/OnboardingLayout";
+import { useAuth } from "@/hooks/useAuth";
+import { useIsMobile } from "@/hooks/use-mobile";
 import Auth from "./pages/Auth";
 import Conversations from "./pages/client/Conversations";
 import RoleSelect from "./pages/RoleSelect";
@@ -67,13 +70,26 @@ const Client = ({ children }: { children: React.ReactNode }) => (
 const Seller = ({ children }: { children: React.ReactNode }) => (
   <RequireRole role="lojista" redirectTo="/lojista">{children}</RequireRole>
 );
+// VerifiedSeller: exige role=lojista E verified=true.
+// Lojistas com conta pendente/rejeitada são redirecionados para /lojista/verificacao.
+const VerifiedSeller = ({ children }: { children: React.ReactNode }) => {
+  const { session, roles, verified, loading, isDemo } = useAuth();
+  if (isDemo) return <>{children}</>;
+  if (loading) return <div className="flex items-center justify-center h-screen gap-3 text-sm text-muted-foreground"><div className="w-5 h-5 rounded-full border-2 border-primary border-t-transparent animate-spin" />Carregando...</div>;
+  if (!session) return <Navigate to="/lojista" replace />;
+  if (!roles.some((r) => r === "lojista")) return <Navigate to="/lojista" replace />;
+  if (!verified) return <Navigate to="/lojista/verificacao" replace />;
+  return <>{children}</>;
+};
 const Courier = ({ children }: { children: React.ReactNode }) => (
   <RequireRole role="entregador" redirectTo="/entregador">{children}</RequireRole>
 );
-// Admin aceita role 'admin' ou 'lojista' (gestor com acesso ampliado)
-const Admin = ({ children }: { children: React.ReactNode }) => (
-  <RequireRole role={["admin", "lojista"]} redirectTo="/lojista">{children}</RequireRole>
-);
+// Admin aceita role 'admin' ou 'lojista' (gestor com acesso ampliado) — somente desktop
+const Admin = ({ children }: { children: React.ReactNode }) => {
+  const isMobile = useIsMobile();
+  if (isMobile) return <Navigate to="/" replace />;
+  return <RequireRole role={["admin", "lojista"]} redirectTo="/lojista">{children}</RequireRole>;
+};
 
 const App = () => (
   <QueryClientProvider client={queryClient}>
@@ -111,17 +127,20 @@ const App = () => (
               <Route path="/cliente/favoritos" element={<AppShell><Client><Favorites /></Client></AppShell>} />
               <Route path="/cliente/ajuda" element={<AppShell><Client><Help /></Client></AppShell>} />
 
-              {/* Lojista — tudo protegido por role=lojista exceto login */}
+              {/* Lojista — login público */}
               <Route path="/lojista" element={<AppShell><SellerLogin /></AppShell>} />
-              <Route path="/lojista/criar-loja" element={<AppShell><Seller><CreateStore /></Seller></AppShell>} />
-              <Route path="/lojista/painel" element={<AppShell><Seller><SellerDashboard /></Seller></AppShell>} />
-              <Route path="/lojista/produtos" element={<AppShell><Seller><SellerProducts /></Seller></AppShell>} />
-              <Route path="/lojista/produtos/novo" element={<AppShell><Seller><NewProduct /></Seller></AppShell>} />
-              <Route path="/lojista/produtos/editar/:id" element={<AppShell><Seller><NewProduct /></Seller></AppShell>} />
-              <Route path="/lojista/pedidos" element={<AppShell><Seller><SellerOrders /></Seller></AppShell>} />
+              {/* Criar loja: onboarding sem sidebar */}
+              <Route path="/lojista/criar-loja" element={<OnboardingLayout step={2}><Seller><CreateStore /></Seller></OnboardingLayout>} />
+              {/* Verificação: AppShell normal — lojistas verificados acessam via sidebar */}
               <Route path="/lojista/verificacao" element={<AppShell><Seller><SellerVerification /></Seller></AppShell>} />
-              <Route path="/lojista/config" element={<AppShell><Seller><SellerConfig /></Seller></AppShell>} />
-              <Route path="/lojista/minha-loja" element={<AppShell><Seller><MyStore /></Seller></AppShell>} />
+              {/* Rotas sensíveis: exigem role=lojista E verified=true */}
+              <Route path="/lojista/painel" element={<AppShell><VerifiedSeller><SellerDashboard /></VerifiedSeller></AppShell>} />
+              <Route path="/lojista/produtos" element={<AppShell><VerifiedSeller><SellerProducts /></VerifiedSeller></AppShell>} />
+              <Route path="/lojista/produtos/novo" element={<AppShell><VerifiedSeller><NewProduct /></VerifiedSeller></AppShell>} />
+              <Route path="/lojista/produtos/editar/:id" element={<AppShell><VerifiedSeller><NewProduct /></VerifiedSeller></AppShell>} />
+              <Route path="/lojista/pedidos" element={<AppShell><VerifiedSeller><SellerOrders /></VerifiedSeller></AppShell>} />
+              <Route path="/lojista/config" element={<AppShell><VerifiedSeller><SellerConfig /></VerifiedSeller></AppShell>} />
+              <Route path="/lojista/minha-loja" element={<AppShell><VerifiedSeller><MyStore /></VerifiedSeller></AppShell>} />
 
               {/* Admin */}
               <Route path="/admin/painel"        element={<AppShell><Admin><AdminDashboard    /></Admin></AppShell>} />
