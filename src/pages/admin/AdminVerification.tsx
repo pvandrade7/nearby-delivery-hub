@@ -196,7 +196,7 @@ const AdminVerification = () => {
       setRequests(items);
     } catch (e) {
       console.error("[AdminVerification]", e);
-      toast.error("Erro ao carregar solicitações.");
+      setRequests([]);
     }
     setLoading(false);
   };
@@ -311,14 +311,6 @@ const AdminVerification = () => {
             <p className="text-xs text-muted-foreground font-semibold mt-0.5">{s.label}</p>
           </button>
         ))}
-      </div>
-
-      {/* SQL Setup hint */}
-      <div className="bg-blue-50 dark:bg-blue-950/20 border border-blue-200 dark:border-blue-800 rounded-2xl p-4 flex items-start gap-3">
-        <AlertCircle className="w-4 h-4 text-blue-600 mt-0.5 shrink-0" />
-        <p className="text-xs text-blue-700 dark:text-blue-400 leading-relaxed">
-          Execute o SQL das tabelas <code>seller_verifications</code> e <code>seller_verification_files</code> no Supabase, e crie o Storage bucket <code>verification-files</code> (público). O SQL está em <code>src/integrations/supabase/types.ts</code>.
-        </p>
       </div>
 
       {/* Lista */}

@@ -56,7 +56,8 @@ const SellerProducts = () => {
       .order("created_at", { ascending: false });
 
     if (error) {
-      toast.error("Erro ao carregar produtos");
+      console.error("[SellerProducts]", error);
+      setItems([]);
     } else {
       setItems((data as SellerProduct[]) ?? []);
     }

@@ -1,8 +1,8 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import {
-  Users, Store, BadgeCheck, MessageSquare, ShieldCheck,
-  TrendingUp, Clock, CheckCircle2, XCircle, ArrowRight,
+  Users, Store, BadgeCheck, MessageSquare,
+  Clock, CheckCircle2, XCircle, ArrowRight,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 

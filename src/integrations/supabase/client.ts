@@ -8,13 +8,12 @@ const SUPABASE_PUBLISHABLE_KEY = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
 // Import the supabase client like this:
 // import { supabase } from "@/integrations/supabase/client";
 
-// Usando sessionStorage em vez de localStorage:
-// - A sessão persiste enquanto o browser/tab estiver aberto (F5 não desloga)
-// - Ao fechar o browser e reabrir, o usuário deve fazer login novamente
-// - Evita auto-login indevido entre sessões separadas do browser
+// localStorage mantém a sessão mesmo quando o browser é fechado e reaberto.
+// sessionStorage causava logout involuntário no mobile porque browsers iOS/Android
+// recarregam a aba quando o usuário volta do background, limpando o sessionStorage.
 export const supabase = createClient<Database>(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY, {
   auth: {
-    storage: sessionStorage,
+    storage: localStorage,
     persistSession: true,
     autoRefreshToken: true,
   }

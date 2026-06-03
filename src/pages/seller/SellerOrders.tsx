@@ -103,7 +103,8 @@ const SellerOrders = () => {
       .order("created_at", { ascending: false });
 
     if (error) {
-      toast.error("Erro ao carregar pedidos");
+      console.error("[SellerOrders]", error);
+      setOrders([]);
     } else {
       setOrders((data as Order[]) ?? []);
     }

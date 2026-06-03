@@ -329,13 +329,13 @@ export const AppShell = ({ children }: { children: ReactNode }) => {
             ) : authLoading ? (
               <div className="size-9 sm:size-10 rounded-full bg-muted animate-pulse" aria-hidden="true" />
             ) : user ? (
-              <button
-                onClick={() => { signOut(); navigate("/", { replace: true }); }}
+              <Link
+                to={meta.profilePath}
                 className="size-9 sm:size-10 rounded-full gradient-brand text-primary-foreground flex items-center justify-center font-bold text-sm shadow-card lg:hidden"
-                title={`Sair — ${user.email}`}
+                title={user.email ?? meta.user}
               >
                 {(user.email?.[0] ?? meta.initial).toUpperCase()}
-              </button>
+              </Link>
             ) : null}
             {/* Avatar desktop (link para perfil) */}
             {!isDemo && !authLoading && user && (

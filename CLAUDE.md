@@ -28,7 +28,7 @@ Path alias: `@/` → `src/`
 
 `AuthFlow` (`src/components/AuthFlow.tsx`) is the shared login/signup component used by all role-specific login pages. After login it checks roles and redirects: `admin` → `/admin/painel`, `lojista` with store → `/lojista/painel`, otherwise `finalPath`.
 
-Session is stored in `sessionStorage` (not `localStorage`), so closing the browser clears it.
+Session is stored in `localStorage` so it persists across tab reloads and browser restarts. This is essential on mobile where browsers reload tabs when returning from background (sessionStorage would clear and log the user out).
 
 ### Route Guards in App.tsx
 
