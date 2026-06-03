@@ -27,15 +27,16 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
   const add = (product: Product, selectedFulfillment: FulfillmentType = fulfillmentType) => {
     if (!product.storeId) return;
 
+    // Atualiza storeId e fulfillmentType FORA do updater para evitar side-effects
+    // dentro de setState (violação das regras do React).
+    setStoreId(product.storeId);
+    setFulfillmentType(selectedFulfillment);
+
     setItems((prev) => {
-      // If different store, replace cart
+      // Se loja diferente, reinicia o carrinho
       if (storeId && storeId !== product.storeId) {
-        setStoreId(product.storeId);
-        setFulfillmentType(selectedFulfillment);
         return [{ ...product, quantity: 1, fulfillmentType: selectedFulfillment }];
       }
-      setStoreId(product.storeId);
-      setFulfillmentType(selectedFulfillment);
       const existing = prev.find((i) => i.id === product.id);
       if (existing) {
         return prev.map((i) => (i.id === product.id ? { ...i, quantity: i.quantity + 1, fulfillmentType: selectedFulfillment } : i));
@@ -52,9 +53,12 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
     });
   };
 
+  const MAX_QTY = 99;
+
   const setQty = (productId: string, qty: number) => {
     if (qty <= 0) return remove(productId);
-    setItems((prev) => prev.map((i) => (i.id === productId ? { ...i, quantity: qty } : i)));
+    const clamped = Math.min(qty, MAX_QTY);
+    setItems((prev) => prev.map((i) => (i.id === productId ? { ...i, quantity: clamped } : i)));
   };
 
   const clear = () => {

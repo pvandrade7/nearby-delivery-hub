@@ -1,11 +1,16 @@
 import { useNavigate, useParams } from "react-router-dom";
 import { useState } from "react";
-import { Minus, Plus, Heart, Share2, Star, Shield, Truck, MessageCircle, UserRound, MapPin, Handshake } from "lucide-react";
+import { Minus, Plus, Heart, Share2, Star, Shield, Truck, MessageCircle, UserRound, MapPin, Handshake, Package, Ruler, CheckCircle2, XCircle, AlertTriangle } from "lucide-react";
 import { getProductSeller, products } from "@/data/mockData";
 import { FulfillmentType, useCart } from "@/context/CartContext";
 import { VerifiedBadge } from "@/components/VerifiedBadge";
 import { LoginGate } from "@/components/LoginGate";
 import { useAuth } from "@/hooks/useAuth";
+import {
+  PORTE_LABEL, PORTE_DESC, PORTE_COLOR,
+  ENTREGA_LABEL, ENTREGA_DESC, ENTREGA_ICON, ENTREGA_COLOR,
+  formatPeso, formatDims, precisaVeiculoEspecializado, taxaLabel,
+} from "@/lib/logistica";
 
 const ProductDetail = () => {
   const { id } = useParams();
@@ -198,6 +203,92 @@ const ProductDetail = () => {
             <h2 className="text-base font-bold mb-2">Descrição</h2>
             <p className="text-sm text-muted-foreground leading-relaxed">{product.description}</p>
           </div>
+
+          {/* Logistics panel */}
+          {product.logistica && (
+            <div className="bg-card rounded-2xl p-5 shadow-card space-y-4">
+              <h2 className="text-base font-bold flex items-center gap-2">
+                <Package className="w-4 h-4 text-primary" /> Logística e Entrega
+              </h2>
+
+              {/* Porte + dimensões */}
+              <div className="grid grid-cols-2 gap-3">
+                <div className="bg-muted/50 rounded-xl p-3">
+                  <p className="text-[10px] text-muted-foreground uppercase tracking-wider font-semibold mb-1">Porte</p>
+                  <span className={`inline-block text-xs font-bold px-2 py-0.5 rounded-full ${PORTE_COLOR[product.logistica.porte]}`}>
+                    {PORTE_LABEL[product.logistica.porte]}
+                  </span>
+                  <p className="text-[10px] text-muted-foreground mt-1 leading-tight">
+                    {PORTE_DESC[product.logistica.porte]}
+                  </p>
+                </div>
+                <div className="bg-muted/50 rounded-xl p-3 space-y-1">
+                  <div className="flex items-center gap-1.5">
+                    <Package className="w-3 h-3 text-muted-foreground" />
+                    <span className="text-[10px] text-muted-foreground uppercase tracking-wider font-semibold">Peso</span>
+                  </div>
+                  <p className="text-sm font-bold">{formatPeso(product.logistica.peso)}</p>
+                  <div className="flex items-center gap-1.5 mt-1">
+                    <Ruler className="w-3 h-3 text-muted-foreground" />
+                    <p className="text-[11px] text-muted-foreground">{formatDims(product.logistica.dims)}</p>
+                  </div>
+                </div>
+              </div>
+
+              {/* Tipo de entrega */}
+              <div className={`rounded-xl p-3 border border-border`}>
+                <div className="flex items-start gap-3">
+                  <span className="text-xl leading-none mt-0.5">{ENTREGA_ICON[product.logistica.entrega]}</span>
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <span className={`text-xs font-bold px-2 py-0.5 rounded-full ${ENTREGA_COLOR[product.logistica.entrega]}`}>
+                        {ENTREGA_LABEL[product.logistica.entrega]}
+                      </span>
+                      {product.logistica.prazo && (
+                        <span className="text-[11px] text-muted-foreground flex items-center gap-1">
+                          <Truck className="w-3 h-3" /> {product.logistica.prazo}
+                        </span>
+                      )}
+                    </div>
+                    <p className="text-xs text-muted-foreground mt-1 leading-relaxed">
+                      {ENTREGA_DESC[product.logistica.entrega]}
+                    </p>
+                    {product.logistica.taxa !== undefined && (
+                      <p className={`text-xs font-bold mt-1 ${product.logistica.taxa === 0 ? "text-success" : "text-primary"}`}>
+                        {taxaLabel(product.logistica.taxa)}
+                      </p>
+                    )}
+                  </div>
+                </div>
+              </div>
+
+              {/* Restrições / alertas */}
+              <div className="space-y-1.5">
+                <div className="flex items-center gap-2 text-xs">
+                  {product.logistica.temEmbalagem ? (
+                    <CheckCircle2 className="w-3.5 h-3.5 text-success shrink-0" />
+                  ) : (
+                    <XCircle className="w-3.5 h-3.5 text-destructive shrink-0" />
+                  )}
+                  <span className={product.logistica.temEmbalagem ? "text-success font-medium" : "text-muted-foreground"}>
+                    {product.logistica.temEmbalagem ? "Possui embalagem adequada para transporte" : "Sem embalagem — requer cuidados extras no transporte"}
+                  </span>
+                </div>
+                <div className="flex items-center gap-2 text-xs">
+                  {precisaVeiculoEspecializado(product.logistica) ? (
+                    <AlertTriangle className="w-3.5 h-3.5 text-warning shrink-0" />
+                  ) : (
+                    <CheckCircle2 className="w-3.5 h-3.5 text-success shrink-0" />
+                  )}
+                  <span className={precisaVeiculoEspecializado(product.logistica) ? "text-warning font-medium" : "text-success font-medium"}>
+                    {precisaVeiculoEspecializado(product.logistica)
+                      ? "Não pode ser transportado por veículo comum"
+                      : "Pode ser transportado por veículo comum"}
+                  </span>
+                </div>
+              </div>
+            </div>
+          )}
         </div>
       </div>
       <LoginGate open={gate} onClose={() => setGate(false)} title="Entre para comprar" description="Crie sua conta ou faça login para adicionar itens ao carrinho." />

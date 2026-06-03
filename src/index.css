@@ -4,6 +4,16 @@
 @tailwind components;
 @tailwind utilities;
 
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to   { transform: rotate(360deg); }
+}
+
 /* Vendy+ Design System — Vibrant & Warm
    All colors HSL. Mobile-first marketplace aesthetic. */
 
@@ -108,6 +118,46 @@
     font-family: 'Plus Jakarta Sans', system-ui, sans-serif;
     -webkit-font-smoothing: antialiased;
   }
+}
+
+/* ── Auth layout animations ────────────────────────────── */
+@keyframes auth-float {
+  0%, 100% { transform: translateY(0px) rotate(0deg); }
+  50%       { transform: translateY(-14px) rotate(3deg); }
+}
+@keyframes auth-float-r {
+  0%, 100% { transform: translateY(0px) rotate(0deg); }
+  50%       { transform: translateY(-10px) rotate(-4deg); }
+}
+@keyframes auth-spin-slow {
+  from { transform: rotate(0deg); }
+  to   { transform: rotate(360deg); }
+}
+@keyframes auth-spin-cw {
+  from { transform: rotate(0deg); }
+  to   { transform: rotate(360deg); }
+}
+@keyframes auth-pulse-glow {
+  0%, 100% { opacity: 1;   transform: scale(1); }
+  50%       { opacity: 0.6; transform: scale(0.92); }
+}
+@keyframes auth-sparkle {
+  0%, 100% { opacity: 1;   transform: scale(1)    rotate(0deg); }
+  33%       { opacity: 0.4; transform: scale(0.7)  rotate(60deg); }
+  66%       { opacity: 0.9; transform: scale(1.15) rotate(120deg); }
+}
+@keyframes auth-orbit {
+  from { transform: rotate(0deg)   translateX(var(--orbit-r, 80px)) rotate(0deg); }
+  to   { transform: rotate(360deg) translateX(var(--orbit-r, 80px)) rotate(-360deg); }
+}
+@keyframes auth-blob {
+  0%, 100% { border-radius: 60% 40% 55% 45% / 50% 60% 40% 50%; transform: scale(1); }
+  33%       { border-radius: 40% 60% 45% 55% / 60% 40% 55% 45%; transform: scale(1.04); }
+  66%       { border-radius: 55% 45% 60% 40% / 45% 55% 50% 60%; transform: scale(0.97); }
+}
+@keyframes auth-slide-up {
+  from { opacity: 0; transform: translateY(24px); }
+  to   { opacity: 1; transform: translateY(0); }
 }
 
 @layer utilities {

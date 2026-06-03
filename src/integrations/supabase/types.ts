@@ -14,6 +14,59 @@ export type Database = {
   }
   public: {
     Tables: {
+      addresses: {
+        Row: {
+          id: string
+          user_id: string
+          label: string
+          street: string
+          number: string
+          neighborhood: string
+          city: string
+          state: string
+          zip_code: string
+          complement: string
+          is_default: boolean
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          user_id: string
+          label?: string
+          street?: string
+          number?: string
+          neighborhood?: string
+          city?: string
+          state?: string
+          zip_code?: string
+          complement?: string
+          is_default?: boolean
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          user_id?: string
+          label?: string
+          street?: string
+          number?: string
+          neighborhood?: string
+          city?: string
+          state?: string
+          zip_code?: string
+          complement?: string
+          is_default?: boolean
+          created_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "addresses_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       conversations: {
         Row: {
           buyer_id: string
@@ -110,6 +163,147 @@ export type Database = {
           },
         ]
       }
+      favorites: {
+        Row: {
+          id: string
+          user_id: string
+          store_id: string
+          store_name: string
+          store_image: string | null
+          store_category: string | null
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          user_id: string
+          store_id: string
+          store_name: string
+          store_image?: string | null
+          store_category?: string | null
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          user_id?: string
+          store_id?: string
+          store_name?: string
+          store_image?: string | null
+          store_category?: string | null
+          created_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "favorites_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      orders: {
+        Row: {
+          id: string
+          buyer_id: string
+          store_id: string | null
+          store_name: string
+          items: Json
+          total: number
+          address: string | null
+          payment: string
+          fulfillment: string
+          status: string
+          estimated_min: number | null
+          estimated_max: number | null
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          buyer_id: string
+          store_id?: string | null
+          store_name: string
+          items?: Json
+          total: number
+          address?: string | null
+          payment: string
+          fulfillment: string
+          status?: string
+          estimated_min?: number | null
+          estimated_max?: number | null
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          buyer_id?: string
+          store_id?: string | null
+          store_name?: string
+          items?: Json
+          total?: number
+          address?: string | null
+          payment?: string
+          fulfillment?: string
+          status?: string
+          estimated_min?: number | null
+          estimated_max?: number | null
+          created_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "orders_buyer_id_fkey"
+            columns: ["buyer_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      products: {
+        Row: {
+          id: string
+          seller_id: string
+          name: string
+          description: string | null
+          price: number
+          category: string | null
+          image: string | null
+          seller_kind: string | null
+          active: boolean
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          seller_id: string
+          name: string
+          description?: string | null
+          price: number
+          category?: string | null
+          image?: string | null
+          seller_kind?: string | null
+          active?: boolean
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          seller_id?: string
+          name?: string
+          description?: string | null
+          price?: number
+          category?: string | null
+          image?: string | null
+          seller_kind?: string | null
+          active?: boolean
+          created_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "products_seller_id_fkey"
+            columns: ["seller_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       profiles: {
         Row: {
           avatar_url: string | null
@@ -120,6 +314,7 @@ export type Database = {
           id: string
           phone: string | null
           role: string | null
+          roles: string[]
           verified: boolean
         }
         Insert: {
@@ -131,6 +326,7 @@ export type Database = {
           id: string
           phone?: string | null
           role?: string | null
+          roles?: string[]
           verified?: boolean
         }
         Update: {
@@ -142,9 +338,297 @@ export type Database = {
           id?: string
           phone?: string | null
           role?: string | null
+          roles?: string[]
           verified?: boolean
         }
         Relationships: []
+      }
+      reviews: {
+        Row: {
+          id: string
+          store_id: string
+          buyer_id: string
+          buyer_name: string
+          rating: number
+          comment: string | null
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          store_id: string
+          buyer_id: string
+          buyer_name: string
+          rating: number
+          comment?: string | null
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          store_id?: string
+          buyer_id?: string
+          buyer_name?: string
+          rating?: number
+          comment?: string | null
+          created_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "reviews_store_id_fkey"
+            columns: ["store_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "reviews_buyer_id_fkey"
+            columns: ["buyer_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      /*
+       * SQL para criar as tabelas abaixo no Supabase:
+       *
+       * CREATE TABLE support_tickets (
+       *   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+       *   user_id UUID REFERENCES profiles(id),
+       *   user_email TEXT,
+       *   user_name TEXT,
+       *   subject TEXT NOT NULL,
+       *   category TEXT NOT NULL,
+       *   status TEXT DEFAULT 'aberto',
+       *   created_at TIMESTAMPTZ DEFAULT now(),
+       *   updated_at TIMESTAMPTZ DEFAULT now()
+       * );
+       *
+       * CREATE TABLE ticket_messages (
+       *   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+       *   ticket_id UUID REFERENCES support_tickets(id) ON DELETE CASCADE,
+       *   sender_id UUID REFERENCES profiles(id),
+       *   sender_name TEXT,
+       *   message TEXT NOT NULL,
+       *   is_admin BOOLEAN DEFAULT false,
+       *   created_at TIMESTAMPTZ DEFAULT now()
+       * );
+       *
+       * -- Login do administrador (criar no Supabase Auth + definir role):
+       * -- Email: adm@gmail.com  |  Senha: 2020
+       * -- UPDATE profiles SET role = 'admin' WHERE id = '<uuid do usuário criado>';
+       */
+      /*
+       * SQL para criar as tabelas de verificação manual de lojistas:
+       *
+       * CREATE TABLE seller_verifications (
+       *   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+       *   seller_id UUID REFERENCES profiles(id) ON DELETE CASCADE NOT NULL,
+       *   store_name TEXT,
+       *   store_description TEXT,
+       *   store_category TEXT,
+       *   business_duration TEXT,
+       *   city TEXT,
+       *   neighborhood TEXT,
+       *   instagram TEXT,
+       *   facebook TEXT,
+       *   tiktok TEXT,
+       *   whatsapp TEXT,
+       *   website TEXT,
+       *   observations TEXT,
+       *   no_cnpj_reason TEXT,
+       *   status TEXT NOT NULL DEFAULT 'pending',
+       *   submitted_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+       *   reviewed_at TIMESTAMPTZ,
+       *   reviewed_by UUID REFERENCES profiles(id),
+       *   rejection_reason TEXT
+       * );
+       *
+       * CREATE TABLE seller_verification_files (
+       *   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+       *   verification_id UUID REFERENCES seller_verifications(id) ON DELETE CASCADE NOT NULL,
+       *   file_url TEXT NOT NULL,
+       *   file_type TEXT NOT NULL,
+       *   uploaded_at TIMESTAMPTZ NOT NULL DEFAULT now()
+       * );
+       *
+       * -- RLS
+       * ALTER TABLE seller_verifications ENABLE ROW LEVEL SECURITY;
+       * ALTER TABLE seller_verification_files ENABLE ROW LEVEL SECURITY;
+       *
+       * CREATE POLICY "lojista_own_verifications" ON seller_verifications
+       *   FOR ALL USING (seller_id = auth.uid());
+       *
+       * CREATE POLICY "admin_all_verifications" ON seller_verifications
+       *   FOR ALL USING (
+       *     EXISTS (SELECT 1 FROM profiles WHERE id = auth.uid() AND role = 'admin')
+       *   );
+       *
+       * CREATE POLICY "lojista_own_files" ON seller_verification_files
+       *   FOR ALL USING (
+       *     EXISTS (SELECT 1 FROM seller_verifications WHERE id = verification_id AND seller_id = auth.uid())
+       *   );
+       *
+       * CREATE POLICY "admin_all_files" ON seller_verification_files
+       *   FOR ALL USING (
+       *     EXISTS (SELECT 1 FROM profiles WHERE id = auth.uid() AND role = 'admin')
+       *   );
+       *
+       * -- Bucket para evidências de verificação (criar no Supabase Storage):
+       * -- Nome: "verification-files" | Tipo: public
+       */
+      seller_verifications: {
+        Row: {
+          id:                string
+          seller_id:         string
+          store_name:        string | null
+          store_description: string | null
+          store_category:    string | null
+          business_duration: string | null
+          city:              string | null
+          neighborhood:      string | null
+          instagram:         string | null
+          facebook:          string | null
+          tiktok:            string | null
+          whatsapp:          string | null
+          website:           string | null
+          observations:      string | null
+          no_cnpj_reason:    string | null
+          status:            string
+          submitted_at:      string
+          reviewed_at:       string | null
+          reviewed_by:       string | null
+          rejection_reason:  string | null
+        }
+        Insert: {
+          id?:               string
+          seller_id:         string
+          store_name?:       string | null
+          store_description?:string | null
+          store_category?:   string | null
+          business_duration?:string | null
+          city?:             string | null
+          neighborhood?:     string | null
+          instagram?:        string | null
+          facebook?:         string | null
+          tiktok?:           string | null
+          whatsapp?:         string | null
+          website?:          string | null
+          observations?:     string | null
+          no_cnpj_reason?:   string | null
+          status?:           string
+          submitted_at?:     string
+          reviewed_at?:      string | null
+          reviewed_by?:      string | null
+          rejection_reason?: string | null
+        }
+        Update: {
+          status?:           string
+          reviewed_at?:      string | null
+          reviewed_by?:      string | null
+          rejection_reason?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "seller_verifications_seller_id_fkey"
+            columns: ["seller_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      seller_verification_files: {
+        Row: {
+          id:              string
+          verification_id: string
+          file_url:        string
+          file_type:       string
+          uploaded_at:     string
+        }
+        Insert: {
+          id?:             string
+          verification_id: string
+          file_url:        string
+          file_type:       string
+          uploaded_at?:    string
+        }
+        Update: Record<string, never>
+        Relationships: [
+          {
+            foreignKeyName: "seller_verification_files_verification_id_fkey"
+            columns: ["verification_id"]
+            isOneToOne: false
+            referencedRelation: "seller_verifications"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      support_tickets: {
+        Row: {
+          id:          string
+          user_id:     string | null
+          user_email:  string | null
+          user_name:   string | null
+          subject:     string
+          category:    string
+          status:      string
+          created_at:  string
+          updated_at:  string
+        }
+        Insert: {
+          id?:         string
+          user_id?:    string | null
+          user_email?: string | null
+          user_name?:  string | null
+          subject:     string
+          category:    string
+          status?:     string
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          status?:     string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "support_tickets_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      ticket_messages: {
+        Row: {
+          id:           string
+          ticket_id:    string
+          sender_id:    string | null
+          sender_name:  string | null
+          message:      string
+          is_admin:     boolean
+          created_at:   string
+        }
+        Insert: {
+          id?:          string
+          ticket_id:    string
+          sender_id?:   string | null
+          sender_name?: string | null
+          message:      string
+          is_admin?:    boolean
+          created_at?:  string
+        }
+        Update: Record<string, never>
+        Relationships: [
+          {
+            foreignKeyName: "ticket_messages_ticket_id_fkey"
+            columns: ["ticket_id"]
+            isOneToOne: false
+            referencedRelation: "support_tickets"
+            referencedColumns: ["id"]
+          },
+        ]
       }
     }
     Views: {

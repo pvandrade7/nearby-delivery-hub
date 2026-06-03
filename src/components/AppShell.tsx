@@ -12,11 +12,13 @@ import {
   Settings,
   Bike,
   Wallet,
-  RefreshCw,
   ShoppingCart,
   Bell,
   BadgeCheck,
   MessageCircle,
+  FlaskConical,
+  LogOut,
+  Brush,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useCart } from "@/context/CartContext";
@@ -49,31 +51,36 @@ const clientNav: NavItem[] = [
 ];
 
 const sellerNav: NavItem[] = [
-  { to: "/lojista/painel", icon: LayoutDashboard, label: "Painel" },
-  { to: "/lojista/produtos", icon: Package, label: "Produtos" },
-  { to: "/lojista/pedidos", icon: ShoppingBag, label: "Pedidos" },
-  { to: "/lojista/verificacao", icon: BadgeCheck, label: "Verificação" },
-  { to: "/lojista/config", icon: Settings, label: "Conta" },
+  { to: "/lojista/painel",     icon: LayoutDashboard, label: "Painel"      },
+  { to: "/lojista/produtos",   icon: Package,         label: "Produtos"    },
+  { to: "/lojista/pedidos",    icon: ShoppingBag,     label: "Pedidos"     },
+  { to: "/lojista/minha-loja", icon: Brush,           label: "Minha Loja"  },
+  { to: "/lojista/verificacao",icon: BadgeCheck,      label: "Verificação" },
+  { to: "/lojista/config",     icon: Settings,        label: "Conta"       },
 ];
 
 const adminNav: NavItem[] = [
-  { to: "/admin/verificacoes", icon: BadgeCheck, label: "Verificações" },
-  { to: "/lojista/painel", icon: LayoutDashboard, label: "Lojista" },
+  { to: "/admin/painel",       icon: LayoutDashboard, label: "Painel"        },
+  { to: "/admin/verificacoes", icon: BadgeCheck,      label: "Verificações"  },
+  { to: "/admin/suporte",      icon: MessageCircle,   label: "Suporte"       },
+  { to: "/admin/usuarios",     icon: User,            label: "Usuários"      },
+  { to: "/admin/lojas",        icon: StoreIcon,       label: "Lojas"         },
 ];
 
 const courierNav: NavItem[] = [
   { to: "/entregador/painel", icon: Bike, label: "Corridas" },
   { to: "/entregador/finalizada", icon: Wallet, label: "Ganhos" },
+  { to: "/entregador/perfil", icon: User, label: "Perfil" },
 ];
 
 const profileMeta: Record<
   "cliente" | "lojista" | "entregador" | "admin",
-  { label: string; user: string; initial: string; nav: NavItem[] }
+  { label: string; user: string; initial: string; nav: NavItem[]; profilePath: string }
 > = {
-  cliente: { label: "Cliente", user: "João Souza", initial: "J", nav: clientNav },
-  lojista: { label: "Lojista", user: "Marina Flores", initial: "M", nav: sellerNav },
-  entregador: { label: "Entregador", user: "Carlos Mendes", initial: "C", nav: courierNav },
-  admin: { label: "Admin", user: "Admin Vendy+", initial: "A", nav: adminNav },
+  cliente:     { label: "Cliente",     user: "João Souza",    initial: "J", nav: clientNav,  profilePath: "/cliente/perfil" },
+  lojista:     { label: "Lojista",     user: "Marina Flores", initial: "M", nav: sellerNav,  profilePath: "/lojista/config" },
+  entregador:  { label: "Entregador",  user: "Carlos Mendes", initial: "C", nav: courierNav, profilePath: "/entregador/perfil" },
+  admin:       { label: "Admin",       user: "Admin Vendy+",  initial: "A", nav: adminNav,   profilePath: "/admin/verificacoes" },
 };
 
 const useProfile = () => {
@@ -90,7 +97,7 @@ export const AppShell = ({ children }: { children: ReactNode }) => {
   const navigate = useNavigate();
   const profile = useProfile();
   const { count } = useCart();
-  const { user } = useAuth();
+  const { user, loading: authLoading, isDemo, signOut } = useAuth();
   const [unread, setUnread] = useState(0);
   const [notificationsOpen, setNotificationsOpen] = useState(false);
   const notificationsRef = useRef<HTMLDivElement>(null);
@@ -134,9 +141,11 @@ export const AppShell = ({ children }: { children: ReactNode }) => {
     return () => document.removeEventListener("mousedown", closeOnOutsideClick);
   }, [notificationsOpen]);
 
-  // Landing page (RoleSelect): full bleed, no shell.
-  if (location.pathname === "/" || !profile) {
-    return <div className="min-h-dvh w-full bg-background">{children}</div>;
+  // Rotas de autenticação: sem shell (AppShell não é montado).
+  // O layout próprio (AuthLayout) é responsável pela UI dessas rotas.
+  const AUTH_ROUTES = new Set(["/", "/auth", "/cliente", "/lojista", "/entregador"]);
+  if (AUTH_ROUTES.has(location.pathname) || !profile) {
+    return <>{children}</>;
   }
 
   const meta = profileMeta[profile];
@@ -154,7 +163,7 @@ export const AppShell = ({ children }: { children: ReactNode }) => {
     <div className="min-h-dvh w-full bg-muted/40 flex">
       {/* Sidebar */}
       <aside className="hidden lg:flex w-64 shrink-0 flex-col bg-card border-r border-border sticky top-0 h-dvh">
-        <div className="px-5 py-5 flex items-center gap-2.5 border-b border-border">
+        <Link to="/" className="px-5 py-5 flex items-center gap-2.5 border-b border-border hover:bg-muted/40 transition-colors">
           <div className="size-9 rounded-xl gradient-brand text-primary-foreground flex items-center justify-center font-extrabold shadow-glow">
             V+
           </div>
@@ -162,7 +171,7 @@ export const AppShell = ({ children }: { children: ReactNode }) => {
             <p className="font-extrabold text-base">Vendy<span className="text-primary">+</span></p>
             <p className="text-[10px] text-muted-foreground uppercase tracking-wider font-bold">{meta.label}</p>
           </div>
-        </div>
+        </Link>
 
         <nav className="flex-1 overflow-y-auto px-3 py-4 space-y-1">
           {meta.nav.map((item) => (
@@ -190,14 +199,20 @@ export const AppShell = ({ children }: { children: ReactNode }) => {
           ))}
         </nav>
 
-        <div className="border-t border-border p-3">
-          <Link
-            to="/"
-            className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-semibold text-muted-foreground hover:bg-muted hover:text-foreground transition-colors"
+        {/* Botão Sair — sempre visível na sidebar desktop */}
+        <div className="px-3 pb-4 pt-2 border-t border-border">
+          {user && (
+            <p className="px-3 py-1 text-[11px] text-muted-foreground truncate font-medium mb-1">
+              {user.email}
+            </p>
+          )}
+          <button
+            onClick={() => { signOut(); navigate("/", { replace: true }); }}
+            className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-semibold text-muted-foreground hover:bg-destructive/10 hover:text-destructive transition-colors"
           >
-            <RefreshCw className="w-4 h-4" />
-            Trocar de perfil
-          </Link>
+            <LogOut className="w-4 h-4" />
+            Sair da conta
+          </button>
         </div>
       </aside>
 
@@ -231,7 +246,7 @@ export const AppShell = ({ children }: { children: ReactNode }) => {
             </button>
           ) : (
             <h1 className="flex-1 min-w-0 font-bold text-sm sm:text-base lg:text-lg truncate">
-              {meta.label === "Lojista" ? "Painel da loja" : meta.label === "Admin" ? "Painel administrativo" : "Central do entregador"}
+              {meta.label === "Lojista" ? "Painel da loja" : meta.label === "Admin" ? "Administração Vendy+" : "Central do entregador"}
             </h1>
           )}
 
@@ -268,7 +283,7 @@ export const AppShell = ({ children }: { children: ReactNode }) => {
                     </div>
                   ) : (
                     <div className="px-4 py-8 text-center">
-                      <p className="text-sm font-semibold">Voce nao tem notificacoes</p>
+                      <p className="text-sm font-semibold">Você não tem notificações</p>
                     </div>
                   )}
                 </div>
@@ -302,15 +317,54 @@ export const AppShell = ({ children }: { children: ReactNode }) => {
                 )}
               </Link>
             )}
-            <Link
-              to="/"
-              className="size-9 sm:size-10 rounded-full gradient-brand text-primary-foreground flex items-center justify-center font-bold text-sm shadow-card"
-              title={meta.user}
-            >
-              {meta.initial}
-            </Link>
+            {/* Avatar / Sair */}
+            {isDemo ? (
+              <button
+                onClick={() => { signOut(); navigate("/", { replace: true }); }}
+                className="size-9 sm:size-10 rounded-full bg-amber-500/20 text-amber-600 dark:text-amber-400 flex items-center justify-center font-bold text-sm border border-amber-500/30"
+                title="Sair do modo demonstração"
+              >
+                D
+              </button>
+            ) : authLoading ? (
+              <div className="size-9 sm:size-10 rounded-full bg-muted animate-pulse" aria-hidden="true" />
+            ) : user ? (
+              <Link
+                to={meta.profilePath}
+                className="size-9 sm:size-10 rounded-full gradient-brand text-primary-foreground flex items-center justify-center font-bold text-sm shadow-card lg:hidden"
+                title={user.email ?? meta.user}
+              >
+                {(user.email?.[0] ?? meta.initial).toUpperCase()}
+              </Link>
+            ) : null}
+            {/* Avatar desktop (link para perfil) */}
+            {!isDemo && !authLoading && user && (
+              <Link
+                to={meta.profilePath}
+                className="hidden lg:flex size-9 sm:size-10 rounded-full gradient-brand text-primary-foreground items-center justify-center font-bold text-sm shadow-card"
+                title={user.email ?? meta.user}
+              >
+                {(user.email?.[0] ?? meta.initial).toUpperCase()}
+              </Link>
+            )}
           </div>
         </header>
+
+        {/* Banner modo demonstração */}
+        {isDemo && (
+          <div className="bg-amber-500/10 border-b border-amber-500/20 px-4 py-2 flex items-center justify-between gap-3">
+            <div className="flex items-center gap-2 text-amber-700 dark:text-amber-400">
+              <FlaskConical className="w-4 h-4 shrink-0" />
+              <span className="text-xs font-bold">Modo Demonstração — dados fictícios para apresentação</span>
+            </div>
+            <button
+              onClick={() => { signOut(); navigate("/lojista", { replace: true }); }}
+              className="inline-flex items-center gap-1.5 text-xs font-bold text-amber-700 dark:text-amber-400 hover:underline shrink-0"
+            >
+              <LogOut className="w-3.5 h-3.5" /> Sair do demo
+            </button>
+          </div>
+        )}
 
         {/* Page content */}
         <main className="flex-1 min-w-0">

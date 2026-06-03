@@ -3,6 +3,7 @@ import { useNavigate, useParams } from "react-router-dom";
 import { MapPin, Navigation, Phone, Check } from "lucide-react";
 import { deliveryProposals } from "@/data/mockData";
 
+
 type Phase = "ir-coleta" | "retirar" | "ir-cliente" | "entregar";
 
 const phaseConfig: Record<Phase, { label: string; cta: string; next: Phase | null }> = {
