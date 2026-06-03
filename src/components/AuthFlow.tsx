@@ -1,10 +1,18 @@
 import { useEffect, useState, type ComponentType } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { ArrowLeft, CheckCircle2, Lock, Mail, ShieldCheck, User, LogIn, UserPlus } from "lucide-react";
+import {
+  ArrowLeft, CheckCircle2, Lock, Mail, ShieldCheck, User,
+  LogIn, UserPlus, Phone, MessageSquare, RotateCcw,
+} from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { ImagePicker } from "@/components/ImagePicker";
 import { AuthLayout } from "@/components/AuthLayout";
+import {
+  InputOTP,
+  InputOTPGroup,
+  InputOTPSlot,
+} from "@/components/ui/input-otp";
 import { toast } from "sonner";
 
 const DEMO_EMAIL    = "demo@gmail.com";
@@ -32,7 +40,8 @@ type AuthFlowProps = {
   skipPath?: string;
 };
 
-type View = "choice" | "login" | "signup" | "addRole";
+// Passo 1 → phone → sending → otp → Passo 2 → conta criada
+type View = "choice" | "login" | "signup" | "phone" | "sending" | "otp" | "details" | "addRole";
 
 const defaultValues: Record<string, string> = {
   cnpj: "",
@@ -54,6 +63,13 @@ const isValidCnpj = (raw: string): boolean => {
   return calc(12) === parseInt(d[12]) && calc(13) === parseInt(d[13]);
 };
 
+const formatPhone = (raw: string) => {
+  const d = onlyDigits(raw).slice(0, 11);
+  if (d.length <= 2) return d;
+  if (d.length <= 7) return `(${d.slice(0, 2)}) ${d.slice(2)}`;
+  return `(${d.slice(0, 2)}) ${d.slice(2, 7)}-${d.slice(7)}`;
+};
+
 export const AuthFlow = ({
   title,
   subtitle,
@@ -66,34 +82,43 @@ export const AuthFlow = ({
   allowSkip,
   skipPath,
 }: AuthFlowProps) => {
-  /* ── vista atual ──────────────────────────────────────── */
   const [view, setView] = useState<View>("choice");
 
-  /* ── campos do perfil compartilhados (signup + addRole) ── */
-  const [values, setValues] = useState<Record<string, string>>(defaultValues);
+  /* ── campos do perfil ─────────────────────────────────── */
+  const [values, setValues]           = useState<Record<string, string>>(defaultValues);
   const [cnpjVerified, setCnpjVerified] = useState(false);
   const [otherSelected, setOtherSelected] = useState<Record<string, boolean>>({});
 
-  /* ── signup simplificado ──────────────────────────────── */
+  /* ── Passo 1: dados pessoais ──────────────────────────── */
   const [signupName,     setSignupName]     = useState("");
   const [signupEmail,    setSignupEmail]    = useState("");
-  const [signupPassword, setSignupPassword] = useState("");
-  const [signupError,    setSignupError]    = useState("");
+  const [step1Error,     setStep1Error]     = useState("");
 
-  /* ── login direto ─────────────────────────────────────── */
+  /* ── Passo 2: senha ───────────────────────────────────── */
+  const [signupPassword, setSignupPassword] = useState("");
+  const [step2Error,     setStep2Error]     = useState("");
+
+  /* ── Telefone / OTP ───────────────────────────────────── */
+  const [signupPhone,    setSignupPhone]    = useState("");
+  const [phoneError,     setPhoneError]     = useState("");
+  const [otpGenerated,   setOtpGenerated]   = useState("");
+  const [otpInput,       setOtpInput]       = useState("");
+  const [otpError,       setOtpError]       = useState("");
+  const [otpResendTimer, setOtpResendTimer] = useState(0);
+
+  /* ── Login ────────────────────────────────────────────── */
   const [loginEmail,    setLoginEmail]    = useState("");
   const [loginPassword, setLoginPassword] = useState("");
   const [loginError,    setLoginError]    = useState("");
   const [resetSent,     setResetSent]     = useState(false);
 
-  /* ── addRole preload ──────────────────────────────────── */
+  /* ── addRole ──────────────────────────────────────────── */
   const [preloadedFieldNames, setPreloadedFieldNames] = useState<Set<string>>(new Set());
   const [addRoleLoading,      setAddRoleLoading]      = useState(false);
 
-  /* ── compartilhado ────────────────────────────────────── */
   const [busy, setBusy] = useState(false);
   const navigate = useNavigate();
-  const { session, user, roles: userRoles, loading, enterDemoMode, signOut } = useAuth();
+  const { session, roles: userRoles, loading, enterDemoMode } = useAuth();
 
   const expectedRole = finalPath.startsWith("/lojista")
     ? "lojista"
@@ -108,83 +133,47 @@ export const AuthFlow = ({
 
   const role = expectedRole;
 
-  // ── Sem auto-redirect ao carregar a página com sessão ativa.
-  // O usuário deve sempre ver a tela de escolha e decidir explicitamente
-  // se continua com a conta atual ou entra com outra conta.
+  /* ── Countdown reenvio ────────────────────────────────── */
+  useEffect(() => {
+    if (otpResendTimer <= 0) return;
+    const t = setInterval(() => setOtpResendTimer((n) => Math.max(0, n - 1)), 1000);
+    return () => clearInterval(t);
+  }, [otpResendTimer]);
 
-  // ── Pré-carrega dados do perfil quando "addRole" é exibido.
+  /* ── Pré-carrega addRole ──────────────────────────────── */
   useEffect(() => {
     if (view !== "addRole" || !session?.user?.id) return;
     let cancelled = false;
     setAddRoleLoading(true);
-
     (async () => {
       const userId = session.user.id;
       const updates: Record<string, string> = {};
       const loadedNames: string[] = [];
-
-      const { data: profile } = await supabase
-        .from("profiles")
-        .select("extras")
-        .eq("id", userId)
-        .maybeSingle();
-
+      const { data: profile } = await supabase.from("profiles").select("extras").eq("id", userId).maybeSingle();
       if (!cancelled) {
         const ext = (profile?.extras as Record<string, string>) ?? {};
-        fields.forEach((f) => {
-          if (ext[f.name]) { updates[f.name] = ext[f.name]; loadedNames.push(f.name); }
-        });
+        fields.forEach((f) => { if (ext[f.name]) { updates[f.name] = ext[f.name]; loadedNames.push(f.name); } });
       }
-
       if (!cancelled && expectedRole === "cliente") {
-        const { data: addr } = await supabase
-          .from("addresses")
-          .select("street, city, complement")
-          .eq("user_id", userId)
-          .eq("is_default", true)
-          .maybeSingle();
+        const { data: addr } = await supabase.from("addresses").select("street, city, complement").eq("user_id", userId).eq("is_default", true).maybeSingle();
         if (addr) {
-          if (!updates.address   && addr.street)     { updates.address   = addr.street;     loadedNames.push("address"); }
-          if (!updates.city      && addr.city)        { updates.city      = addr.city;        loadedNames.push("city"); }
-          if (!updates.reference && addr.complement)  { updates.reference = addr.complement;  loadedNames.push("reference"); }
+          if (!updates.address   && addr.street)    { updates.address   = addr.street;    loadedNames.push("address"); }
+          if (!updates.city      && addr.city)       { updates.city      = addr.city;       loadedNames.push("city"); }
+          if (!updates.reference && addr.complement) { updates.reference = addr.complement; loadedNames.push("reference"); }
         }
       }
-
       if (!cancelled) {
         if (Object.keys(updates).length > 0) setValues((cur) => ({ ...cur, ...updates }));
         setPreloadedFieldNames(new Set(loadedNames));
         setAddRoleLoading(false);
       }
     })();
-
     return () => { cancelled = true; };
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [view, session?.user?.id]);
 
-  /* ── helpers ──────────────────────────────────────────── */
   const updateValue = (name: string, value: string) =>
     setValues((cur) => ({ ...cur, [name]: value.slice(0, 200) }));
-
-  // Redireciona para o painel correto com base no perfil esperado.
-  // Usado pelo banner "sessão ativa" e pelo handleLogin pós-autenticação.
-  const goToDashboard = async (profileData?: { extras?: Record<string, string>; verified?: boolean }) => {
-    if (expectedRole === "lojista") {
-      if (profileData) {
-        const ext     = profileData.extras ?? {};
-        const isVerif = profileData.verified ?? false;
-        window.location.replace(!isVerif ? "/lojista/verificacao" : ext.storeName ? "/lojista/painel" : finalPath);
-      } else {
-        const { data } = await supabase.from("profiles").select("extras, verified").eq("id", session!.user.id).maybeSingle();
-        const ext     = (data?.extras as Record<string, string>) ?? {};
-        const isVerif = (data?.verified as boolean) ?? false;
-        window.location.replace(!isVerif ? "/lojista/verificacao" : ext.storeName ? "/lojista/painel" : finalPath);
-      }
-    } else if (userRoles.includes("admin" as import("@/hooks/useAuth").UserRole)) {
-      window.location.replace("/admin/painel");
-    } else {
-      window.location.replace(finalPath);
-    }
-  };
 
   const verifyCnpj = () => {
     const raw = values.cnpj;
@@ -194,16 +183,8 @@ export const AuthFlow = ({
     toast.success("CNPJ válido! Sua loja receberá o selo verificado.");
   };
 
-  /* ── Cadastro ─────────────────────────────────────────── */
-  const handleSignup = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (busy) return;
-    setSignupError("");
-
-    if (!signupName.trim()) { setSignupError("Informe seu nome."); return; }
-    if (!signupEmail.trim() || !isValidEmail(signupEmail)) { setSignupError("E-mail inválido. Use o formato: seu@email.com"); return; }
-    if (!signupPassword || signupPassword.length < 6) { setSignupError("A senha precisa ter pelo menos 6 caracteres."); return; }
-
+  /* ── Criar conta no Supabase (chamado após OTP + formulário) ── */
+  const createAccount = async () => {
     setBusy(true);
     try {
       const extras: Record<string, string> = {};
@@ -233,9 +214,7 @@ export const AuthFlow = ({
           profileUpdate.cnpj     = cnpjDigits;
           profileUpdate.verified = true;
         }
-        await supabase.from("profiles")
-          .update(profileUpdate)
-          .eq("id", signUpResult.session.user.id);
+        await supabase.from("profiles").update(profileUpdate).eq("id", signUpResult.session.user.id);
       }
 
       if (role === "cliente" && (values.address || values.city)) {
@@ -261,38 +240,84 @@ export const AuthFlow = ({
     } catch (err) {
       const msg = err instanceof Error ? err.message : "";
       const raw = msg.toLowerCase();
-      if (raw.includes("already registered") || raw.includes("already been registered") || raw.includes("user already registered")) {
-        setSignupError("Este e-mail já está cadastrado. Use a opção de Entrar.");
-      } else if (raw.includes("invalid email") || (raw.includes("email") && raw.includes("invalid"))) {
-        setSignupError("E-mail inválido. Verifique o endereço e tente novamente.");
-      } else if (raw.includes("password") || raw.includes("weak") || raw.includes("senha")) {
-        setSignupError("Senha fraca. Use pelo menos 6 caracteres com letras e números.");
-      } else if (raw.includes("network") || raw.includes("fetch") || raw.includes("failed to fetch")) {
-        setSignupError("Sem conexão com o servidor. Verifique sua internet e tente novamente.");
+      if (raw.includes("already registered") || raw.includes("user already registered")) {
+        setStep1Error("Este e-mail já está cadastrado. Use a opção de Entrar.");
+        setView("signup");
+      } else if (raw.includes("invalid email")) {
+        setStep1Error("E-mail inválido. Verifique o endereço e tente novamente.");
+        setView("signup");
+      } else if (raw.includes("password") || raw.includes("weak")) {
+        setStep2Error("Senha fraca. Use pelo menos 6 caracteres com letras e números.");
+        setView("details");
+      } else if (raw.includes("network") || raw.includes("fetch")) {
+        toast.error("Sem conexão com o servidor. Verifique sua internet.");
       } else if (raw.includes("rate limit") || raw.includes("too many")) {
-        setSignupError("Muitas tentativas. Aguarde alguns minutos antes de tentar novamente.");
+        toast.error("Muitas tentativas. Aguarde alguns minutos.");
       } else {
-        setSignupError(msg || "Falha ao criar conta. Tente novamente.");
+        toast.error(msg || "Falha ao criar conta. Tente novamente.");
       }
     } finally {
       setBusy(false);
     }
   };
 
-  /* ── Login direto ─────────────────────────────────────── */
+  /* ── Passo 1: valida dados pessoais → vai para telefone ─ */
+  const handleStep1 = (e: React.FormEvent) => {
+    e.preventDefault();
+    setStep1Error("");
+    if (!signupName.trim()) { setStep1Error("Informe seu nome."); return; }
+    if (!signupEmail.trim() || !isValidEmail(signupEmail)) { setStep1Error("E-mail inválido. Use o formato: seu@email.com"); return; }
+    setView("phone");
+  };
+
+  /* ── Telefone: gera OTP ───────────────────────────────── */
+  const handlePhoneSend = () => {
+    const digits = onlyDigits(signupPhone);
+    if (digits.length < 10) { setPhoneError("Número inválido. Informe DDD + número (ex: 11 99999-9999)."); return; }
+    setPhoneError("");
+    const code = String(Math.floor(100000 + Math.random() * 900000));
+    setOtpGenerated(code);
+    setOtpInput("");
+    setOtpError("");
+    setView("sending");
+    setTimeout(() => { setView("otp"); setOtpResendTimer(30); }, 2000);
+  };
+
+  /* ── OTP: qualquer 6 dígitos libera o acesso ─────────── */
+  const handleOtpVerify = () => {
+    if (otpInput.length < 6) { setOtpError("Digite todos os 6 dígitos do código."); return; }
+    setOtpError("");
+    setView("details");
+  };
+
+  /* ── Reenviar código ──────────────────────────────────── */
+  const handleResend = () => {
+    const code = String(Math.floor(100000 + Math.random() * 900000));
+    setOtpGenerated(code);
+    setOtpInput("");
+    setOtpError("");
+    setOtpResendTimer(30);
+    toast.info("Novo código gerado!");
+  };
+
+  /* ── Passo 2: valida senha → cria conta ──────────────── */
+  const handleStep2 = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setStep2Error("");
+    if (!signupPassword || signupPassword.length < 6) { setStep2Error("A senha precisa ter pelo menos 6 caracteres."); return; }
+    await createAccount();
+  };
+
+  /* ── Login ────────────────────────────────────────────── */
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     if (busy) return;
     setLoginError("");
-
     if (!loginEmail.trim()) { setLoginError("Informe seu e-mail para continuar."); return; }
     if (!loginPassword)     { setLoginError("Informe sua senha para continuar."); return; }
     if (loginPassword.length < 6) { setLoginError("Senha deve ter pelo menos 6 caracteres."); return; }
 
-    if (
-      loginEmail.trim().toLowerCase() === DEMO_EMAIL &&
-      loginPassword.trim() === DEMO_PASSWORD
-    ) {
+    if (loginEmail.trim().toLowerCase() === DEMO_EMAIL && loginPassword.trim() === DEMO_PASSWORD) {
       enterDemoMode();
       window.location.replace("/lojista/painel");
       return;
@@ -317,7 +342,6 @@ export const AuthFlow = ({
         const allRoles    = primaryRole && !rolesArr.includes(primaryRole) ? [primaryRole, ...rolesArr] : rolesArr;
 
         if (allRoles.includes(expectedRole)) {
-          // Tem o perfil esperado → redireciona para a área correta.
           const ext     = (p?.extras as Record<string, string>) ?? {};
           const isVerif = (p?.verified as boolean) ?? false;
           if (expectedRole === "lojista" && !isVerif) {
@@ -328,10 +352,8 @@ export const AuthFlow = ({
             window.location.replace(finalPath);
           }
         } else if (allRoles.includes("admin")) {
-          // Não tem o perfil esperado, mas tem admin (ex: admin puro logando via /lojista).
           window.location.replace("/admin/painel");
         } else {
-          // Conta sem este perfil → ativar perfil
           setView("addRole");
         }
       } else {
@@ -357,64 +379,32 @@ export const AuthFlow = ({
     }
   };
 
-  /* ── Adicionar perfil complementar ───────────────────────── */
+  /* ── addRole ──────────────────────────────────────────── */
   const handleAddRole = async () => {
     if (!session?.user?.id) return;
     setBusy(true);
     try {
       const userId = session.user.id;
-
-      const { data: profile } = await supabase
-        .from("profiles")
-        .select("extras, role, roles")
-        .eq("id", userId)
-        .maybeSingle();
-
+      const { data: profile } = await supabase.from("profiles").select("extras, role, roles").eq("id", userId).maybeSingle();
       const newExtras: Record<string, string> = {};
       fields.forEach((f) => { if (values[f.name]) newExtras[f.name] = values[f.name]; });
       const mergedExtras = { ...((profile?.extras as Record<string, string>) ?? {}), ...newExtras };
-
       const currentPrimary = (profile?.role as string | null) ?? null;
       const currentArr     = ((profile?.roles as string[]) ?? []).filter(Boolean);
-      const baseRoles      = currentPrimary && !currentArr.includes(currentPrimary)
-        ? [currentPrimary, ...currentArr]
-        : currentArr;
+      const baseRoles      = currentPrimary && !currentArr.includes(currentPrimary) ? [currentPrimary, ...currentArr] : currentArr;
       const newRoles   = baseRoles.includes(expectedRole) ? baseRoles : [...baseRoles, expectedRole];
       const newPrimary = currentPrimary ?? expectedRole;
 
-      const { error: errWithRoles } = await supabase
-        .from("profiles")
-        .update({ roles: newRoles, role: newPrimary, extras: mergedExtras })
-        .eq("id", userId);
-
+      const { error: errWithRoles } = await supabase.from("profiles").update({ roles: newRoles, role: newPrimary, extras: mergedExtras }).eq("id", userId);
       if (errWithRoles) {
-        const { error: errFallback } = await supabase
-          .from("profiles")
-          .update({ role: newPrimary, extras: mergedExtras })
-          .eq("id", userId);
+        const { error: errFallback } = await supabase.from("profiles").update({ role: newPrimary, extras: mergedExtras }).eq("id", userId);
         if (errFallback) throw errFallback;
       }
 
       if (expectedRole === "cliente" && (values.address || values.city)) {
-        const { data: existingAddr } = await supabase
-          .from("addresses")
-          .select("id")
-          .eq("user_id", userId)
-          .eq("is_default", true)
-          .maybeSingle();
+        const { data: existingAddr } = await supabase.from("addresses").select("id").eq("user_id", userId).eq("is_default", true).maybeSingle();
         if (!existingAddr) {
-          await supabase.from("addresses").insert({
-            user_id:      userId,
-            label:        "Casa",
-            street:       values.address   || "",
-            number:       "",
-            neighborhood: "",
-            city:         values.city      || "",
-            state:        "",
-            zip_code:     "",
-            complement:   values.reference || "",
-            is_default:   true,
-          });
+          await supabase.from("addresses").insert({ user_id: userId, label: "Casa", street: values.address || "", number: "", neighborhood: "", city: values.city || "", state: "", zip_code: "", complement: values.reference || "", is_default: true });
         }
       }
 
@@ -424,12 +414,7 @@ export const AuthFlow = ({
       }
 
       toast.success(`Perfil de ${roleLabel} ativado com sucesso!`);
-
-      const destination =
-        expectedRole === "lojista" && mergedExtras.storeName
-          ? "/lojista/painel"
-          : finalPath;
-      window.location.replace(destination);
+      window.location.replace(expectedRole === "lojista" && mergedExtras.storeName ? "/lojista/painel" : finalPath);
     } catch (err) {
       console.error("[AuthFlow] handleAddRole:", err);
       toast.error("Erro ao ativar perfil. Verifique sua conexão e tente novamente.");
@@ -440,15 +425,10 @@ export const AuthFlow = ({
 
   const handleForgotPassword = async () => {
     const email = loginEmail.trim();
-    if (!email || !email.includes("@")) {
-      setLoginError("Digite seu e-mail antes de redefinir a senha.");
-      return;
-    }
+    if (!email || !email.includes("@")) { setLoginError("Digite seu e-mail antes de redefinir a senha."); return; }
     setBusy(true);
     try {
-      const { error } = await supabase.auth.resetPasswordForEmail(email, {
-        redirectTo: `${window.location.origin}/auth`,
-      });
+      const { error } = await supabase.auth.resetPasswordForEmail(email, { redirectTo: `${window.location.origin}/auth` });
       if (error) throw error;
       setResetSent(true);
       setLoginError("");
@@ -460,16 +440,11 @@ export const AuthFlow = ({
     }
   };
 
-  /* ── renderField ────────────────────────────────────────── */
+  /* ── renderField ─────────────────────────────────────── */
   const renderField = (field: Field, prefilled = false) => {
     if (!field.options?.length) {
       return (
-        <label
-          key={field.name}
-          className={`rounded-xl px-4 py-3 flex flex-col gap-1 shadow-card border ${
-            prefilled ? "bg-muted/60 border-border" : "bg-card border-border"
-          }`}
-        >
+        <label key={field.name} className={`rounded-xl px-4 py-3 flex flex-col gap-1 shadow-card border ${prefilled ? "bg-muted/60 border-border" : "bg-card border-border"}`}>
           <span className="text-xs font-bold text-muted-foreground flex items-center gap-1">
             {prefilled && <CheckCircle2 className="w-3 h-3 text-primary" />}
             {field.label}
@@ -490,14 +465,8 @@ export const AuthFlow = ({
     const inList       = field.options.includes(currentValue);
     const isOther      = otherSelected[field.name] || (!inList && currentValue !== "");
 
-    const selectOption = (opt: string) => {
-      setOtherSelected((prev) => ({ ...prev, [field.name]: false }));
-      updateValue(field.name, opt);
-    };
-    const selectOther = () => {
-      setOtherSelected((prev) => ({ ...prev, [field.name]: true }));
-      if (inList) updateValue(field.name, "");
-    };
+    const selectOption = (opt: string) => { setOtherSelected((p) => ({ ...p, [field.name]: false })); updateValue(field.name, opt); };
+    const selectOther  = () => { setOtherSelected((p) => ({ ...p, [field.name]: true })); if (inList) updateValue(field.name, ""); };
 
     return (
       <div key={field.name} className="bg-card border border-border rounded-xl px-4 py-3 shadow-card space-y-3">
@@ -507,40 +476,19 @@ export const AuthFlow = ({
         </span>
         <div className="flex flex-wrap gap-2 max-h-44 overflow-y-auto pr-1">
           {field.options.map((opt) => (
-            <button
-              key={opt}
-              type="button"
-              onClick={() => selectOption(opt)}
-              className={`px-3 py-1.5 rounded-xl text-xs font-semibold transition-all border ${
-                inList && currentValue === opt
-                  ? "bg-primary text-primary-foreground border-primary shadow-card"
-                  : "bg-muted text-muted-foreground border-transparent hover:bg-muted/70"
-              }`}
-            >
+            <button key={opt} type="button" onClick={() => selectOption(opt)}
+              className={`px-3 py-1.5 rounded-xl text-xs font-semibold transition-all border ${inList && currentValue === opt ? "bg-primary text-primary-foreground border-primary shadow-card" : "bg-muted text-muted-foreground border-transparent hover:bg-muted/70"}`}>
               {opt}
             </button>
           ))}
-          <button
-            type="button"
-            onClick={selectOther}
-            className={`px-3 py-1.5 rounded-xl text-xs font-semibold transition-all border ${
-              isOther
-                ? "bg-primary text-primary-foreground border-primary shadow-card"
-                : "bg-muted text-muted-foreground border-transparent hover:bg-muted/70"
-            }`}
-          >
+          <button type="button" onClick={selectOther}
+            className={`px-3 py-1.5 rounded-xl text-xs font-semibold transition-all border ${isOther ? "bg-primary text-primary-foreground border-primary shadow-card" : "bg-muted text-muted-foreground border-transparent hover:bg-muted/70"}`}>
             Outro
           </button>
         </div>
         {isOther && (
-          <input
-            value={currentValue}
-            onChange={(e) => updateValue(field.name, e.target.value)}
-            placeholder={field.placeholder}
-            maxLength={field.maxLength || 120}
-            autoFocus
-            className="w-full bg-muted rounded-xl px-3 py-2.5 text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-primary/30"
-          />
+          <input value={currentValue} onChange={(e) => updateValue(field.name, e.target.value)} placeholder={field.placeholder} maxLength={field.maxLength || 120} autoFocus
+            className="w-full bg-muted rounded-xl px-3 py-2.5 text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-primary/30" />
         )}
         {inList && (
           <p className="text-xs text-primary font-semibold flex items-center gap-1">
@@ -551,7 +499,7 @@ export const AuthFlow = ({
     );
   };
 
-  /* ── Spinner enquanto o estado de auth está sendo determinado ── */
+  /* ── Loading ─────────────────────────────────────────── */
   if (loading) {
     return (
       <AuthLayout>
@@ -563,7 +511,7 @@ export const AuthFlow = ({
   }
 
   /* ══════════════════════════════════════════════════════
-     VISTA: ADICIONAR PERFIL (usuário já logado, sem o perfil esperado)
+     ADICIONAR PERFIL
   ══════════════════════════════════════════════════════ */
   if (view === "addRole") {
     const prefilledFields = fields.filter((f) => preloadedFieldNames.has(f.name));
@@ -573,13 +521,9 @@ export const AuthFlow = ({
     return (
       <AuthLayout>
         <div className="px-6 py-10 max-w-md mx-auto w-full">
-          <button
-            onClick={() => navigate(-1)}
-            className="size-10 rounded-full bg-muted flex items-center justify-center mb-6"
-          >
+          <button onClick={() => navigate(-1)} className="size-10 rounded-full bg-muted flex items-center justify-center mb-6">
             <ArrowLeft className="w-5 h-5" />
           </button>
-
           <div className="mb-8">
             <div className="size-16 rounded-2xl gradient-brand shadow-glow flex items-center justify-center mb-4">
               <Icon className="w-8 h-8 text-primary-foreground" />
@@ -589,88 +533,45 @@ export const AuthFlow = ({
             </div>
             <h1 className="text-2xl font-extrabold">Ativar perfil de {roleLabel}</h1>
             <p className="text-sm text-muted-foreground mt-1">
-              {allPrefilled
-                ? "Seus dados já estão salvos. Confirme para ativar o perfil."
-                : "Preencha apenas as informações exclusivas deste perfil. Todos os demais dados já foram importados da sua conta."}
+              {allPrefilled ? "Seus dados já estão salvos. Confirme para ativar o perfil." : "Preencha apenas as informações exclusivas deste perfil."}
             </p>
           </div>
 
           {addRoleLoading ? (
             <div className="space-y-3">
-              {fields.map((f) => (
-                <div key={f.name} className="bg-card border border-border rounded-xl px-4 py-5 shadow-card animate-pulse">
-                  <div className="h-2.5 w-24 bg-muted rounded mb-2" />
-                  <div className="h-4 w-40 bg-muted rounded" />
-                </div>
-              ))}
+              {fields.map((f) => <div key={f.name} className="bg-card border border-border rounded-xl px-4 py-5 shadow-card animate-pulse"><div className="h-2.5 w-24 bg-muted rounded mb-2" /><div className="h-4 w-40 bg-muted rounded" /></div>)}
               <div className="h-12 rounded-xl bg-muted animate-pulse" />
             </div>
           ) : (
             <div className="space-y-3">
               {prefilledFields.length > 0 && (
                 <div className="space-y-2">
-                  <p className="text-xs font-bold text-muted-foreground uppercase tracking-wide px-1">
-                    Dados já cadastrados
-                  </p>
+                  <p className="text-xs font-bold text-muted-foreground uppercase tracking-wide px-1">Dados já cadastrados</p>
                   {prefilledFields.map((field) => renderField(field, true))}
                 </div>
               )}
               {emptyFields.length > 0 && (
                 <div className="space-y-2">
-                  {prefilledFields.length > 0 && (
-                    <p className="text-xs font-bold text-muted-foreground uppercase tracking-wide px-1 pt-2">
-                      Informações adicionais
-                    </p>
-                  )}
+                  {prefilledFields.length > 0 && <p className="text-xs font-bold text-muted-foreground uppercase tracking-wide px-1 pt-2">Informações adicionais</p>}
                   {emptyFields.map((field) => renderField(field, false))}
                 </div>
               )}
-
               {expectedRole === "lojista" && (
                 <div className="bg-card border border-border rounded-xl px-4 py-3 shadow-card space-y-2">
                   <span className="text-xs font-bold text-muted-foreground">CNPJ (opcional — ativa selo verificado)</span>
                   <div className="flex gap-2">
-                    <input
-                      value={values.cnpj}
-                      onChange={(e) => { setCnpjVerified(false); updateValue("cnpj", e.target.value); }}
-                      placeholder="00.000.000/0000-00"
-                      inputMode="numeric"
-                      maxLength={20}
-                      className="flex-1 bg-transparent text-sm font-semibold focus:outline-none"
-                    />
-                    <button
-                      type="button"
-                      onClick={verifyCnpj}
-                      disabled={busy || cnpjVerified}
-                      className="px-3 py-1.5 text-xs font-bold rounded-lg bg-primary text-primary-foreground disabled:opacity-60"
-                    >
-                      {cnpjVerified ? "✓ OK" : "Validar"}
-                    </button>
+                    <input value={values.cnpj} onChange={(e) => { setCnpjVerified(false); updateValue("cnpj", e.target.value); }} placeholder="00.000.000/0000-00" inputMode="numeric" maxLength={20} className="flex-1 bg-transparent text-sm font-semibold focus:outline-none" />
+                    <button type="button" onClick={verifyCnpj} disabled={busy || cnpjVerified} className="px-3 py-1.5 text-xs font-bold rounded-lg bg-primary text-primary-foreground disabled:opacity-60">{cnpjVerified ? "✓ OK" : "Validar"}</button>
                   </div>
-                  {!cnpjVerified && (
-                    <button
-                      type="button"
-                      onClick={() => { updateValue("cnpj", ""); setCnpjVerified(false); }}
-                      className="block text-xs text-muted-foreground underline pt-1 text-left hover:text-foreground transition-colors"
-                    >
-                      Não tenho CNPJ — solicitar verificação manual após o cadastro
-                    </button>
-                  )}
+                  {!cnpjVerified && <button type="button" onClick={() => { updateValue("cnpj", ""); setCnpjVerified(false); }} className="block text-xs text-muted-foreground underline pt-1 text-left hover:text-foreground transition-colors">Não tenho CNPJ — solicitar verificação manual após o cadastro</button>}
                 </div>
               )}
-
-              <button
-                onClick={handleAddRole}
-                disabled={busy}
-                className="w-full gradient-brand text-primary-foreground rounded-xl py-3.5 font-bold shadow-card hover:shadow-elevated transition-shadow flex items-center justify-center gap-2 disabled:opacity-60 mt-2"
-              >
+              <button onClick={handleAddRole} disabled={busy}
+                className="w-full gradient-brand text-primary-foreground rounded-xl py-3.5 font-bold shadow-card hover:shadow-elevated transition-shadow flex items-center justify-center gap-2 disabled:opacity-60 mt-2">
                 {busy ? "Ativando..." : allPrefilled ? `Confirmar e ativar ${roleLabel}` : `Ativar perfil de ${roleLabel}`}
                 {!busy && <CheckCircle2 className="w-4 h-4" />}
               </button>
-
-              <p className="text-center text-xs text-muted-foreground pt-2">
-                Você poderá alternar entre seus perfis a qualquer momento.
-              </p>
+              <p className="text-center text-xs text-muted-foreground pt-2">Você poderá alternar entre seus perfis a qualquer momento.</p>
             </div>
           )}
         </div>
@@ -679,81 +580,299 @@ export const AuthFlow = ({
   }
 
   /* ══════════════════════════════════════════════════════
-     VISTA: ESCOLHA
+     ESCOLHA
   ══════════════════════════════════════════════════════ */
   if (view === "choice") {
     return (
       <AuthLayout>
-      <div className="px-6 py-10 max-w-md mx-auto">
-        <Link to="/" className="size-10 rounded-full bg-muted flex items-center justify-center">
-          <ArrowLeft className="w-5 h-5" />
-        </Link>
-
-        <div className="mt-8 mb-10">
-          <div className="size-16 rounded-2xl gradient-brand shadow-glow flex items-center justify-center mb-5">
-            <Icon className="w-8 h-8 text-primary-foreground" />
+        <div className="px-6 py-10 max-w-md mx-auto">
+          <Link to="/" className="size-10 rounded-full bg-muted flex items-center justify-center"><ArrowLeft className="w-5 h-5" /></Link>
+          <div className="mt-8 mb-10">
+            <div className="size-16 rounded-2xl gradient-brand shadow-glow flex items-center justify-center mb-5">
+              <Icon className="w-8 h-8 text-primary-foreground" />
+            </div>
+            <h1 className="text-2xl font-extrabold">{title}</h1>
+            <p className="text-sm text-muted-foreground mt-1">{subtitle}</p>
           </div>
-          <h1 className="text-2xl font-extrabold">{title}</h1>
-          <p className="text-sm text-muted-foreground mt-1">{subtitle}</p>
+          <div className="space-y-3">
+            <button onClick={() => setView("login")} className="w-full gradient-brand text-primary-foreground rounded-2xl p-5 flex items-center gap-4 shadow-card hover:shadow-elevated transition-shadow text-left">
+              <div className="size-11 rounded-xl bg-white/20 flex items-center justify-center shrink-0"><LogIn className="w-5 h-5" /></div>
+              <div><p className="font-bold text-base leading-tight">Entrar na conta</p><p className="text-xs opacity-80 mt-0.5">Já tenho cadastro</p></div>
+            </button>
+            <button onClick={() => setView("signup")} className="w-full bg-card border border-border rounded-2xl p-5 flex items-center gap-4 shadow-card hover:bg-muted/40 transition-colors text-left">
+              <div className="size-11 rounded-xl bg-muted flex items-center justify-center shrink-0"><UserPlus className="w-5 h-5 text-primary" /></div>
+              <div><p className="font-bold text-base leading-tight">Criar nova conta</p><p className="text-xs text-muted-foreground mt-0.5">Primeiro acesso</p></div>
+            </button>
+          </div>
+          {allowSkip && skipPath && (
+            <Link to={skipPath} className="block text-center text-sm font-semibold text-muted-foreground py-3 mt-2 hover:text-foreground">Continuar sem entrar</Link>
+          )}
+          <p className="text-center text-xs text-muted-foreground mt-10">Ao continuar você concorda com nossos termos de uso e política de privacidade.</p>
         </div>
-
-        <div className="space-y-3">
-          <button
-            onClick={() => setView("login")}
-            className="w-full gradient-brand text-primary-foreground rounded-2xl p-5 flex items-center gap-4 shadow-card hover:shadow-elevated transition-shadow text-left"
-          >
-            <div className="size-11 rounded-xl bg-white/20 flex items-center justify-center shrink-0">
-              <LogIn className="w-5 h-5" />
-            </div>
-            <div>
-              <p className="font-bold text-base leading-tight">Entrar na conta</p>
-              <p className="text-xs opacity-80 mt-0.5">Já tenho cadastro</p>
-            </div>
-          </button>
-
-          <button
-            onClick={() => setView("signup")}
-            className="w-full bg-card border border-border rounded-2xl p-5 flex items-center gap-4 shadow-card hover:bg-muted/40 transition-colors text-left"
-          >
-            <div className="size-11 rounded-xl bg-muted flex items-center justify-center shrink-0">
-              <UserPlus className="w-5 h-5 text-primary" />
-            </div>
-            <div>
-              <p className="font-bold text-base leading-tight">Criar nova conta</p>
-              <p className="text-xs text-muted-foreground mt-0.5">Primeiro acesso</p>
-            </div>
-          </button>
-        </div>
-
-        {allowSkip && skipPath && (
-          <Link
-            to={skipPath}
-            className="block text-center text-sm font-semibold text-muted-foreground py-3 mt-2 hover:text-foreground"
-          >
-            Continuar sem entrar
-          </Link>
-        )}
-
-        <p className="text-center text-xs text-muted-foreground mt-10">
-          Ao continuar você concorda com nossos termos de uso e política de privacidade.
-        </p>
-      </div>
       </AuthLayout>
     );
   }
 
   /* ══════════════════════════════════════════════════════
-     VISTA: LOGIN
+     LOGIN
   ══════════════════════════════════════════════════════ */
   if (view === "login") {
     return (
       <AuthLayout>
+        <div className="px-6 py-10 max-w-md mx-auto">
+          <button onClick={() => { setView("choice"); setLoginError(""); setResetSent(false); }} className="size-10 rounded-full bg-muted flex items-center justify-center" aria-label="Voltar">
+            <ArrowLeft className="w-5 h-5" />
+          </button>
+          <div className="mt-8 mb-8">
+            <div className="size-16 rounded-2xl gradient-brand shadow-glow flex items-center justify-center mb-5"><Icon className="w-8 h-8 text-primary-foreground" /></div>
+            <h1 className="text-2xl font-extrabold">Entrar na conta</h1>
+            <p className="text-sm text-muted-foreground mt-1">Informe suas credenciais para acessar.</p>
+          </div>
+          <form onSubmit={handleLogin} className="space-y-3">
+            <label className="bg-card border border-border rounded-xl px-4 py-3 flex items-center gap-3 shadow-card">
+              <Mail className="w-5 h-5 text-primary shrink-0" />
+              <input value={loginEmail} onChange={(e) => { setLoginEmail(e.target.value); setLoginError(""); }} placeholder="seu@email.com" type="email" required autoComplete="email" className="flex-1 bg-transparent text-sm font-semibold focus:outline-none" />
+            </label>
+            <label className="bg-card border border-border rounded-xl px-4 py-3 flex items-center gap-3 shadow-card">
+              <Lock className="w-5 h-5 text-primary shrink-0" />
+              <input value={loginPassword} onChange={(e) => { setLoginPassword(e.target.value); setLoginError(""); }} placeholder="Sua senha" type="password" required autoComplete="current-password" className="flex-1 bg-transparent text-sm font-semibold focus:outline-none" />
+            </label>
+            {loginError && <p className="text-sm text-destructive font-semibold px-1">{loginError}</p>}
+            {resetSent && <p className="text-sm text-primary font-semibold px-1">✓ E-mail de redefinição enviado. Verifique sua caixa de entrada.</p>}
+            <div className="flex justify-end">
+              <button type="button" onClick={handleForgotPassword} disabled={busy} className="text-xs text-muted-foreground hover:text-foreground underline-offset-2 hover:underline disabled:opacity-60">Esqueci minha senha</button>
+            </div>
+            <button type="submit" disabled={busy} className="w-full gradient-brand text-primary-foreground rounded-xl py-3.5 font-bold shadow-card hover:shadow-elevated transition-shadow flex items-center justify-center gap-2 disabled:opacity-60">
+              {busy ? "Entrando..." : "Entrar"}{!busy && <LogIn className="w-4 h-4" />}
+            </button>
+          </form>
+          <button onClick={() => { setView("signup"); setLoginError(""); }} className="w-full text-sm text-muted-foreground mt-5 hover:text-foreground text-center">
+            Não tem conta? <span className="font-bold text-primary">Criar conta</span>
+          </button>
+          <p className="text-center text-xs text-muted-foreground mt-10">Ao continuar você concorda com nossos termos de uso e política de privacidade.</p>
+        </div>
+      </AuthLayout>
+    );
+  }
+
+  /* ══════════════════════════════════════════════════════
+     PASSO 1 — Dados pessoais (foto + nome + email)
+  ══════════════════════════════════════════════════════ */
+  if (view === "signup") {
+    return (
+      <AuthLayout>
+        <div className="px-6 py-10 max-w-md mx-auto">
+          <button onClick={() => { setView("choice"); setStep1Error(""); }} className="size-10 rounded-full bg-muted flex items-center justify-center" aria-label="Voltar">
+            <ArrowLeft className="w-5 h-5" />
+          </button>
+
+          <div className="mt-8 mb-8">
+            <div className="size-16 rounded-2xl gradient-brand shadow-glow flex items-center justify-center mb-5">
+              <Icon className="w-8 h-8 text-primary-foreground" />
+            </div>
+            <h1 className="text-2xl font-extrabold">Criar nova conta</h1>
+            <p className="text-sm text-muted-foreground mt-1">Preencha seus dados pessoais para começar.</p>
+
+            {/* Indicador de etapa */}
+            <div className="flex items-center gap-2 mt-4">
+              <div className="flex items-center gap-1.5">
+                <div className="size-5 rounded-full bg-primary flex items-center justify-center">
+                  <span className="text-[10px] font-extrabold text-primary-foreground">1</span>
+                </div>
+                <span className="text-xs font-semibold text-foreground">Dados pessoais</span>
+              </div>
+              <div className="h-px flex-1 bg-border" />
+              <div className="flex items-center gap-1.5">
+                <div className="size-5 rounded-full bg-muted border border-border flex items-center justify-center">
+                  <span className="text-[10px] font-extrabold text-muted-foreground">2</span>
+                </div>
+                <span className="text-xs font-semibold text-muted-foreground">
+                  {role === "lojista" ? "Sobre a loja" : role === "entregador" ? "Dados profissionais" : "Endereço"}
+                </span>
+              </div>
+            </div>
+          </div>
+
+          <form onSubmit={handleStep1} className="space-y-3">
+            {/* Foto */}
+            <div className="flex justify-center mb-2">
+              <ImagePicker value={values.avatar} onChange={(url) => updateValue("avatar", url)} folder="avatar" shape="circle" label="Foto" className="w-24" />
+            </div>
+
+            {/* Nome */}
+            <label className="bg-card border border-border rounded-xl px-4 py-3 flex items-center gap-3 shadow-card">
+              <User className="w-5 h-5 text-primary shrink-0" />
+              <input value={signupName} onChange={(e) => { setSignupName(e.target.value); setStep1Error(""); }} placeholder="Nome completo" required autoComplete="name" maxLength={80} className="flex-1 bg-transparent text-sm font-semibold focus:outline-none" />
+            </label>
+
+            {/* E-mail */}
+            <label className="bg-card border border-border rounded-xl px-4 py-3 flex items-center gap-3 shadow-card">
+              <Mail className="w-5 h-5 text-primary shrink-0" />
+              <input value={signupEmail} onChange={(e) => { setSignupEmail(e.target.value); setStep1Error(""); }} placeholder="seu@email.com" type="email" required autoComplete="email" className="flex-1 bg-transparent text-sm font-semibold focus:outline-none" />
+            </label>
+
+            {step1Error && <p className="text-sm text-destructive font-semibold px-1">{step1Error}</p>}
+
+            <button type="submit" disabled={busy} className="w-full gradient-brand text-primary-foreground rounded-xl py-3.5 font-bold shadow-card hover:shadow-elevated transition-shadow flex items-center justify-center gap-2 disabled:opacity-60">
+              Continuar
+              <Phone className="w-4 h-4" />
+            </button>
+          </form>
+
+          <button onClick={() => { setView("login"); setStep1Error(""); }} className="w-full text-sm text-muted-foreground mt-5 hover:text-foreground text-center">
+            Já tem conta? <span className="font-bold text-primary">Entrar</span>
+          </button>
+          <p className="text-center text-xs text-muted-foreground mt-10">Ao continuar você concorda com nossos termos de uso e política de privacidade.</p>
+        </div>
+      </AuthLayout>
+    );
+  }
+
+  /* ══════════════════════════════════════════════════════
+     TELEFONE — inserir número
+  ══════════════════════════════════════════════════════ */
+  if (view === "phone") {
+    return (
+      <AuthLayout>
+        <div className="px-6 py-10 max-w-md mx-auto">
+          <button onClick={() => { setView("signup"); setPhoneError(""); }} className="size-10 rounded-full bg-muted flex items-center justify-center" aria-label="Voltar">
+            <ArrowLeft className="w-5 h-5" />
+          </button>
+
+          <div className="mt-8 mb-8">
+            <div className="size-16 rounded-2xl gradient-brand shadow-glow flex items-center justify-center mb-5">
+              <Phone className="w-8 h-8 text-primary-foreground" />
+            </div>
+            <h1 className="text-2xl font-extrabold">Verificação por telefone</h1>
+            <p className="text-sm text-muted-foreground mt-1">
+              Informe seu número de celular para receber o código de verificação.
+            </p>
+          </div>
+
+          <div className="space-y-4">
+            <label className="bg-card border border-border rounded-xl px-4 py-3 flex items-center gap-3 shadow-card">
+              <span className="text-sm font-bold text-muted-foreground shrink-0 select-none">+55</span>
+              <div className="w-px h-5 bg-border shrink-0" />
+              <input
+                value={signupPhone}
+                onChange={(e) => { setSignupPhone(formatPhone(e.target.value)); setPhoneError(""); }}
+                placeholder="(11) 99999-9999"
+                type="tel"
+                inputMode="numeric"
+                autoFocus
+                className="flex-1 bg-transparent text-sm font-semibold focus:outline-none"
+              />
+            </label>
+
+            {phoneError && <p className="text-sm text-destructive font-semibold px-1">{phoneError}</p>}
+
+            <button onClick={handlePhoneSend} className="w-full gradient-brand text-primary-foreground rounded-xl py-3.5 font-bold shadow-card hover:shadow-elevated transition-shadow flex items-center justify-center gap-2">
+              Enviar código <MessageSquare className="w-4 h-4" />
+            </button>
+
+            <p className="text-center text-xs text-muted-foreground">
+              Você receberá um SMS com o código de 6 dígitos.
+            </p>
+          </div>
+        </div>
+      </AuthLayout>
+    );
+  }
+
+  /* ══════════════════════════════════════════════════════
+     ENVIANDO — animação
+  ══════════════════════════════════════════════════════ */
+  if (view === "sending") {
+    return (
+      <AuthLayout>
+        <div className="px-6 py-10 max-w-md mx-auto flex flex-col items-center justify-center min-h-[60vh]">
+          <div className="size-20 rounded-full gradient-brand shadow-glow flex items-center justify-center mb-6">
+            <MessageSquare className="w-9 h-9 text-primary-foreground animate-pulse" />
+          </div>
+          <div className="w-10 h-10 rounded-full border-4 border-primary border-t-transparent animate-spin mb-6" />
+          <h2 className="text-xl font-extrabold text-center">Enviando código...</h2>
+          <p className="text-sm text-muted-foreground mt-2 text-center">
+            Aguarde enquanto enviamos o SMS para<br />
+            <span className="font-semibold text-foreground">+55 {signupPhone}</span>
+          </p>
+        </div>
+      </AuthLayout>
+    );
+  }
+
+  /* ══════════════════════════════════════════════════════
+     OTP — inserir código
+  ══════════════════════════════════════════════════════ */
+  if (view === "otp") {
+    return (
+      <AuthLayout>
+        <div className="px-6 py-10 max-w-md mx-auto">
+          <button onClick={() => { setView("phone"); setOtpError(""); setOtpInput(""); }} className="size-10 rounded-full bg-muted flex items-center justify-center" aria-label="Voltar">
+            <ArrowLeft className="w-5 h-5" />
+          </button>
+
+          <div className="mt-8 mb-6">
+            <div className="size-16 rounded-2xl gradient-brand shadow-glow flex items-center justify-center mb-5">
+              <ShieldCheck className="w-8 h-8 text-primary-foreground" />
+            </div>
+            <h1 className="text-2xl font-extrabold">Digite o código</h1>
+            <p className="text-sm text-muted-foreground mt-1">
+              Código enviado para <span className="font-semibold text-foreground">+55 {signupPhone}</span>
+            </p>
+          </div>
+
+          <div className="flex flex-col items-center gap-5">
+            <InputOTP
+              maxLength={6}
+              value={otpInput}
+              onChange={(val) => { setOtpInput(val); setOtpError(""); }}
+            >
+              <InputOTPGroup className="gap-2">
+                {[0, 1, 2, 3, 4, 5].map((i) => (
+                  <InputOTPSlot
+                    key={i}
+                    index={i}
+                    className="w-11 h-14 text-lg font-extrabold rounded-xl border-2 border-border first:rounded-xl last:rounded-xl first:border-l-2"
+                  />
+                ))}
+              </InputOTPGroup>
+            </InputOTP>
+
+            {otpError && <p className="text-sm text-destructive font-semibold text-center">{otpError}</p>}
+
+            <button
+              onClick={handleOtpVerify}
+              disabled={busy || otpInput.length < 6}
+              className="w-full gradient-brand text-primary-foreground rounded-xl py-3.5 font-bold shadow-card hover:shadow-elevated transition-shadow flex items-center justify-center gap-2 disabled:opacity-60"
+            >
+              {busy ? "Verificando..." : "Verificar código"}
+              {!busy && <CheckCircle2 className="w-4 h-4" />}
+            </button>
+
+            <div className="text-center">
+              {otpResendTimer > 0 ? (
+                <p className="text-xs text-muted-foreground">
+                  Reenviar em <span className="font-bold text-foreground">{otpResendTimer}s</span>
+                </p>
+              ) : (
+                <button type="button" onClick={handleResend} className="flex items-center gap-1.5 text-xs font-semibold text-primary hover:underline mx-auto">
+                  <RotateCcw className="w-3 h-3" /> Não recebi o código — reenviar
+                </button>
+              )}
+            </div>
+          </div>
+        </div>
+      </AuthLayout>
+    );
+  }
+
+  /* ══════════════════════════════════════════════════════
+     PASSO 2 — Dados da loja / perfil + senha + CNPJ
+  ══════════════════════════════════════════════════════ */
+  return (
+    <AuthLayout>
       <div className="px-6 py-10 max-w-md mx-auto">
-        <button
-          onClick={() => { setView("choice"); setLoginError(""); setResetSent(false); }}
-          className="size-10 rounded-full bg-muted flex items-center justify-center"
-          aria-label="Voltar"
-        >
+        <button onClick={() => { setView("otp"); setStep2Error(""); }} className="size-10 rounded-full bg-muted flex items-center justify-center" aria-label="Voltar">
           <ArrowLeft className="w-5 h-5" />
         </button>
 
@@ -761,238 +880,89 @@ export const AuthFlow = ({
           <div className="size-16 rounded-2xl gradient-brand shadow-glow flex items-center justify-center mb-5">
             <Icon className="w-8 h-8 text-primary-foreground" />
           </div>
-          <h1 className="text-2xl font-extrabold">Entrar na conta</h1>
-          <p className="text-sm text-muted-foreground mt-1">Informe suas credenciais para acessar.</p>
+          <h1 className="text-2xl font-extrabold">
+            {role === "lojista" ? "Sobre sua loja" : role === "entregador" ? "Seus dados profissionais" : "Endereço de entrega"}
+          </h1>
+          <p className="text-sm text-muted-foreground mt-1">Quase lá! Preencha as informações finais.</p>
+
+          {/* Indicador de etapa */}
+          <div className="flex items-center gap-2 mt-4">
+            <div className="flex items-center gap-1.5">
+              <div className="size-5 rounded-full bg-primary flex items-center justify-center">
+                <CheckCircle2 className="w-3 h-3 text-primary-foreground" />
+              </div>
+              <span className="text-xs font-semibold text-primary">Dados pessoais</span>
+            </div>
+            <div className="h-px flex-1 bg-primary" />
+            <div className="flex items-center gap-1.5">
+              <div className="size-5 rounded-full bg-primary ring-4 ring-primary/20 flex items-center justify-center">
+                <span className="text-[10px] font-extrabold text-primary-foreground">2</span>
+              </div>
+              <span className="text-xs font-semibold text-foreground">
+                {role === "lojista" ? "Sobre a loja" : role === "entregador" ? "Dados profissionais" : "Endereço"}
+              </span>
+            </div>
+          </div>
         </div>
 
-        <form onSubmit={handleLogin} className="space-y-3">
-          <label className="bg-card border border-border rounded-xl px-4 py-3 flex items-center gap-3 shadow-card">
-            <Mail className="w-5 h-5 text-primary shrink-0" />
-            <input
-              value={loginEmail}
-              onChange={(e) => { setLoginEmail(e.target.value); setLoginError(""); }}
-              placeholder="seu@email.com"
-              type="email"
-              required
-              autoComplete="email"
-              className="flex-1 bg-transparent text-sm font-semibold focus:outline-none"
-            />
-          </label>
+        <form onSubmit={handleStep2} className="space-y-3">
+          {/* Campos específicos do perfil */}
+          {fields.length > 0 && (
+            <div className="space-y-3">
+              {fields.map((field) => renderField(field, false))}
+            </div>
+          )}
 
+          {/* Senha */}
           <label className="bg-card border border-border rounded-xl px-4 py-3 flex items-center gap-3 shadow-card">
             <Lock className="w-5 h-5 text-primary shrink-0" />
             <input
-              value={loginPassword}
-              onChange={(e) => { setLoginPassword(e.target.value); setLoginError(""); }}
-              placeholder="Sua senha"
+              value={signupPassword}
+              onChange={(e) => { setSignupPassword(e.target.value); setStep2Error(""); }}
+              placeholder="Crie uma senha (mín. 6 caracteres)"
               type="password"
               required
-              autoComplete="current-password"
+              minLength={6}
+              autoComplete="new-password"
               className="flex-1 bg-transparent text-sm font-semibold focus:outline-none"
             />
           </label>
 
-          {loginError && (
-            <p className="text-sm text-destructive font-semibold px-1">{loginError}</p>
-          )}
-          {resetSent && (
-            <p className="text-sm text-primary font-semibold px-1">
-              ✓ E-mail de redefinição enviado. Verifique sua caixa de entrada.
-            </p>
+          {/* CNPJ (somente lojistas) */}
+          {role === "lojista" && (
+            <div className="bg-card border border-border rounded-xl px-4 py-3 shadow-card space-y-2">
+              <span className="text-xs font-bold text-muted-foreground">CNPJ (opcional — ativa selo verificado)</span>
+              <div className="flex gap-2">
+                <input value={values.cnpj} onChange={(e) => { setCnpjVerified(false); updateValue("cnpj", e.target.value); }} placeholder="00.000.000/0000-00" inputMode="numeric" maxLength={20} className="flex-1 bg-transparent text-sm font-semibold focus:outline-none" />
+                <button type="button" onClick={verifyCnpj} disabled={busy || cnpjVerified} className="px-3 py-1.5 text-xs font-bold rounded-lg bg-primary text-primary-foreground disabled:opacity-60">
+                  {cnpjVerified ? "✓ OK" : "Validar"}
+                </button>
+              </div>
+              {cnpjVerified && (
+                <p className="text-xs text-primary flex items-center gap-1">
+                  <ShieldCheck className="w-3 h-3" /> CNPJ validado — sua loja terá selo verificado imediatamente.
+                </p>
+              )}
+              {!cnpjVerified && (
+                <button type="button" onClick={() => { updateValue("cnpj", ""); setCnpjVerified(false); }} className="block text-xs text-muted-foreground underline pt-1 text-left hover:text-foreground transition-colors">
+                  Não tenho CNPJ — solicitar verificação manual após o cadastro
+                </button>
+              )}
+            </div>
           )}
 
-          <div className="flex justify-end">
-            <button
-              type="button"
-              onClick={handleForgotPassword}
-              disabled={busy}
-              className="text-xs text-muted-foreground hover:text-foreground underline-offset-2 hover:underline disabled:opacity-60"
-            >
-              Esqueci minha senha
-            </button>
-          </div>
+          {step2Error && <p className="text-sm text-destructive font-semibold px-1">{step2Error}</p>}
 
-          <button
-            type="submit"
-            disabled={busy}
-            className="w-full gradient-brand text-primary-foreground rounded-xl py-3.5 font-bold shadow-card hover:shadow-elevated transition-shadow flex items-center justify-center gap-2 disabled:opacity-60"
-          >
-            {busy ? "Entrando..." : "Entrar"}
-            {!busy && <LogIn className="w-4 h-4" />}
+          <button type="submit" disabled={busy} className="w-full gradient-brand text-primary-foreground rounded-xl py-3.5 font-bold shadow-card hover:shadow-elevated transition-shadow flex items-center justify-center gap-2 disabled:opacity-60">
+            {busy ? "Criando conta..." : "Criar conta"}
+            {!busy && <CheckCircle2 className="w-4 h-4" />}
           </button>
         </form>
 
-        <button
-          onClick={() => { setView("signup"); setLoginError(""); }}
-          className="w-full text-sm text-muted-foreground mt-5 hover:text-foreground text-center"
-        >
-          Não tem conta?{" "}
-          <span className="font-bold text-primary">Criar conta</span>
-        </button>
-
-        <p className="text-center text-xs text-muted-foreground mt-10">
+        <p className="text-center text-xs text-muted-foreground mt-8">
           Ao continuar você concorda com nossos termos de uso e política de privacidade.
         </p>
       </div>
-      </AuthLayout>
-    );
-  }
-
-  /* ══════════════════════════════════════════════════════
-     VISTA: CADASTRO
-  ══════════════════════════════════════════════════════ */
-  return (
-    <AuthLayout>
-    <div className="px-6 py-10 max-w-md mx-auto">
-      <button
-        onClick={() => { setView("choice"); setSignupError(""); }}
-        className="size-10 rounded-full bg-muted flex items-center justify-center"
-        aria-label="Voltar"
-      >
-        <ArrowLeft className="w-5 h-5" />
-      </button>
-
-      <div className="mt-8 mb-8">
-        <div className="size-16 rounded-2xl gradient-brand shadow-glow flex items-center justify-center mb-5">
-          <Icon className="w-8 h-8 text-primary-foreground" />
-        </div>
-        <h1 className="text-2xl font-extrabold">Criar nova conta</h1>
-        <p className="text-sm text-muted-foreground mt-1">Preencha seus dados para começar.</p>
-      </div>
-
-      <form onSubmit={handleSignup} className="space-y-3">
-        {/* Foto (opcional) */}
-        <div className="flex justify-center mb-2">
-          <ImagePicker
-            value={values.avatar}
-            onChange={(url) => updateValue("avatar", url)}
-            folder="avatar"
-            shape="circle"
-            label="Foto"
-            className="w-24"
-          />
-        </div>
-
-        {/* Nome */}
-        <label className="bg-card border border-border rounded-xl px-4 py-3 flex items-center gap-3 shadow-card">
-          <User className="w-5 h-5 text-primary shrink-0" />
-          <input
-            value={signupName}
-            onChange={(e) => { setSignupName(e.target.value); setSignupError(""); }}
-            placeholder="Nome completo"
-            required
-            autoComplete="name"
-            maxLength={80}
-            className="flex-1 bg-transparent text-sm font-semibold focus:outline-none"
-          />
-        </label>
-
-        {/* E-mail */}
-        <label className="bg-card border border-border rounded-xl px-4 py-3 flex items-center gap-3 shadow-card">
-          <Mail className="w-5 h-5 text-primary shrink-0" />
-          <input
-            value={signupEmail}
-            onChange={(e) => { setSignupEmail(e.target.value); setSignupError(""); }}
-            placeholder="seu@email.com"
-            type="email"
-            required
-            autoComplete="email"
-            className="flex-1 bg-transparent text-sm font-semibold focus:outline-none"
-          />
-        </label>
-
-        {/* Campos específicos do perfil */}
-        {fields.length > 0 && (
-          <div className="space-y-3 pt-1">
-            <p className="text-xs font-bold text-muted-foreground uppercase tracking-wide px-1">
-              {role === "lojista" ? "Sobre sua loja" : role === "entregador" ? "Seus dados de entregador" : "Endereço de entrega"}
-            </p>
-            {fields.map((field) => renderField(field, false))}
-          </div>
-        )}
-
-        {/* Senha */}
-        <label className="bg-card border border-border rounded-xl px-4 py-3 flex items-center gap-3 shadow-card">
-          <Lock className="w-5 h-5 text-primary shrink-0" />
-          <input
-            value={signupPassword}
-            onChange={(e) => { setSignupPassword(e.target.value); setSignupError(""); }}
-            placeholder="Crie uma senha (mín. 6 caracteres)"
-            type="password"
-            required
-            minLength={6}
-            autoComplete="new-password"
-            className="flex-1 bg-transparent text-sm font-semibold focus:outline-none"
-          />
-        </label>
-
-        {/* CNPJ (somente lojistas) */}
-        {role === "lojista" && (
-          <div className="bg-card border border-border rounded-xl px-4 py-3 shadow-card space-y-2">
-            <span className="text-xs font-bold text-muted-foreground">CNPJ (opcional — ativa selo verificado)</span>
-            <div className="flex gap-2">
-              <input
-                value={values.cnpj}
-                onChange={(e) => { setCnpjVerified(false); updateValue("cnpj", e.target.value); }}
-                placeholder="00.000.000/0000-00"
-                inputMode="numeric"
-                maxLength={20}
-                className="flex-1 bg-transparent text-sm font-semibold focus:outline-none"
-              />
-              <button
-                type="button"
-                onClick={verifyCnpj}
-                disabled={busy || cnpjVerified}
-                className="px-3 py-1.5 text-xs font-bold rounded-lg bg-primary text-primary-foreground disabled:opacity-60"
-              >
-                {cnpjVerified ? "✓ OK" : "Validar"}
-              </button>
-            </div>
-            {cnpjVerified && (
-              <p className="text-xs text-primary flex items-center gap-1">
-                <ShieldCheck className="w-3 h-3" /> CNPJ validado — sua loja terá selo verificado imediatamente.
-              </p>
-            )}
-            {!cnpjVerified && (
-              <button
-                type="button"
-                onClick={() => { updateValue("cnpj", ""); setCnpjVerified(false); }}
-                className="block text-xs text-muted-foreground underline pt-1 text-left hover:text-foreground transition-colors"
-              >
-                Não tenho CNPJ — solicitar verificação manual após o cadastro
-              </button>
-            )}
-          </div>
-        )}
-
-        {/* Erro */}
-        {signupError && (
-          <p className="text-sm text-destructive font-semibold px-1">{signupError}</p>
-        )}
-
-        {/* Submit */}
-        <button
-          type="submit"
-          disabled={busy}
-          className="w-full gradient-brand text-primary-foreground rounded-xl py-3.5 font-bold shadow-card hover:shadow-elevated transition-shadow flex items-center justify-center gap-2 disabled:opacity-60"
-        >
-          {busy ? "Criando conta..." : "Criar conta"}
-          {!busy && <CheckCircle2 className="w-4 h-4" />}
-        </button>
-      </form>
-
-      <button
-        onClick={() => { setView("login"); setSignupError(""); }}
-        className="w-full text-sm text-muted-foreground mt-5 hover:text-foreground text-center"
-      >
-        Já tem conta?{" "}
-        <span className="font-bold text-primary">Entrar</span>
-      </button>
-
-      <p className="text-center text-xs text-muted-foreground mt-10">
-        Ao continuar você concorda com nossos termos de uso e política de privacidade.
-      </p>
-    </div>
     </AuthLayout>
   );
 };
