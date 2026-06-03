@@ -325,17 +325,17 @@ const DemoDashboard = () => {
 
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 // DASHBOARD REAL — dados do Supabase
+// Hooks são declarados no topo deste componente dedicado,
+// evitando a violação das Regras dos Hooks do React.
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-const SellerDashboard = () => {
-  const { user, isDemo } = useAuth();
+const SellerDashboardReal = () => {
+  const { user } = useAuth();
 
-  if (isDemo) return <DemoDashboard />;
-
-  const [displayName, setDisplayName] = useState("");
-  const [storeName,   setStoreName]   = useState("");
+  const [displayName, setDisplayName] = useState<string>("");
+  const [storeName,   setStoreName]   = useState<string>("");
   const [orders,      setOrders]      = useState<Order[]>([]);
   const [products,    setProducts]    = useState<Product[]>([]);
-  const [loading,     setLoading]     = useState(true);
+  const [loading,     setLoading]     = useState<boolean>(true);
 
   useEffect(() => {
     if (!user) return;
@@ -621,6 +621,14 @@ const SellerDashboard = () => {
       </div>
     </div>
   );
+};
+
+// Wrapper: decide qual dashboard exibir sem violar as Regras dos Hooks.
+// Hooks são declarados nos componentes internos (DemoDashboard / SellerDashboardReal),
+// nunca depois de um return condicional no mesmo componente.
+const SellerDashboard = () => {
+  const { isDemo } = useAuth();
+  return isDemo ? <DemoDashboard /> : <SellerDashboardReal />;
 };
 
 export default SellerDashboard;

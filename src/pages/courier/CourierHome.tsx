@@ -217,6 +217,12 @@ const CourierHome = () => {
   /* ── notificação de nova corrida próxima ─────────── */
   const notifiedIds = useRef<Set<string>>(new Set());
 
+  // Limpa IDs notificados quando entregador fica offline,
+  // para que ao voltar online as corridas sejam notificadas novamente.
+  useEffect(() => {
+    if (!online) { notifiedIds.current.clear(); return; }
+  }, [online]);
+
   useEffect(() => {
     if (!online) return;
     // Notifica apenas propostas ainda não mostradas

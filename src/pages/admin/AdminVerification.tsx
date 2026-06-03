@@ -144,55 +144,64 @@ const AdminVerification = () => {
   const fetchRequests = async () => {
     setLoading(true);
     try {
-      // Busca verificações com dados do lojista
+      // 1 query: todas as verificações
       const { data: verifs, error } = await supabase
         .from("seller_verifications" as never)
         .select("*")
         .order("submitted_at", { ascending: false }) as { data: Record<string, unknown>[] | null; error: unknown };
 
       if (error) throw error;
+      if (!verifs || verifs.length === 0) { setRequests([]); setLoading(false); return; }
 
-      const items: VerifRequest[] = [];
+      const sellerIds    = [...new Set(verifs.map((v) => v.seller_id as string))];
+      const verifIds     = verifs.map((v) => v.id as string);
 
-      for (const v of (verifs ?? [])) {
-        // Busca perfil do lojista
-        const { data: prof } = await supabase
-          .from("profiles")
-          .select("display_name")
-          .eq("id", v.seller_id as string)
-          .maybeSingle();
+      // 1 query: todos os perfis de uma vez (substitui N queries)
+      const { data: profiles } = await supabase
+        .from("profiles")
+        .select("id, display_name")
+        .in("id", sellerIds);
 
-        // Busca arquivos
-        const { data: files } = await supabase
-          .from("seller_verification_files" as never)
-          .select("id, file_url, file_type")
-          .eq("verification_id", v.id as string) as { data: VerifFile[] | null };
+      // 1 query: todos os arquivos de uma vez (substitui N queries)
+      const { data: allFiles } = await supabase
+        .from("seller_verification_files" as never)
+        .select("id, file_url, file_type, verification_id")
+        .in("verification_id", verifIds) as { data: (VerifFile & { verification_id: string })[] | null };
 
-        items.push({
-          id:                v.id                as string,
-          seller_id:         v.seller_id         as string,
-          seller_name:       prof?.display_name  ?? "Lojista",
-          seller_email:      "",
-          store_name:        v.store_name        as string | null,
-          store_description: v.store_description as string | null,
-          store_category:    v.store_category    as string | null,
-          business_duration: v.business_duration as string | null,
-          city:              v.city              as string | null,
-          neighborhood:      v.neighborhood      as string | null,
-          instagram:         v.instagram         as string | null,
-          facebook:          v.facebook          as string | null,
-          tiktok:            v.tiktok            as string | null,
-          whatsapp:          v.whatsapp          as string | null,
-          website:           v.website           as string | null,
-          observations:      v.observations      as string | null,
-          no_cnpj_reason:    v.no_cnpj_reason    as string | null,
-          status:            (v.status           as VerifStatus) ?? "pending",
-          submitted_at:      v.submitted_at      as string,
-          reviewed_at:       v.reviewed_at       as string | null,
-          rejection_reason:  v.rejection_reason  as string | null,
-          files:             files ?? [],
-        });
+      // Índices para O(1) lookup
+      const profileMap = new Map((profiles ?? []).map((p) => [p.id, p.display_name ?? "Lojista"]));
+      const filesMap   = new Map<string, VerifFile[]>();
+      for (const f of (allFiles ?? [])) {
+        const list = filesMap.get(f.verification_id) ?? [];
+        list.push({ id: f.id, file_url: f.file_url, file_type: f.file_type });
+        filesMap.set(f.verification_id, list);
       }
+
+      const items: VerifRequest[] = verifs.map((v) => ({
+        id:                v.id                as string,
+        seller_id:         v.seller_id         as string,
+        seller_name:       profileMap.get(v.seller_id as string) ?? "Lojista",
+        seller_email:      "",
+        store_name:        v.store_name        as string | null,
+        store_description: v.store_description as string | null,
+        store_category:    v.store_category    as string | null,
+        business_duration: v.business_duration as string | null,
+        city:              v.city              as string | null,
+        neighborhood:      v.neighborhood      as string | null,
+        instagram:         v.instagram         as string | null,
+        facebook:          v.facebook          as string | null,
+        tiktok:            v.tiktok            as string | null,
+        whatsapp:          v.whatsapp          as string | null,
+        website:           v.website           as string | null,
+        observations:      v.observations      as string | null,
+        no_cnpj_reason:    v.no_cnpj_reason    as string | null,
+        status:            (v.status           as VerifStatus) ?? "pending",
+        submitted_at:      v.submitted_at      as string,
+        reviewed_at:       v.reviewed_at       as string | null,
+        rejection_reason:  v.rejection_reason  as string | null,
+        files:             filesMap.get(v.id as string) ?? [],
+      }));
+
       setRequests(items);
     } catch (e) {
       console.error("[AdminVerification]", e);

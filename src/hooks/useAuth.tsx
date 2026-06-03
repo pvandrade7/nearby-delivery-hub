@@ -1,4 +1,4 @@
-import { createContext, useContext, useEffect, useState, ReactNode } from "react";
+import { createContext, useContext, useEffect, useRef, useState, ReactNode } from "react";
 import { Session, User } from "@supabase/supabase-js";
 import { supabase } from "@/integrations/supabase/client";
 
@@ -74,6 +74,11 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [verified, setVerified] = useState(false);
   const [loading,  setLoading]  = useState(true);
 
+  // Ref atualizado em cada render para evitar stale closure no onAuthStateChange.
+  // Permite comparar o userId atual com o userId do evento recebido.
+  const sessionRef = useRef<Session | null>(null);
+  sessionRef.current = session;
+
   // Demo mode: persiste no sessionStorage para sobreviver a reloads via window.location.replace.
   // Limpo ao fechar o browser (sessionStorage) ou ao clicar em "Sair do demo".
   const [isDemo, setIsDemo] = useState(() => sessionStorage.getItem("__demo_mode") === "1");
@@ -101,10 +106,30 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       if (mounted) setLoading(false);
     });
 
-    const { data: sub } = supabase.auth.onAuthStateChange((_event, s) => {
+    const { data: sub } = supabase.auth.onAuthStateChange((event, s) => {
       if (!mounted) return;
+
+      // Proteção multi-abas: ignora SIGNED_IN de outra aba com conta diferente.
+      // Cenário: lojista na Aba 1, admin faz login na Aba 2 → Supabase broadcast
+      // dispara SIGNED_IN para todas as abas com a sessão do admin.
+      // Sem este guarda, a Aba 1 trocaria de sessão e redirecionaria para login.
+      if (
+        event === "SIGNED_IN" &&
+        sessionRef.current?.user?.id != null &&
+        s?.user?.id != null &&
+        s.user.id !== sessionRef.current.user.id
+      ) {
+        return; // outra aba logou com conta diferente — não afeta esta aba
+      }
+
       setSession(s);
-      if (!s) { setRole(null); setRoles([]); setVerified(false); }
+      if (!s) {
+        setRole(null);
+        setRoles([]);
+        setVerified(false);
+      }
+      // Nota: o fetch de roles para nova sessão é tratado pelo useEffect[session?.user?.id]
+      // abaixo, evitando duplicação com o fetch que já ocorre no bloco getSession().
     });
 
     return () => {

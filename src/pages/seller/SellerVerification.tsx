@@ -9,6 +9,7 @@ import {
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { VerifiedBadge } from "@/components/VerifiedBadge";
+import { SELLER_CATEGORIES } from "@/data/sellerCategories";
 import { toast } from "sonner";
 
 // ── tipos ────────────────────────────────────────────────
@@ -50,10 +51,8 @@ const EMPTY_FORM: ManualFormData = {
   website: "", observations: "", no_cnpj_reason: "",
 };
 
-const CATEGORIES = [
-  "Alimentos e Bebidas", "Moda e Roupas", "Eletrônicos", "Beleza e Saúde",
-  "Casa e Decoração", "Artesanato", "Pet Shop", "Serviços", "Outro",
-];
+// Usa a lista canônica de categorias do sistema (mesma do cadastro e CreateStore)
+const CATEGORIES = [...SELLER_CATEGORIES];
 const DURATIONS = ["Menos de 1 ano", "1 a 2 anos", "2 a 5 anos", "Mais de 5 anos"];
 
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
@@ -743,20 +742,25 @@ const SellerVerification = () => {
 
       const ext = (prof?.extras as Record<string, string>) ?? {};
 
+      // Fallback: user_metadata.extras contém os dados do signup mas pode não ter
+      // chegado a profiles.extras quando o Supabase exige confirmação de e-mail.
+      const meta = (user.user_metadata?.extras as Record<string, string>) ?? {};
+
       // ── Pré-preenchimento rico a partir de todos os campos disponíveis ──
-      setStoreName(ext.storeName || undefined);
+      const storeName = ext.storeName || meta.storeName || "";
+      setStoreName(storeName || undefined);
       setInitialData({
-        store_name:        ext.storeName                                 || "",
-        store_description: ext.storeDescription || ext.description      || "",
-        store_category:    ext.storeCategory    || ext.category         || "",
-        city:              ext.city             || ext.storeCity        || "",
-        neighborhood:      ext.neighborhood     || ext.storeNeighborhood|| ext.address || "",
-        instagram:         ext.instagram        || ext.storeInstagram   || "",
-        facebook:          ext.facebook         || ext.storeFacebook    || "",
-        tiktok:            ext.tiktok           || ext.storeTiktok      || "",
+        store_name:        storeName,
+        store_description: ext.storeDescription || ext.description      || meta.storeDescription || "",
+        store_category:    ext.storeCategory    || ext.category         || meta.storeCategory    || meta.category || "",
+        city:              ext.city             || ext.storeCity        || meta.city             || "",
+        neighborhood:      ext.neighborhood     || ext.storeNeighborhood|| ext.address           || meta.neighborhood || meta.address || "",
+        instagram:         ext.instagram        || ext.storeInstagram   || meta.instagram        || "",
+        facebook:          ext.facebook         || ext.storeFacebook    || meta.facebook         || "",
+        tiktok:            ext.tiktok           || ext.storeTiktok      || meta.tiktok           || "",
         // telefone cadastrado como whatsapp comercial (melhor do que vazio)
-        whatsapp:          ext.whatsapp         || ext.storeWhatsapp    || prof?.phone || "",
-        website:           ext.website          || ext.storeWebsite     || "",
+        whatsapp:          ext.whatsapp         || ext.storeWhatsapp    || meta.whatsapp         || prof?.phone || "",
+        website:           ext.website          || ext.storeWebsite     || meta.website          || "",
       });
 
       // Busca a verificação manual mais recente (sempre, não só quando não verificado)

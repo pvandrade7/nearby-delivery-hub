@@ -70,14 +70,19 @@ const ClientProfile = () => {
   };
 
   const onAvatar = async (url: string) => {
-    setAvatar(url);
     if (!user) return;
+    const prev = avatar;
+    setAvatar(url);  // update otimista
     const { error } = await supabase
       .from("profiles")
       .update({ avatar_url: url })
       .eq("id", user.id);
-    if (error) toast.error("Falha ao atualizar foto");
-    else toast.success("Foto atualizada!");
+    if (error) {
+      setAvatar(prev);  // reverte se falhar
+      toast.error("Falha ao atualizar foto");
+    } else {
+      toast.success("Foto atualizada!");
+    }
   };
 
   const logout = async () => {

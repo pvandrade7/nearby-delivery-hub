@@ -63,6 +63,7 @@ const WEEK_DAYS = [
 const DELIVERY_OPTIONS = [
   { key: "motoboy",   label: "Motoboy"           },
   { key: "carro",     label: "Carro"             },
+  { key: "entrega",   label: "Entrega pela loja" },
   { key: "retirada",  label: "Retirada na loja"  },
   { key: "meetup",    label: "Ponto de encontro" },
   { key: "combinado", label: "A combinar"        },
@@ -217,13 +218,13 @@ const MyStore = () => {
 
   const toggleSecCat = (cat: string) => {
     const s = new Set(secondaryCats);
-    s.has(cat) ? s.delete(cat) : s.add(cat);
+    if (s.has(cat)) { s.delete(cat); } else { s.add(cat); }
     up("storeSecondaryCategories", [...s].join(","));
   };
 
   const toggleDelivery = (method: string) => {
     const s = new Set(deliveryMethods);
-    s.has(method) ? s.delete(method) : s.add(method);
+    if (s.has(method)) { s.delete(method); } else { s.add(method); }
     up("storeDeliveryMethods", [...s].join(","));
   };
 

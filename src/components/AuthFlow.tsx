@@ -93,7 +93,7 @@ export const AuthFlow = ({
   /* ── compartilhado ────────────────────────────────────── */
   const [busy, setBusy] = useState(false);
   const navigate = useNavigate();
-  const { session, roles: userRoles, loading, enterDemoMode } = useAuth();
+  const { session, user, roles: userRoles, loading, enterDemoMode, signOut } = useAuth();
 
   const expectedRole = finalPath.startsWith("/lojista")
     ? "lojista"
@@ -108,42 +108,9 @@ export const AuthFlow = ({
 
   const role = expectedRole;
 
-  // ── Redireciona apenas quando o usuário já tem o perfil correto.
-  // NUNCA auto-salta para "addRole" — essa tela só aparece após login/cadastro explícito.
-  useEffect(() => {
-    if (loading || !session) return;
-
-    if (userRoles.includes("admin" as import("@/hooks/useAuth").UserRole)) {
-      window.location.replace("/admin/painel");
-      return;
-    }
-
-    if (!userRoles.includes(expectedRole as import("@/hooks/useAuth").UserRole)) {
-      // Usuário autenticado mas sem este perfil → mantém na tela de escolha.
-      // "addRole" só é ativado após o usuário entrar ou criar conta explicitamente.
-      return;
-    }
-
-    // Já tem o perfil esperado → redireciona para a área correta.
-    if (expectedRole === "lojista") {
-      supabase.from("profiles")
-        .select("extras, verified")
-        .eq("id", session.user.id)
-        .maybeSingle()
-        .then(({ data }) => {
-          const ext     = (data?.extras as Record<string, string>) ?? {};
-          const isVerif = (data?.verified as boolean) ?? false;
-          if (!isVerif) {
-            window.location.replace("/lojista/verificacao");
-          } else {
-            window.location.replace(ext.storeName ? "/lojista/painel" : finalPath);
-          }
-        });
-    } else {
-      window.location.replace(finalPath);
-    }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [loading, session, userRoles, expectedRole]);
+  // ── Sem auto-redirect ao carregar a página com sessão ativa.
+  // O usuário deve sempre ver a tela de escolha e decidir explicitamente
+  // se continua com a conta atual ou entra com outra conta.
 
   // ── Pré-carrega dados do perfil quando "addRole" é exibido.
   useEffect(() => {
@@ -197,6 +164,27 @@ export const AuthFlow = ({
   /* ── helpers ──────────────────────────────────────────── */
   const updateValue = (name: string, value: string) =>
     setValues((cur) => ({ ...cur, [name]: value.slice(0, 200) }));
+
+  // Redireciona para o painel correto com base no perfil esperado.
+  // Usado pelo banner "sessão ativa" e pelo handleLogin pós-autenticação.
+  const goToDashboard = async (profileData?: { extras?: Record<string, string>; verified?: boolean }) => {
+    if (expectedRole === "lojista") {
+      if (profileData) {
+        const ext     = profileData.extras ?? {};
+        const isVerif = profileData.verified ?? false;
+        window.location.replace(!isVerif ? "/lojista/verificacao" : ext.storeName ? "/lojista/painel" : finalPath);
+      } else {
+        const { data } = await supabase.from("profiles").select("extras, verified").eq("id", session!.user.id).maybeSingle();
+        const ext     = (data?.extras as Record<string, string>) ?? {};
+        const isVerif = (data?.verified as boolean) ?? false;
+        window.location.replace(!isVerif ? "/lojista/verificacao" : ext.storeName ? "/lojista/painel" : finalPath);
+      }
+    } else if (userRoles.includes("admin" as import("@/hooks/useAuth").UserRole)) {
+      window.location.replace("/admin/painel");
+    } else {
+      window.location.replace(finalPath);
+    }
+  };
 
   const verifyCnpj = () => {
     const raw = values.cnpj;
@@ -328,9 +316,8 @@ export const AuthFlow = ({
         const rolesArr    = ((p?.roles as string[]) ?? []).filter(Boolean);
         const allRoles    = primaryRole && !rolesArr.includes(primaryRole) ? [primaryRole, ...rolesArr] : rolesArr;
 
-        if (allRoles.includes("admin")) {
-          window.location.replace("/admin/painel");
-        } else if (allRoles.includes(expectedRole)) {
+        if (allRoles.includes(expectedRole)) {
+          // Tem o perfil esperado → redireciona para a área correta.
           const ext     = (p?.extras as Record<string, string>) ?? {};
           const isVerif = (p?.verified as boolean) ?? false;
           if (expectedRole === "lojista" && !isVerif) {
@@ -340,6 +327,9 @@ export const AuthFlow = ({
           } else {
             window.location.replace(finalPath);
           }
+        } else if (allRoles.includes("admin")) {
+          // Não tem o perfil esperado, mas tem admin (ex: admin puro logando via /lojista).
+          window.location.replace("/admin/painel");
         } else {
           // Conta sem este perfil → ativar perfil
           setView("addRole");
@@ -657,6 +647,15 @@ export const AuthFlow = ({
                       {cnpjVerified ? "✓ OK" : "Validar"}
                     </button>
                   </div>
+                  {!cnpjVerified && (
+                    <button
+                      type="button"
+                      onClick={() => { updateValue("cnpj", ""); setCnpjVerified(false); }}
+                      className="block text-xs text-muted-foreground underline pt-1 text-left hover:text-foreground transition-colors"
+                    >
+                      Não tenho CNPJ — solicitar verificação manual após o cadastro
+                    </button>
+                  )}
                 </div>
               )}
 
@@ -953,6 +952,15 @@ export const AuthFlow = ({
               <p className="text-xs text-primary flex items-center gap-1">
                 <ShieldCheck className="w-3 h-3" /> CNPJ validado — sua loja terá selo verificado imediatamente.
               </p>
+            )}
+            {!cnpjVerified && (
+              <button
+                type="button"
+                onClick={() => { updateValue("cnpj", ""); setCnpjVerified(false); }}
+                className="block text-xs text-muted-foreground underline pt-1 text-left hover:text-foreground transition-colors"
+              >
+                Não tenho CNPJ — solicitar verificação manual após o cadastro
+              </button>
             )}
           </div>
         )}

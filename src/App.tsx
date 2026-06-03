@@ -84,11 +84,11 @@ const VerifiedSeller = ({ children }: { children: React.ReactNode }) => {
 const Courier = ({ children }: { children: React.ReactNode }) => (
   <RequireRole role="entregador" redirectTo="/entregador">{children}</RequireRole>
 );
-// Admin aceita role 'admin' ou 'lojista' (gestor com acesso ampliado) — somente desktop
+// Admin: somente role 'admin', somente desktop. Sem acesso admin via role lojista.
 const Admin = ({ children }: { children: React.ReactNode }) => {
   const isMobile = useIsMobile();
   if (isMobile) return <Navigate to="/" replace />;
-  return <RequireRole role={["admin", "lojista"]} redirectTo="/lojista">{children}</RequireRole>;
+  return <RequireRole role="admin" redirectTo="/lojista">{children}</RequireRole>;
 };
 
 const App = () => (

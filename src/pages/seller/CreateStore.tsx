@@ -35,12 +35,20 @@ const CreateStore = () => {
       .then(({ data }) => {
         const ext = (data?.extras as Record<string, string>) ?? {};
 
-        // Pré-preenche com dados já conhecidos (vindos do signup ou de sessão anterior)
-        if (ext.storeName)        setName(ext.storeName);
-        if (ext.storeDescription) setDesc(ext.storeDescription);
-        if (ext.storeImage)       setImage(ext.storeImage);
-        const category = ext.storeCategory || ext.category || "";
-        if (category) setCat(category);
+        // Fallback: user_metadata.extras (salvo no signup mas pode não ter chegado
+        // ao profiles.extras quando o Supabase exige confirmação de e-mail)
+        const meta = (user.user_metadata?.extras as Record<string, string>) ?? {};
+
+        const storeName = ext.storeName || meta.storeName || "";
+        const storeDesc = ext.storeDescription || meta.storeDescription || "";
+        const storeImg  = ext.storeImage || meta.storeImage || "";
+        const category  = ext.storeCategory || ext.category
+                       || meta.storeCategory || meta.category || "";
+
+        if (storeName) setName(storeName);
+        if (storeDesc) setDesc(storeDesc);
+        if (storeImg)  setImage(storeImg);
+        if (category)  setCat(category);
 
         // isEdit só é verdadeiro se o lojista já concluiu esta etapa anteriormente
         if (ext.storeConfigured === "true") setIsEdit(true);
