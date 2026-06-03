@@ -122,26 +122,6 @@ Acompanhamento completo do pedido:
 * Saiu para entrega
 * Entregue
 
----
-
-## 🎭 Modo Demonstração
-
-O Vendy+ possui um ambiente de demonstração para apresentações acadêmicas, comerciais e testes.
-
-### Credenciais Demo
-
-Email:
-
-```text
-demo@gmail.com
-```
-
-Senha:
-
-```text
-202020
-```
-
 ### Recursos Disponíveis
 
 * Dashboard preenchido.
