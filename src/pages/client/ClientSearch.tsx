@@ -4,6 +4,7 @@ import { Search, X, Star, UserRound } from "lucide-react";
 import { categories, getProductSeller, products, stores as MOCK_STORES } from "@/data/mockData";
 import { VerifiedBadge, VerifiedCheckIcon } from "@/components/VerifiedBadge";
 import { useStores } from "@/hooks/useStores";
+import { StoreLogo } from "@/components/StoreLogo";
 
 const ClientSearch = () => {
   const [params, setParams] = useSearchParams();
@@ -97,7 +98,7 @@ const ClientSearch = () => {
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
               {filteredStores.map((s) => (
                 <Link key={s.id} to={`/cliente/loja/${s.id}`} className="bg-card rounded-2xl p-3 shadow-card flex gap-3 items-center hover:shadow-elevated transition-all">
-                  <img src={s.image} alt={s.name} loading="lazy" className="size-14 rounded-lg object-cover" />
+                  <StoreLogo store={s} size="sm" whiteBg />
                   <div className="flex-1 min-w-0">
                     <p className="text-sm font-bold truncate">{s.name}</p>
                     <VerifiedBadge compact className="mt-1" />

@@ -48,6 +48,7 @@ import AdminVerification from "./pages/admin/AdminVerification";
 import AdminDashboard    from "./pages/admin/AdminDashboard";
 import AdminSupport      from "./pages/admin/AdminSupport";
 import AdminTicket       from "./pages/admin/AdminTicket";
+import AdminStores       from "./pages/admin/AdminStores";
 
 // Entregador
 import CourierHome from "./pages/courier/CourierHome";
@@ -148,8 +149,8 @@ const App = () => (
               <Route path="/admin/suporte"       element={<AppShell><Admin><AdminSupport      /></Admin></AppShell>} />
               <Route path="/admin/ticket/:id"    element={<AppShell><Admin><AdminTicket       /></Admin></AppShell>} />
               {/* Rotas admin stub (para nav funcionar sem página 404) */}
-              <Route path="/admin/usuarios"      element={<AppShell><Admin><AdminDashboard    /></Admin></AppShell>} />
-              <Route path="/admin/lojas"         element={<AppShell><Admin><AdminVerification /></Admin></AppShell>} />
+              <Route path="/admin/usuarios"      element={<AppShell><Admin><AdminDashboard /></Admin></AppShell>} />
+              <Route path="/admin/lojas"         element={<AppShell><Admin><AdminStores    /></Admin></AppShell>} />
 
               {/* Entregador — tudo protegido por role=entregador exceto login */}
               <Route path="/entregador" element={<AppShell><CourierLogin /></AppShell>} />

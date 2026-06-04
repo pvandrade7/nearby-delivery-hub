@@ -334,7 +334,7 @@ export const AppShell = ({ children }: { children: ReactNode }) => {
                 className="size-9 sm:size-10 rounded-full gradient-brand text-primary-foreground flex items-center justify-center font-bold text-sm shadow-card lg:hidden"
                 title={user.email ?? meta.user}
               >
-                {(user.email?.[0] ?? meta.initial).toUpperCase()}
+                {((user.user_metadata?.display_name || user.email || meta.initial)[0]).toUpperCase()}
               </Link>
             ) : null}
             {/* Avatar desktop (link para perfil) */}
@@ -344,7 +344,7 @@ export const AppShell = ({ children }: { children: ReactNode }) => {
                 className="hidden lg:flex size-9 sm:size-10 rounded-full gradient-brand text-primary-foreground items-center justify-center font-bold text-sm shadow-card"
                 title={user.email ?? meta.user}
               >
-                {(user.email?.[0] ?? meta.initial).toUpperCase()}
+                {((user.user_metadata?.display_name || user.email || meta.initial)[0]).toUpperCase()}
               </Link>
             )}
           </div>
