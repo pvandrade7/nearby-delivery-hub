@@ -45,25 +45,35 @@ const CATEGORY_LABEL: Record<string, string> = {
   verificacao:    "Verificação de lojista",
 };
 
+const PAGE_SIZE = 30;
+
 const AdminSupport = () => {
   const [tickets,     setTickets]     = useState<Ticket[]>([]);
   const [loading,     setLoading]     = useState(true);
+  const [loadingMore, setLoadingMore] = useState(false);
+  const [hasMore,     setHasMore]     = useState(false);
+  const [offset,      setOffset]      = useState(0);
   const [filterStatus,setFilterStatus]= useState("todos");
   const [search,      setSearch]      = useState("");
 
-  const fetchTickets = async () => {
-    setLoading(true);
+  const fetchTickets = async (reset = true) => {
+    const start = reset ? 0 : offset;
+    reset ? setLoading(true) : setLoadingMore(true);
     try {
       const { data } = await supabase
         .from("support_tickets")
         .select("*")
-        .order("created_at", { ascending: false });
-      setTickets((data as Ticket[]) ?? []);
+        .order("created_at", { ascending: false })
+        .range(start, start + PAGE_SIZE - 1);
+      const rows = (data as Ticket[]) ?? [];
+      setTickets((prev) => reset ? rows : [...prev, ...rows]);
+      setOffset(start + rows.length);
+      setHasMore(rows.length === PAGE_SIZE);
     } catch { /* tabela ainda não criada */ }
-    setLoading(false);
+    reset ? setLoading(false) : setLoadingMore(false);
   };
 
-  useEffect(() => { void fetchTickets(); }, []);
+  useEffect(() => { void fetchTickets(true); }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   const updateStatus = async (id: string, status: string) => {
     await supabase
@@ -225,6 +235,21 @@ const AdminSupport = () => {
                 </div>
               </Link>
             ))}
+          </div>
+        )}
+
+        {/* Load more */}
+        {hasMore && !loading && (
+          <div className="px-5 py-4 border-t border-border">
+            <button
+              onClick={() => fetchTickets(false)}
+              disabled={loadingMore}
+              className="w-full py-2.5 rounded-xl border border-border text-sm font-semibold text-muted-foreground hover:bg-muted transition-colors disabled:opacity-60 flex items-center justify-center gap-2"
+            >
+              {loadingMore
+                ? <><div className="w-4 h-4 rounded-full border-2 border-primary border-t-transparent animate-spin" /> Carregando...</>
+                : `Carregar mais (${PAGE_SIZE} por vez)`}
+            </button>
           </div>
         )}
       </div>

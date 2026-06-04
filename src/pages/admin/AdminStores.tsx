@@ -5,6 +5,7 @@ import {
 } from "lucide-react";
 import { useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { logAudit } from "@/lib/auditLog";
 import { toast } from "sonner";
 
 type StoreRow = {
@@ -146,6 +147,12 @@ const AdminStores = () => {
 
       if (rpcError) throw rpcError;
 
+      void logAudit("store_deleted", "profile", toDelete.id, {
+        store_name:  toDelete.storeName,
+        owner_name:  toDelete.ownerName,
+        owner_email: toDelete.ownerEmail,
+        category:    toDelete.category,
+      });
       toast.success(`Loja "${toDelete.storeName}" excluída com sucesso.`);
       setStores((prev) => prev.filter((s) => s.id !== toDelete.id));
       setToDelete(null);

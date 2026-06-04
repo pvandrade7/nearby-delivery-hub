@@ -8,6 +8,7 @@ import { QRCodeSVG } from "qrcode.react";
 import { FulfillmentType, useCart } from "@/context/CartContext";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
+import { deliveryAddressSchema } from "@/schemas";
 import { toast } from "sonner";
 import { stores } from "@/data/mockData";
 
@@ -15,7 +16,7 @@ import { stores } from "@/data/mockData";
 type Step = "summary" | "card" | "pix" | "processing";
 type PayMethod = "pix" | "credit" | "debit" | "cash" | "wallet";
 
-export interface FakeOrder {
+export type OrderSummary = {
   id: string;
   storeName: string;
   items: { name: string; quantity: number; price: number }[];
@@ -23,20 +24,8 @@ export interface FakeOrder {
   address: string;
   payment: string;
   fulfillment: string;
-  status: "aprovado" | "preparando" | "saiu" | "entregue";
-  createdAt: number;
   estimatedMin: number;
   estimatedMax: number;
-}
-
-/* ── localStorage helpers (mantidos para compatibilidade com OrderTracking) ── */
-export const ORDERS_KEY = "vendy_fake_orders";
-
-export const saveOrder = (o: FakeOrder) => {
-  try {
-    const prev: FakeOrder[] = JSON.parse(localStorage.getItem(ORDERS_KEY) || "[]");
-    localStorage.setItem(ORDERS_KEY, JSON.stringify([o, ...prev]));
-  } catch { /* silent */ }
 };
 
 /* ── constantes ─────────────────────────────────────── */
@@ -61,8 +50,7 @@ const PROCESSING_MSGS = [
   "Confirmando pedido...",
 ];
 
-const FAKE_PIX =
-  "00020126580014BR.GOV.BCB.PIX0136a629532e-7693-4846-b028f142082d7b335204000053039865802BR5913VENDYMAIS6009SAOPAULO62070503***6304EA3F";
+// FAKE_PIX removido — PIX agora é gerado pela Edge Function create-payment.
 
 const formatCard = (v: string) =>
   v.replace(/\D/g, "").slice(0, 16).replace(/(.{4})/g, "$1 ").trim();
@@ -117,17 +105,22 @@ const Checkout = () => {
   const [cardCvv, setCardCvv]       = useState("");
   const [cardErrors, setCardErrors] = useState<Record<string,string>>({});
 
-  // PIX
-  const [pixCopied, setPixCopied]   = useState(false);
-  const [pixCount, setPixCount]     = useState(120);
+  // PIX — dados reais vindos da Edge Function
+  const [pixCopied,     setPixCopied]     = useState(false);
+  const [pixCount,      setPixCount]      = useState(300);
+  const [pixCode,       setPixCode]       = useState("");
+  const [pixQrUrl,      setPixQrUrl]      = useState<string | null>(null);
+  const [pixSimulated,  setPixSimulated]  = useState(false);
+  const [pixGenerating, setPixGenerating] = useState(false);
+  const [createdOrderId,  setCreatedOrderId]  = useState("");
+  const [createdPaymentId,setCreatedPaymentId]= useState("");
 
-  // Processamento
+  // Processamento (cartão/dinheiro)
   const [procStep, setProcStep]     = useState(0);
   const procDone                    = useRef(false);
 
   const deliveryFee = fulfillmentType === "delivery" ? (subtotal > 50 ? 0 : 6.9) : 0;
   const total = subtotal + deliveryFee;
-  const [orderId] = useState(() => String(Math.floor(1100 + Math.random() * 8900)));
 
   const storeName =
     stores.find((s) => s.id === storeId)?.name ?? "Loja parceira";
@@ -164,6 +157,42 @@ const Checkout = () => {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [step]);
 
+  /* ── Realtime: auto-confirma quando webhook aprova pagamento ── */
+  useEffect(() => {
+    if (step !== "pix" || !createdPaymentId) return;
+    const channel = supabase
+      .channel(`pix-payment-${createdPaymentId}`)
+      .on(
+        "postgres_changes",
+        { event: "UPDATE", schema: "public", table: "payments", filter: `id=eq.${createdPaymentId}` },
+        (payload) => {
+          const updated = payload.new as { status: string; order_id: string };
+          if (updated.status === "approved") {
+            clear();
+            navigate("/cliente/confirmacao", {
+              state: {
+                order: {
+                  id:           updated.order_id,
+                  storeName,
+                  items:        items.map((it) => ({ name: it.name, quantity: it.quantity, price: it.price })),
+                  total,
+                  address:      address || "Endereço não informado",
+                  payment:      "PIX",
+                  fulfillment:  FULFILLMENT_LABELS[fulfillmentType],
+                  estimatedMin: fulfillmentType === "delivery" ? 25 : 10,
+                  estimatedMax: fulfillmentType === "delivery" ? 40 : 20,
+                },
+              },
+              replace: true,
+            });
+          }
+        }
+      )
+      .subscribe();
+    return () => { supabase.removeChannel(channel); };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [step, createdPaymentId]);
+
   /* ── animação de processamento ─────────────────────── */
   useEffect(() => {
     if (step !== "processing" || procDone.current) return;
@@ -172,39 +201,43 @@ const Checkout = () => {
     const run = async () => {
       if (i >= PROCESSING_MSGS.length) {
         procDone.current = true;
-        const order: FakeOrder = {
-          id: orderId,
-          storeName,
-          items: items.map((it) => ({ name: it.name, quantity: it.quantity, price: it.price })),
-          total,
-          address: address || "Endereço não informado",
-          payment: PAY_OPTS.find((p) => p.id === payment)?.label ?? payment,
-          fulfillment: FULFILLMENT_LABELS[fulfillmentType],
-          status: "aprovado",
-          createdAt: Date.now(),
-          estimatedMin: fulfillmentType === "delivery" ? 25 : 10,
-          estimatedMax: fulfillmentType === "delivery" ? 40 : 20,
-        };
-        // Salva no Supabase (pedido real)
+        const payLabel    = PAY_OPTS.find((p) => p.id === payment)?.label ?? payment;
+        const fulfillLabel = FULFILLMENT_LABELS[fulfillmentType];
+        const estMin      = fulfillmentType === "delivery" ? 25 : 10;
+        const estMax      = fulfillmentType === "delivery" ? 40 : 20;
+        const orderItems  = items.map((it) => ({ name: it.name, quantity: it.quantity, price: it.price }));
+
+        let confirmedId = "";
         if (user) {
-          await supabase.from("orders").insert({
-            buyer_id: user.id,
-            store_id: storeId,
-            store_name: storeName,
-            items: items.map((it) => ({ name: it.name, quantity: it.quantity, price: it.price })),
+          const { data: inserted } = await supabase.from("orders").insert({
+            buyer_id:      user.id,
+            store_id:      storeId,
+            store_name:    storeName,
+            items:         orderItems,
             total,
-            address: address || null,
-            payment: PAY_OPTS.find((p) => p.id === payment)?.label ?? payment,
-            fulfillment: FULFILLMENT_LABELS[fulfillmentType],
-            status: "aprovado",
-            estimated_min: order.estimatedMin,
-            estimated_max: order.estimatedMax,
-          });
+            address:       address || null,
+            payment:       payLabel,
+            fulfillment:   fulfillLabel,
+            status:        "aprovado",
+            estimated_min: estMin,
+            estimated_max: estMax,
+          }).select("id").single();
+          if (inserted?.id) confirmedId = inserted.id;
         }
-        // Salva também no localStorage para o rastreamento funcionar offline
-        saveOrder(order);
+
+        const summary: OrderSummary = {
+          id:           confirmedId,
+          storeName,
+          items:        orderItems,
+          total,
+          address:      address || "Endereço não informado",
+          payment:      payLabel,
+          fulfillment:  fulfillLabel,
+          estimatedMin: estMin,
+          estimatedMax: estMax,
+        };
         clear();
-        navigate("/cliente/confirmacao", { state: { order }, replace: true });
+        navigate("/cliente/confirmacao", { state: { order: summary }, replace: true });
         return;
       }
       setProcStep(i);
@@ -216,18 +249,52 @@ const Checkout = () => {
 
   const startProcessing = () => { procDone.current = false; setProcStep(0); setStep("processing"); };
 
+  /* ── Gera cobrança PIX via Edge Function ─────────────── */
+  const handleGeneratePix = async () => {
+    if (!items.length) { toast.error("Seu carrinho está vazio"); return; }
+    setPixGenerating(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("create-payment", {
+        body: {
+          cart_items:  items.map((it) => ({ name: it.name, quantity: it.quantity, price: it.price })),
+          total,
+          store_name:  storeName,
+          store_id:    storeId,
+          address:     address || null,
+          fulfillment: FULFILLMENT_LABELS[fulfillmentType],
+          user_email:  user?.email ?? "",
+        },
+      });
+      if (error) throw error;
+      setPixCode(data.pix_code);
+      setPixQrUrl(data.pix_qr_url ?? null);
+      setPixSimulated(!!data.simulated);
+      setCreatedOrderId(data.order_id);
+      setCreatedPaymentId(data.payment_id);
+      setPixCount(300); // 5 minutos
+      setStep("pix");
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Erro ao gerar cobrança PIX.");
+    } finally {
+      setPixGenerating(false);
+    }
+  };
+
   const handleConfirm = () => {
     if (!items.length) { toast.error("Seu carrinho está vazio"); return; }
 
-    // Valida endereço obrigatório em modo delivery
-    if (fulfillmentType === "delivery" && !address.trim()) {
-      setAddressError(true);
-      toast.error("Informe o endereço de entrega antes de continuar");
-      return;
+    // Valida endereço obrigatório em modo delivery via schema Zod
+    if (fulfillmentType === "delivery") {
+      const addrResult = deliveryAddressSchema.safeParse({ address: address.trim() });
+      if (!addrResult.success) {
+        setAddressError(true);
+        toast.error(addrResult.error.issues[0]?.message ?? "Informe o endereço de entrega.");
+        return;
+      }
     }
     setAddressError(false);
 
-    if (payment === "pix") { setPixCount(120); setStep("pix"); }
+    if (payment === "pix") { void handleGeneratePix(); }
     else if (payment === "credit" || payment === "debit") setStep("card");
     else startProcessing();
   };
@@ -296,6 +363,27 @@ const Checkout = () => {
   if (step === "pix") {
     const mm = String(Math.floor(pixCount / 60)).padStart(2, "0");
     const ss = String(pixCount % 60).padStart(2, "0");
+
+    const confirmPix = () => {
+      clear();
+      navigate("/cliente/confirmacao", {
+        state: {
+          order: {
+            id:           createdOrderId,
+            storeName,
+            items:        items.map((it) => ({ name: it.name, quantity: it.quantity, price: it.price })),
+            total,
+            address:      address || "Endereço não informado",
+            payment:      "PIX",
+            fulfillment:  FULFILLMENT_LABELS[fulfillmentType],
+            estimatedMin: fulfillmentType === "delivery" ? 25 : 10,
+            estimatedMax: fulfillmentType === "delivery" ? 40 : 20,
+          },
+        },
+        replace: true,
+      });
+    };
+
     return (
       <div className="px-4 py-8 max-w-md mx-auto">
         <button
@@ -314,28 +402,37 @@ const Checkout = () => {
             <p className="text-sm text-muted-foreground mt-1">
               Escaneie o QR Code ou copie o código abaixo
             </p>
+            {pixSimulated && (
+              <span className="inline-flex items-center gap-1 mt-2 text-[10px] font-bold bg-amber-500/10 text-amber-600 px-2 py-1 rounded-full border border-amber-500/20">
+                Modo simulação — sem cobrança real
+              </span>
+            )}
           </div>
 
-          {/* QR Code real */}
+          {/* QR Code */}
           <div className="flex justify-center bg-white rounded-2xl p-4">
-            <QRCodeSVG
-              value={FAKE_PIX}
-              size={176}
-              bgColor="#ffffff"
-              fgColor="#000000"
-              level="M"
-              includeMargin={false}
-            />
+            {pixQrUrl && pixQrUrl.startsWith("data:image") ? (
+              <img src={pixQrUrl} alt="QR Code PIX" className="w-44 h-44 object-contain" />
+            ) : (
+              <QRCodeSVG
+                value={pixCode || "vendy+"}
+                size={176}
+                bgColor="#ffffff"
+                fgColor="#000000"
+                level="M"
+                includeMargin={false}
+              />
+            )}
           </div>
 
           {/* Código copia-cola */}
           <div className="bg-muted rounded-xl p-3 flex items-center gap-2">
             <p className="flex-1 text-[11px] font-mono text-muted-foreground break-all line-clamp-2">
-              {FAKE_PIX}
+              {pixCode}
             </p>
             <button
               onClick={() => {
-                navigator.clipboard?.writeText(FAKE_PIX).catch(() => {});
+                navigator.clipboard?.writeText(pixCode).catch(() => {});
                 setPixCopied(true);
                 toast.success("Código copiado!");
                 setTimeout(() => setPixCopied(false), 2000);
@@ -360,7 +457,7 @@ const Checkout = () => {
           </div>
 
           <button
-            onClick={startProcessing}
+            onClick={confirmPix}
             className="w-full gradient-brand text-primary-foreground rounded-xl py-3.5 font-bold shadow-card hover:shadow-elevated transition-shadow"
           >
             Já paguei — confirmar
@@ -623,12 +720,14 @@ const Checkout = () => {
 
             <button
               onClick={handleConfirm}
-              disabled={items.length === 0}
-              className="w-full gradient-brand text-primary-foreground rounded-xl py-3.5 font-bold shadow-card hover:shadow-elevated transition-shadow disabled:opacity-50 mt-2"
+              disabled={items.length === 0 || pixGenerating}
+              className="w-full gradient-brand text-primary-foreground rounded-xl py-3.5 font-bold shadow-card hover:shadow-elevated transition-shadow disabled:opacity-50 mt-2 flex items-center justify-center gap-2"
             >
-              {payment === "pix" ? "Gerar QR Code Pix" :
-               payment === "credit" || payment === "debit" ? "Informar dados do cartão" :
-               "Confirmar pedido"}
+              {pixGenerating
+                ? <><div className="w-4 h-4 rounded-full border-2 border-white border-t-transparent animate-spin" /> Gerando cobrança...</>
+                : payment === "pix" ? "Gerar QR Code Pix"
+                : payment === "credit" || payment === "debit" ? "Informar dados do cartão"
+                : "Confirmar pedido"}
             </button>
 
             <p className="text-center text-xs text-muted-foreground flex items-center justify-center gap-1 pt-1">

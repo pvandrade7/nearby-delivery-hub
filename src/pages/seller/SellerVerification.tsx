@@ -10,6 +10,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { VerifiedBadge } from "@/components/VerifiedBadge";
 import { SELLER_CATEGORIES } from "@/data/sellerCategories";
+import { manualVerificationSchema, firstError } from "@/schemas";
 import { toast } from "sonner";
 
 // ── tipos ────────────────────────────────────────────────
@@ -539,12 +540,19 @@ const ManualForm = ({
   const removeFile = (url: string) => setFiles((fs) => fs.filter((f) => f.url !== url));
 
   const handleSubmit = async () => {
-    if (!data.store_name.trim())        { toast.error("Informe o nome da loja."); return; }
-    if (!data.store_description.trim()) { toast.error("Informe a descrição da atividade."); return; }
-    if (!data.store_category)           { toast.error("Selecione a categoria."); return; }
-    if (!data.no_cnpj_reason.trim())    { toast.error("Explique por que não possui CNPJ."); return; }
+    const result = manualVerificationSchema.safeParse({
+      store_name:        data.store_name.trim(),
+      store_description: data.store_description.trim(),
+      store_category:    data.store_category,
+      no_cnpj_reason:    data.no_cnpj_reason.trim(),
+    });
+    if (!result.success) {
+      toast.error(firstError(result.error));
+      return;
+    }
     if (files.filter((f) => f.type === "store_photo").length === 0) {
-      toast.error("Adicione pelo menos uma foto da loja."); return;
+      toast.error("Adicione pelo menos uma foto da loja.");
+      return;
     }
     await onSubmit(data, files);
   };
@@ -820,14 +828,18 @@ const SellerVerification = () => {
     if (!isValidCnpj(cnpj)) { toast.error("CNPJ inválido."); return; }
     setBusy(true);
     try {
-      const { error } = await supabase.from("profiles")
-        .update({ cnpj: onlyDigits(cnpj), verified: true })
-        .eq("id", user.id);
+      // Valida contra a Receita Federal e salva via service_role (Edge Function)
+      // para não depender de RLS do cliente — impede auto-verificação fraudulenta.
+      const { data, error } = await supabase.functions.invoke("validate-cnpj", {
+        body: { cnpj: onlyDigits(cnpj) },
+      });
       if (error) throw error;
+      if (!data?.valid) throw new Error(data?.error ?? "CNPJ inválido ou não encontrado na Receita Federal.");
+      await refreshVerified();
       toast.success("CNPJ válido! Loja verificada e acesso liberado.");
       setStatus("verified");
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Erro ao salvar CNPJ.");
+      toast.error(err instanceof Error ? err.message : "Erro ao validar CNPJ.");
     } finally {
       setBusy(false);
     }

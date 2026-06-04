@@ -27,14 +27,16 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
   const add = (product: Product, selectedFulfillment: FulfillmentType = fulfillmentType) => {
     if (!product.storeId) return;
 
-    // Atualiza storeId e fulfillmentType FORA do updater para evitar side-effects
-    // dentro de setState (violação das regras do React).
+    // Captura o storeId atual antes de qualquer setState para evitar stale closure
+    // dentro do updater de setItems (o closure captura o valor do render anterior).
+    const currentStoreId = storeId;
+
     setStoreId(product.storeId);
     setFulfillmentType(selectedFulfillment);
 
     setItems((prev) => {
-      // Se loja diferente, reinicia o carrinho
-      if (storeId && storeId !== product.storeId) {
+      // Se loja diferente, reinicia o carrinho com o novo item
+      if (currentStoreId && currentStoreId !== product.storeId) {
         return [{ ...product, quantity: 1, fulfillmentType: selectedFulfillment }];
       }
       const existing = prev.find((i) => i.id === product.id);

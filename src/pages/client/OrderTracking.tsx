@@ -1,8 +1,19 @@
 import { useEffect, useRef, useState } from "react";
 import { useParams } from "react-router-dom";
 import { Check, Package, Bike, Home as HomeIcon, MessageCircle, Phone, X, Send } from "lucide-react";
-import { ORDERS_KEY, type FakeOrder } from "./Checkout";
+import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/hooks/useAuth";
 import { toast } from "sonner";
+
+type TrackingOrder = {
+  id: string;
+  store_name: string;
+  items: { name: string; quantity: number; price: number }[];
+  total: number;
+  status: string;
+  estimated_min: number | null;
+  estimated_max: number | null;
+};
 
 /* ── passos do status ───────────────────────────────── */
 const STEPS = [
@@ -155,38 +166,68 @@ const CourierChat = ({ onClose }: { onClose: () => void }) => {
 
 /* ══════════════════════════════════════════════════════ */
 const OrderTracking = () => {
-  const { id } = useParams();
-  const [active, setActive] = useState(1);
-  const [order, setOrder] = useState<FakeOrder | null>(null);
+  const { id }  = useParams();
+  const { user } = useAuth();
+  const [active,   setActive]   = useState(1);
+  const [order,    setOrder]    = useState<TrackingOrder | null>(null);
+  const [loading,  setLoading]  = useState(true);
   const [showChat, setShowChat] = useState(false);
 
-  /* carrega pedido do localStorage */
-  useEffect(() => {
-    try {
-      const list: FakeOrder[] = JSON.parse(localStorage.getItem(ORDERS_KEY) || "[]");
-      const found = list.find((o) => o.id === id);
-      if (found) {
-        setOrder(found);
-        const statusMap: Record<string, number> = {
-          aprovado: 0, preparando: 1, saiu: 2, entregue: 3,
-        };
-        setActive(statusMap[found.status] ?? 1);
-      }
-    } catch { /* silent */ }
-  }, [id]);
+  const statusToStep: Record<string, number> = {
+    aprovado: 0, preparando: 1, saiu: 2, entregue: 3,
+  };
 
-  /* avança status automaticamente (demo) */
+  /* carrega pedido do Supabase */
   useEffect(() => {
-    const t = setInterval(() => setActive((a) => (a < 3 ? a + 1 : a)), 5000);
-    return () => clearInterval(t);
-  }, []);
+    if (!id) return;
+    setLoading(true);
+    supabase
+      .from("orders")
+      .select("id, store_name, items, total, status, estimated_min, estimated_max")
+      .eq("id", id)
+      .maybeSingle()
+      .then(({ data }) => {
+        if (data) {
+          const o = data as unknown as TrackingOrder;
+          setOrder(o);
+          setActive(statusToStep[o.status] ?? 1);
+        }
+        setLoading(false);
+      });
+  }, [id]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  /* Realtime: atualiza status quando o lojista avança o pedido */
+  useEffect(() => {
+    if (!user || !id) return;
+    const channel = supabase
+      .channel(`order-tracking-${id}`)
+      .on(
+        "postgres_changes",
+        { event: "UPDATE", schema: "public", table: "orders", filter: `id=eq.${id}` },
+        (payload) => {
+          const updated = payload.new as { status: string };
+          setActive(statusToStep[updated.status] ?? 1);
+          setOrder((prev) => prev ? { ...prev, status: updated.status } : prev);
+        }
+      )
+      .subscribe();
+    return () => { supabase.removeChannel(channel); };
+  }, [user, id]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  if (loading) {
+    return (
+      <div className="flex justify-center py-20">
+        <div className="w-8 h-8 rounded-full border-2 border-primary border-t-transparent animate-spin" />
+      </div>
+    );
+  }
 
   return (
     <div className="px-4 lg:px-8 py-6 lg:py-8 max-w-[1200px] mx-auto">
       <h1 className="text-2xl lg:text-3xl font-extrabold mb-2">Rastrear pedido</h1>
       {order && (
         <p className="text-sm text-muted-foreground mb-6">
-          Pedido #{order.id} · {order.storeName}
+          Pedido #{order.id.slice(0, 8).toUpperCase()} · {order.store_name}
         </p>
       )}
 
@@ -315,7 +356,7 @@ const OrderTracking = () => {
 
             {/* Badge ETA */}
             <div className="absolute top-4 right-4 bg-background/95 backdrop-blur rounded-xl px-3 py-2 shadow-card text-xs font-semibold">
-              ⏱ {order ? `${order.estimatedMin}–${order.estimatedMax} min` : "25–40 min"}
+              ⏱ {order ? `${order.estimated_min ?? 25}–${order.estimated_max ?? 40} min` : "25–40 min"}
             </div>
           </div>
         </div>
@@ -388,8 +429,8 @@ const OrderTracking = () => {
             </div>
           </div>
 
-          {/* Resumo do pedido (se disponível) */}
-          {order && (
+          {/* Resumo do pedido */}
+          {order && Array.isArray(order.items) && order.items.length > 0 && (
             <div className="bg-card rounded-2xl p-4 shadow-card text-xs text-muted-foreground space-y-1">
               <p className="font-bold text-sm text-foreground mb-2">Resumo</p>
               {order.items.slice(0, 3).map((item, i) => (

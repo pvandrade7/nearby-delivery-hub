@@ -19,28 +19,15 @@ import {
   FlaskConical,
   LogOut,
   Brush,
+  ScrollText,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useCart } from "@/context/CartContext";
 import { useAuth } from "@/hooks/useAuth";
+import { useNotifications } from "@/hooks/useNotifications";
 import { supabase } from "@/integrations/supabase/client";
 
 type NavItem = { to: string; icon: typeof Home; label: string };
-
-const notificationsByProfile: Record<"cliente" | "lojista" | "entregador" | "admin", { title: string; body: string; time: string }[]> = {
-  cliente: [
-    { title: "Pedido atualizado", body: "Sua compra #1043 está sendo preparada.", time: "Agora" },
-    { title: "Oferta perto de você", body: "Lâmpadas e ferramentas com desconto hoje.", time: "12 min" },
-  ],
-  lojista: [
-    { title: "Novo pedido recebido", body: "Pedido #1045 aguardando confirmação.", time: "Agora" },
-    { title: "Estoque baixo", body: "Detergente neutro está com poucas unidades.", time: "35 min" },
-  ],
-  entregador: [],
-  admin: [
-    { title: "Verificação pendente", body: "2 vendedores aguardam análise manual.", time: "Agora" },
-  ],
-};
 
 const clientNav: NavItem[] = [
   { to: "/cliente/home", icon: Home, label: "Início" },
@@ -63,8 +50,8 @@ const adminNav: NavItem[] = [
   { to: "/admin/painel",       icon: LayoutDashboard, label: "Painel"        },
   { to: "/admin/verificacoes", icon: BadgeCheck,      label: "Verificações"  },
   { to: "/admin/suporte",      icon: MessageCircle,   label: "Suporte"       },
-  { to: "/admin/usuarios",     icon: User,            label: "Usuários"      },
   { to: "/admin/lojas",        icon: StoreIcon,       label: "Lojas"         },
+  { to: "/admin/logs",         icon: ScrollText,      label: "Logs"          },
 ];
 
 const courierNav: NavItem[] = [
@@ -98,6 +85,7 @@ export const AppShell = ({ children }: { children: ReactNode }) => {
   const profile = useProfile();
   const { count } = useCart();
   const { user, loading: authLoading, isDemo, signOut } = useAuth();
+  const { notifications, unreadCount: notifUnread, markRead, markAllRead } = useNotifications();
   const [unread, setUnread] = useState(0);
   const [notificationsOpen, setNotificationsOpen] = useState(false);
   const notificationsRef = useRef<HTMLDivElement>(null);
@@ -253,37 +241,65 @@ export const AppShell = ({ children }: { children: ReactNode }) => {
           <div className="flex items-center gap-1 sm:gap-2 shrink-0">
             <div ref={notificationsRef} className="relative">
               <button
-                onClick={() => setNotificationsOpen((open) => !open)}
+                onClick={() => {
+                  setNotificationsOpen((open) => !open);
+                  if (!notificationsOpen && notifUnread > 0) markAllRead();
+                }}
                 className="size-9 sm:size-10 rounded-full bg-muted hover:bg-muted/70 transition-colors flex items-center justify-center relative"
                 aria-label="Notificações"
                 aria-expanded={notificationsOpen}
               >
-              <Bell className="w-4 h-4" />
-                {notificationsByProfile[profile].length > 0 && (
-                  <span className="absolute top-2 right-2 size-2 rounded-full bg-secondary" />
+                <Bell className="w-4 h-4" />
+                {notifUnread > 0 && (
+                  <span className="absolute -top-0.5 -right-0.5 min-w-4 h-4 px-1 bg-primary text-primary-foreground text-[10px] font-bold rounded-full flex items-center justify-center">
+                    {notifUnread > 9 ? "9+" : notifUnread}
+                  </span>
                 )}
               </button>
               {notificationsOpen && (
                 <div className="absolute right-0 top-12 w-80 max-w-[calc(100vw-1.5rem)] rounded-2xl border border-border bg-card text-card-foreground shadow-elevated z-50 overflow-hidden">
-                  <div className="px-4 py-3 border-b border-border">
-                    <p className="font-extrabold text-sm">Notificações</p>
-                    <p className="text-xs text-muted-foreground">Atualizações recentes do Vendy+</p>
+                  <div className="px-4 py-3 border-b border-border flex items-center justify-between">
+                    <div>
+                      <p className="font-extrabold text-sm">Notificações</p>
+                      <p className="text-xs text-muted-foreground">Atualizações do Vendy+</p>
+                    </div>
+                    {notifications.some((n) => !n.read) && (
+                      <button
+                        onClick={() => markAllRead()}
+                        className="text-[11px] font-bold text-primary hover:underline shrink-0"
+                      >
+                        Marcar todas lidas
+                      </button>
+                    )}
                   </div>
-                  {notificationsByProfile[profile].length > 0 ? (
+                  {notifications.length > 0 ? (
                     <div className="max-h-80 overflow-y-auto divide-y divide-border">
-                      {notificationsByProfile[profile].map((notification) => (
-                        <div key={`${notification.title}-${notification.time}`} className="px-4 py-3 hover:bg-muted/60 transition-colors">
+                      {notifications.map((n) => (
+                        <button
+                          key={n.id}
+                          onClick={() => markRead(n.id)}
+                          className={`w-full text-left px-4 py-3 hover:bg-muted/60 transition-colors ${!n.read ? "bg-primary/5" : ""}`}
+                        >
                           <div className="flex items-start justify-between gap-3">
-                            <p className="text-sm font-bold leading-tight">{notification.title}</p>
-                            <span className="text-[11px] text-muted-foreground shrink-0">{notification.time}</span>
+                            <p className={`text-sm leading-tight ${!n.read ? "font-bold" : "font-semibold"}`}>
+                              {n.title}
+                            </p>
+                            <span className="text-[10px] text-muted-foreground shrink-0 mt-0.5">
+                              {new Date(n.created_at).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}
+                            </span>
                           </div>
-                          <p className="text-xs text-muted-foreground mt-1 leading-relaxed">{notification.body}</p>
-                        </div>
+                          <p className="text-xs text-muted-foreground mt-1 leading-relaxed text-left">{n.body}</p>
+                          {!n.read && (
+                            <span className="mt-1.5 inline-block size-1.5 rounded-full bg-primary" />
+                          )}
+                        </button>
                       ))}
                     </div>
                   ) : (
-                    <div className="px-4 py-8 text-center">
-                      <p className="text-sm font-semibold">Você não tem notificações</p>
+                    <div className="px-4 py-10 text-center text-muted-foreground">
+                      <Bell className="w-8 h-8 mx-auto mb-2 opacity-25" />
+                      <p className="text-sm font-semibold">Nenhuma notificação</p>
+                      <p className="text-xs mt-1">Você será avisado sobre pedidos e atualizações</p>
                     </div>
                   )}
                 </div>

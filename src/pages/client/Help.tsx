@@ -6,6 +6,7 @@ import {
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
+import { ticketSchema, firstError } from "@/schemas";
 import { toast } from "sonner";
 
 const FAQS = [
@@ -77,8 +78,9 @@ export default function Help() {
   useEffect(() => { void fetchMyTickets(); }, [user?.id]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const openTicket = async () => {
-    if (!subject.trim() || !message.trim()) {
-      toast.error("Preencha o assunto e a mensagem.");
+    const validation = ticketSchema.safeParse({ subject: subject.trim(), message: message.trim(), category });
+    if (!validation.success) {
+      toast.error(firstError(validation.error));
       return;
     }
     setSending(true);

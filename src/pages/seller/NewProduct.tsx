@@ -5,6 +5,8 @@ import { ImagePicker } from "@/components/ImagePicker";
 import { SELLER_CATEGORIES } from "@/data/sellerCategories";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
+import { logAudit } from "@/lib/auditLog";
+import { productSchema, firstError } from "@/schemas";
 import { toast } from "sonner";
 
 const NewProduct = () => {
@@ -55,13 +57,16 @@ const NewProduct = () => {
   };
 
   const validate = () => {
-    if (!name.trim()) { toast.error("Informe o nome do produto."); return false; }
-    if (name.trim().length < 2) { toast.error("O nome deve ter pelo menos 2 caracteres."); return false; }
-    const priceNum = parsePrice(price);
-    if (!price.trim()) { toast.error("Informe o preço do produto."); return false; }
-    if (priceNum === null || priceNum <= 0) { toast.error("Informe um preço válido maior que zero."); return false; }
-    if (!cat) { toast.error("Selecione uma categoria para o produto."); return false; }
-    if (!desc.trim()) { toast.error("Adicione uma descrição ao produto."); return false; }
+    const result = productSchema.safeParse({
+      name:        name.trim(),
+      priceStr:    price.trim(),
+      description: desc.trim(),
+      category:    cat,
+    });
+    if (!result.success) {
+      toast.error(firstError(result.error));
+      return false;
+    }
     return true;
   };
 
@@ -95,6 +100,12 @@ const NewProduct = () => {
     if (error) {
       toast.error("Erro ao salvar produto. Tente novamente.");
     } else {
+      void logAudit(
+        isEditing ? "product_updated" : "product_created",
+        "product",
+        editId ?? undefined,
+        { name: name.trim(), price: priceNum, category: cat, seller_kind: sellerKind }
+      );
       toast.success(isEditing ? "Produto atualizado!" : sellerKind === "store" ? "Produto cadastrado!" : "Anúncio publicado!");
       navigate("/lojista/produtos");
     }

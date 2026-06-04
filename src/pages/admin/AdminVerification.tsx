@@ -148,7 +148,8 @@ const AdminVerification = () => {
       const { data: verifs, error } = await supabase
         .from("seller_verifications" as never)
         .select("*")
-        .order("submitted_at", { ascending: false }) as { data: Record<string, unknown>[] | null; error: unknown };
+        .order("submitted_at", { ascending: false })
+        .limit(100) as { data: Record<string, unknown>[] | null; error: unknown };
 
       if (error) throw error;
       if (!verifs || verifs.length === 0) { setRequests([]); setLoading(false); return; }

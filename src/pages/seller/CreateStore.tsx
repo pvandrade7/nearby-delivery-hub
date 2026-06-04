@@ -6,6 +6,8 @@ import { ImagePicker } from "@/components/ImagePicker";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { SELLER_CATEGORIES } from "@/data/sellerCategories";
+import { logAudit } from "@/lib/auditLog";
+import { storeSchema, firstError } from "@/schemas";
 import { toast } from "sonner";
 
 const CreateStore = () => {
@@ -58,16 +60,9 @@ const CreateStore = () => {
   }, [user]);
 
   const validate = () => {
-    if (!name.trim()) {
-      toast.error("Informe o nome da loja.");
-      return false;
-    }
-    if (name.trim().length < 3) {
-      toast.error("O nome da loja deve ter pelo menos 3 caracteres.");
-      return false;
-    }
-    if (!cat) {
-      toast.error("Selecione uma categoria para a loja.");
+    const result = storeSchema.safeParse({ name: name.trim(), description: desc.trim(), category: cat });
+    if (!result.success) {
+      toast.error(firstError(result.error));
       return false;
     }
     return true;
@@ -102,10 +97,14 @@ const CreateStore = () => {
 
       void qc.invalidateQueries({ queryKey: ["client-stores"] });
 
-      toast.success(isEdit ? "Loja atualizada com sucesso!" : "Loja configurada! Avançando para verificação...");
+      void logAudit(
+        isEdit ? "store_updated" : "store_created",
+        "profile",
+        user.id,
+        { store_name: name.trim(), category: cat }
+      );
 
-      // No onboarding (primeira vez): sempre vai para verificação.
-      // Após edição de uma loja já configurada: vai para o painel.
+      toast.success(isEdit ? "Loja atualizada com sucesso!" : "Loja configurada! Avançando para verificação...");
       navigate(isEdit ? "/lojista/painel" : "/lojista/verificacao");
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Falha ao salvar a loja. Tente novamente.");

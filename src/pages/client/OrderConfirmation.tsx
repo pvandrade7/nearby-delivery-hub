@@ -1,12 +1,12 @@
 import { useEffect, useState } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { CheckCircle2, Clock, MapPin, Package, ChevronRight } from "lucide-react";
-import type { FakeOrder } from "./Checkout";
+import type { OrderSummary } from "./Checkout";
 
 const Confirmation = () => {
   const location = useLocation();
   const navigate = useNavigate();
-  const order = (location.state as { order?: FakeOrder } | null)?.order;
+  const order = (location.state as { order?: OrderSummary } | null)?.order;
 
   // Simulação de progressão de status
   const [statusIdx, setStatusIdx] = useState(0);

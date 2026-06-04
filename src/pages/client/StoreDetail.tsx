@@ -360,7 +360,7 @@ const StoreDetail = () => {
         );
         setProductsLoading(false);
       });
-  }, [id, realStore]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [id, realStore]);
 
   const storeProducts: Product[] = realStore
     ? supabaseProducts

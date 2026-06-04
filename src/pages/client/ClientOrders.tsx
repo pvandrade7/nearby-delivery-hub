@@ -3,7 +3,17 @@ import { Link } from "react-router-dom";
 import { ShoppingBag, RefreshCw } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
-import { ORDERS_KEY, type FakeOrder } from "./Checkout";
+
+type Order = {
+  id: string;
+  storeName: string;
+  items: { name: string; quantity: number; price: number }[];
+  total: number;
+  status: string;
+  createdAt: number;
+  estimatedMin: number;
+  estimatedMax: number;
+};
 
 const statusConfig: Record<string, { label: string; color: string }> = {
   aprovado:   { label: "Pagamento aprovado",   color: "bg-blue-500/15 text-blue-600 dark:text-blue-400" },
@@ -27,101 +37,40 @@ type DbOrder = {
   store_name: string;
   items: { name: string; quantity: number; price: number }[];
   total: number;
-  address: string | null;
-  payment: string;
-  fulfillment: string;
   status: string;
   created_at: string;
-  estimated_min: number;
-  estimated_max: number;
+  estimated_min: number | null;
+  estimated_max: number | null;
 };
-
-// Pedidos de demonstração — aparecem apenas se o usuário não tiver pedidos no banco
-const SEED_ORDERS: FakeOrder[] = [
-  {
-    id: "1039",
-    storeName: "Empório Alvorada",
-    items: [
-      { name: "Arroz Tio João 5kg", quantity: 2, price: 24.9 },
-      { name: "Feijão Carioca 1kg", quantity: 1, price: 8.9 },
-    ],
-    total: 78.9,
-    address: "Rua das Flores, 200 — Apto 42",
-    payment: "Pix",
-    fulfillment: "Entrega",
-    status: "entregue",
-    createdAt: Date.now() - 86_400_000,
-    estimatedMin: 25,
-    estimatedMax: 40,
-  },
-  {
-    id: "1037",
-    storeName: "Quitanda da Vila",
-    items: [
-      { name: "Tomate (kg)", quantity: 2, price: 7.9 },
-      { name: "Banana-prata (kg)", quantity: 3, price: 5.9 },
-    ],
-    total: 45.2,
-    address: "Rua das Flores, 200 — Apto 42",
-    payment: "Dinheiro",
-    fulfillment: "Entrega",
-    status: "entregue",
-    createdAt: Date.now() - 259_200_000,
-    estimatedMin: 20,
-    estimatedMax: 35,
-  },
-];
 
 export default function ClientOrders() {
   const { user } = useAuth();
-  const [orders, setOrders] = useState<FakeOrder[]>([]);
+  const [orders, setOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(true);
 
   const loadOrders = async () => {
     setLoading(true);
-    try {
-      if (user) {
-        // Carrega pedidos reais do Supabase
-        const { data, error } = await supabase
-          .from("orders")
-          .select("*")
-          .eq("buyer_id", user.id)
-          .order("created_at", { ascending: false });
+    if (!user) { setLoading(false); return; }
 
-        if (!error && data && data.length > 0) {
-          const mapped: FakeOrder[] = (data as DbOrder[]).map((o) => ({
-            id: o.id,
-            storeName: o.store_name,
-            items: Array.isArray(o.items) ? o.items : [],
-            total: o.total,
-            address: o.address ?? "",
-            payment: o.payment,
-            fulfillment: o.fulfillment,
-            status: o.status as FakeOrder["status"],
-            createdAt: new Date(o.created_at).getTime(),
-            estimatedMin: o.estimated_min ?? 25,
-            estimatedMax: o.estimated_max ?? 40,
-          }));
-          setOrders(mapped);
-          setLoading(false);
-          return;
-        }
-      }
-    } catch { /* fallback abaixo */ }
+    const { data, error } = await supabase
+      .from("orders")
+      .select("id, store_name, items, total, status, created_at, estimated_min, estimated_max")
+      .eq("buyer_id", user.id)
+      .order("created_at", { ascending: false })
+      .limit(50);
 
-    // Fallback: tenta localStorage (pedidos feitos antes da migração)
-    try {
-      const stored: FakeOrder[] = JSON.parse(localStorage.getItem(ORDERS_KEY) || "[]");
-      if (stored.length > 0) {
-        setOrders(stored);
-        setLoading(false);
-        return;
-      }
-    } catch { /* silent */ }
-
-    // Última opção: pedidos de demonstração
-    localStorage.setItem(ORDERS_KEY, JSON.stringify(SEED_ORDERS));
-    setOrders(SEED_ORDERS);
+    if (!error && data) {
+      setOrders((data as unknown as DbOrder[]).map((o) => ({
+        id:           o.id,
+        storeName:    o.store_name,
+        items:        Array.isArray(o.items) ? o.items : [],
+        total:        o.total,
+        status:       o.status,
+        createdAt:    new Date(o.created_at).getTime(),
+        estimatedMin: o.estimated_min ?? 25,
+        estimatedMax: o.estimated_max ?? 40,
+      })));
+    }
     setLoading(false);
   };
 
@@ -141,11 +90,7 @@ export default function ClientOrders() {
         (payload) => {
           const updated = payload.new as DbOrder;
           setOrders((prev) =>
-            prev.map((o) =>
-              o.id === updated.id
-                ? { ...o, status: updated.status as FakeOrder["status"] }
-                : o
-            )
+            prev.map((o) => o.id === updated.id ? { ...o, status: updated.status } : o)
           );
         }
       )
